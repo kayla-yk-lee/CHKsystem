@@ -162,7 +162,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
 /* STAT CARDS */
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
 .sc{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--rc);box-shadow:var(--sh);padding:16px 18px;position:relative;overflow:hidden}
-.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--rc) var(--rc) 0 0}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;border-radius:var(--rc) var(--rc) 0 0}
 .sa::before{background:linear-gradient(90deg,#1E3A5F,#3B82F6)} .sg::before{background:linear-gradient(90deg,#047857,#10B981)} .sam::before{background:linear-gradient(90deg,#B45309,#F59E0B)} .sr::before{background:linear-gradient(90deg,#BE123C,#F43F5E)}
 .sv{font-size:28px;font-weight:700;font-family:var(--fm);line-height:1;margin-bottom:4px;color:var(--ink)}
 .sl{font-size:11px;color:var(--ink3);font-weight:500}
@@ -471,8 +471,20 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
     <div class="sync-bd s-ok" id="sync-bd"><div class="sync-dot"></div><span id="sync-txt">저장됨</span></div>
     <div class="ic-btn" onclick="openM('mo-urg')" title="긴급알림"><div class="ndot" id="ndot"></div></div>
     <div class="ic-btn" onclick="openCfgByRole()" title="설정">⚙️</div>
-    <div class="uc" onclick="toast('로그인 없이 테스트 모드','warn')">
-      <div class="av" id="top-av">K</div><span id="top-nm">채널K</span>
+    <div class="uc" onclick="toggleUserMenu()" style="position:relative;cursor:pointer">
+      <div class="av" id="top-av">K</div>
+      <span id="top-nm" style="color:#fff;font-size:12px;font-weight:600">채널K</span>
+      <span style="color:rgba(255,255,255,.6);font-size:10px;margin-left:2px">▾</span>
+      <!-- 유저 드롭다운 -->
+      <div id="user-menu" style="display:none;position:absolute;top:36px;right:0;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.15);min-width:200px;z-index:999;overflow:hidden">
+        <div style="padding:12px 14px;border-bottom:1px solid var(--bdr);background:var(--sur2)">
+          <div style="font-size:12px;font-weight:700;color:var(--ink)" id="um-name">채널K</div>
+          <div style="font-size:10.5px;color:var(--ink3)" id="um-email"></div>
+          <div style="font-size:10px;color:var(--a);margin-top:2px;font-weight:600" id="um-role"></div>
+        </div>
+        <div onclick="openCfgByRole();closeUserMenu()" style="padding:10px 14px;font-size:12px;color:var(--ink2);cursor:pointer;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='var(--sur2)'" onmouseout="this.style.background=''">⚙️ 설정</div>
+        <div onclick="signOut()" style="padding:10px 14px;font-size:12px;color:var(--r);cursor:pointer;display:flex;align-items:center;gap:8px;border-top:1px solid var(--bdr)" onmouseover="this.style.background='var(--rbg)'" onmouseout="this.style.background=''">🚪 로그아웃</div>
+      </div>
     </div>
   </div>
 </div>
@@ -6446,6 +6458,34 @@ function canDeleteProj(){ return canDelete(); }
 function canDeleteQI(){ return canDelete(); }
 function canDeleteCL(){ return canDelete(); }
 function canDeleteVendor(){ return canDelete(); }
+
+function toggleUserMenu(){
+  const m=document.getElementById('user-menu');
+  if(!m) return;
+  const isOpen = m.style.display==='block';
+  if(isOpen){ m.style.display='none'; return; }
+  // 사용자 정보 업데이트
+  const nameEl=document.getElementById('um-name');
+  const emailEl=document.getElementById('um-email');
+  const roleEl=document.getElementById('um-role');
+  if(nameEl) nameEl.textContent=CFG.myname||'이름 없음';
+  if(emailEl) emailEl.textContent=_currentUser?.email||CFG.myemail||'미로그인';
+  if(roleEl) roleEl.textContent=ROLE_LABELS?.[myRole()]||myRole();
+  m.style.display='block';
+  // 외부 클릭 시 닫기
+  setTimeout(function(){
+    document.addEventListener('click', function handler(e){
+      if(!document.getElementById('user-menu')?.contains(e.target)){
+        closeUserMenu();
+        document.removeEventListener('click', handler);
+      }
+    });
+  }, 10);
+}
+function closeUserMenu(){
+  const m=document.getElementById('user-menu');
+  if(m) m.style.display='none';
+}
 
 function openCfgByRole(){
   const role=myRole();
