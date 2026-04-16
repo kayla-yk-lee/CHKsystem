@@ -521,7 +521,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
     <div class="nav on" data-nav="dashboard" onclick="navTo('dashboard',this)"><span class="nav-ic">◻</span>대시보드</div>
     <div class="nav" data-nav="projects" onclick="navTo('projects',this)"><span class="nav-ic"></span>전체 프로젝트<span class="nc" id="nc-all">0</span></div>
     <div class="nav" data-nav="pipeline" onclick="navTo('pipeline',this)"><span class="nav-ic">⇢</span>파이프라인</div>
-    ${canCreate()?'<div class="nav" onclick="quickNewProj()"><span class="nav-ic" style="color:var(--a);font-weight:700">＋</span>새 프로젝트</div>':''}
+    <div id="nav-new-proj" class="nav" onclick="quickNewProj()"><span class="nav-ic" style="color:var(--a);font-weight:700">＋</span>새 프로젝트</div>
     <div class="nav" data-nav="rfp-parse" onclick="navTo('rfp-parse',this)"><span class="nav-ic">↓</span>RFP에서 생성</div>
     <div class="nav" data-nav="calendar" onclick="navTo('calendar',this)"><span class="nav-ic"></span>캘린더</div>
     <div class="nav" data-nav="vendors" onclick="navTo('vendors',this)"><span class="nav-ic"></span>서비스 항목</div>
@@ -9050,6 +9050,9 @@ function startApp(){
   hidePendingScreen();
   const body=document.getElementById('body');
   if(body){body.style.visibility='visible';body.style.pointerEvents='all';}
+  // 새 프로젝트 버튼 권한 제어
+  const newProjBtn=document.getElementById('nav-new-proj');
+  if(newProjBtn) newProjBtn.style.display=canCreate()?'':'none';
   renderSidebar();
   renderDash();
 }
