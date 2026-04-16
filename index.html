@@ -1351,14 +1351,57 @@ var DB=loadDB(), CFG=loadCFG(), CUR=null, CLF='all', SB=null, ONLINE=navigator.o
 var SQ=[], THEMES=[], VID=null, _t=null, _invL='en', _prevL='ko';
 
 async function persist(p){
-  if(!p)return; p.updatedAt=now(); saveDB(); setSS('sv','저장 중...');
+  if(!p)return;
+  p.updatedAt=now();
+  saveDB();
+  setSS('sv','저장 중...');
   if(!ONLINE){SQ.push(p);setSS('of','오프라인');return;}
   if(!SB){setSS('ok','로컬 저장됨');return;}
-  try{const{error}=await SB.from('projects').upsert(p,{onConflict:'id'});if(error)throw error;DB.lastSync=now();saveDB();setSS('ok','동기화 완료');}
-  catch(e){setSS('er','Supabase 오류');SQ.push(p);}
+  try{
+    // projects 테이블에 정규화된 컬럼으로 저장
+    const nights=p.nights||0;
+    const {error}=await SB.from('projects').upsert({
+      id:p.id,
+      status:p.status||'bid',
+      co_ko:p.nameKO||'',
+      co_en:p.nameEN||'',
+      contact_name:p.clientName||'',
+      email:p.clientEmail||'',
+      phone:p.clientPhone||'',
+      country:p.country||'',
+      origin_city:p.origin||'',
+      arrival_date:p.eventDate||null,
+      duration:nights+'박'+(nights+1)+'일',
+      pax:p.pax||0,
+      theme:p.theme||'',
+      notes:p.notes||'',
+      fx_rate:p.exchangeRate||1380,
+      mgmt_pct:p.feePercent||10,
+      tax_pct:p.taxPercent||0,
+      tax_on:false,
+      sales_name:p.salesperson||'',
+      sales_co:'Channel K Corp.',
+      updated_at:new Date().toISOString(),
+      created_at:p.createdAt||new Date().toISOString()
+    },{onConflict:'id'});
+    if(error)throw error;
+    DB.lastSync=now();
+    saveDB();
+    setSS('ok','동기화 완료');
+  }catch(e){
+    setSS('er','Supabase 오류');
+    SQ.push(p);
+  }
 }
 function dp(p){saveDB();clearTimeout(_t);_t=setTimeout(()=>persist(p),800);}
-async function flushSQ(){if(!ONLINE||!SB||!SQ.length)return;const q=[...SQ];SQ=[];for(const p of q){try{await SB.from('projects').upsert(p,{onConflict:'id'});}catch(e){SQ.push(p);}}if(!SQ.length)setSS('ok','동기화 완료');}
+async function flushSQ(){
+  if(!ONLINE||!SB||!SQ.length)return;
+  const q=[...SQ];SQ=[];
+  for(const p of q){
+    try{await persist(p);}catch(e){SQ.push(p);}
+  }
+  if(!SQ.length)setSS('ok','동기화 완료');
+}
 
 /* ── SAMPLE DATA ── */
 function buildSample(){
@@ -1585,39 +1628,133 @@ async function syncUp(){
   if(!SB){toast('Supabase 미연결 — 설정에서 URL/Key를 입력하세요','err');return;}
   setSS('sv','업로드 중...');
   try{
-    // 프로젝트: 핵심 컬럼 + data jsonb로 전체 저장
-    var projRows = (DB.projects||[]).map(function(p){
-      return {
+    for(const p of (DB.projects||[])){
+      // ① projects 테이블
+      const nights=p.nights||0;
+      const projRow={
         id:p.id,
-        nameKO:p.nameKO||'',
-        nameEN:p.nameEN||'',
-        eventDate:p.eventDate||'',
-        pax:p.pax||0,
-        nights:p.nights||3,
         status:p.status||'bid',
-        salesperson:p.salesperson||'',
-        updatedAt:p.updatedAt||now(),
-        createdAt:p.createdAt||now(),
-        data:p  // 전체 데이터를 jsonb로
+        co_ko:p.nameKO||'',
+        co_en:p.nameEN||'',
+        contact_name:p.clientName||'',
+        email:p.clientEmail||'',
+        phone:p.clientPhone||'',
+        country:p.country||'',
+        origin_city:p.origin||'',
+        arrival_date:p.eventDate||null,
+        duration:nights+'박'+(nights+1)+'일',
+        pax:p.pax||0,
+        theme:p.theme||'',
+        notes:p.notes||'',
+        fx_rate:p.exchangeRate||1380,
+        mgmt_pct:p.feePercent||10,
+        tax_pct:p.taxPercent||0,
+        tax_on:false,
+        sales_name:p.salesperson||'',
+        sales_co:'Channel K Corp.',
+        sales_email:'',
+        sales_pct:0,
+        updated_at:new Date().toISOString(),
+        created_at:p.createdAt||new Date().toISOString()
       };
-    });
-    if(projRows.length){
-      const {error:pErr} = await SB.from('projects').upsert(projRows,{onConflict:'id'});
+      const {error:pErr}=await SB.from('projects').upsert(projRow,{onConflict:'id'});
       if(pErr) throw pErr;
+
+      // ② project_days + schedule_rows (기존 삭제 후 재삽입)
+      const schedule=p.schedule||[];
+      // 기존 days 조회
+      const {data:existingDays}=await SB.from('project_days').select('id').eq('project_id',p.id);
+      if(existingDays&&existingDays.length){
+        const dayIds=existingDays.map(d=>d.id);
+        // schedule_rows 먼저 삭제
+        await SB.from('schedule_rows').delete().in('day_id',dayIds).catch(()=>{});
+        // project_days 삭제
+        await SB.from('project_days').delete().eq('project_id',p.id).catch(()=>{});
+      }
+      // 새로 삽입
+      for(let di=0;di<schedule.length;di++){
+        const day=schedule[di];
+        const {data:dayData,error:dErr}=await SB.from('project_days')
+          .insert({project_id:p.id,day_index:di,title_ko:day.titleKo||('Day '+(di+1)),title_en:day.titleEn||''})
+          .select('id').single();
+        if(dErr){console.warn('day insert:',dErr);continue;}
+        const dayId=dayData.id;
+        const rows=day.rows||[];
+        for(let ri=0;ri<rows.length;ri++){
+          const r=rows[ri];
+          await SB.from('schedule_rows').insert({
+            day_id:dayId,time_val:r.time||'',content_ko:r.ko||'',content_en:r.en||'',sort_order:ri
+          }).catch(e=>console.warn('sched row:',e));
+        }
+      }
+
+      // ③ quote_rows (기존 삭제 후 재삽입)
+      await SB.from('quote_rows').delete().eq('project_id',p.id).catch(()=>{});
+      const quoteItems=p.quoteItems||[];
+      for(let qi=0;qi<quoteItems.length;qi++){
+        const q=quoteItems[qi];
+        await SB.from('quote_rows').insert({
+          project_id:p.id,
+          cat:q.category||'',
+          name_ko:q.name||'',
+          name_en:q.nameEN||'',
+          qty:q.qty||1,
+          unit:q.unit||'',
+          cost:q.costKRW||0,
+          sell:q.sellKRW||0,
+          sort_order:qi,
+          is_manual:true
+        }).catch(e=>console.warn('quote row:',e));
+      }
+
+      // ④ guide_settlements (기존 삭제 후 재삽입)
+      await SB.from('guide_settlements').delete().eq('project_id',p.id).catch(()=>{});
+      const guides=p.guides2||[];
+      for(const g of guides){
+        const workDays=g.workDays||[];
+        for(const d of workDays){
+          await SB.from('guide_settlements').insert({
+            project_id:p.id,
+            guide_name:g.name||'',
+            work_date:d.date||null,
+            work_desc:g.role||'',
+            guide_fee:d.rate||0,
+            tax_33:g.tax33||false,
+            extras:d.extras||[],
+            notes:g.note||''
+          }).catch(e=>console.warn('guide:',e));
+        }
+      }
+
+      // ⑤ settlements (협력업체 정산)
+      await SB.from('settlements').delete().eq('project_id',p.id).catch(()=>{});
+      const vSettles=p.vendorSettles||[];
+      for(const vs of vSettles){
+        await SB.from('settlements').insert({
+          project_id:p.id,
+          status:vs.paid?'paid':'unpaid',
+          timing:vs.payDate||'',
+          notes:(vs.vendorName||'')+(vs.note?(' — '+vs.note):''),
+          paid_amt:vs.amount||0,
+          updated_at:new Date().toISOString()
+        }).catch(e=>console.warn('settlement:',e));
+      }
     }
 
-    // vendors
-    var vendorRows = (DB.vendors||[]).map(function(v){
-      return {id:v.id, name:v.name||'', category:v.category||'', data:v};
-    });
-    if(vendorRows.length){
-      await SB.from('vendors').upsert(vendorRows,{onConflict:'id'}).catch(function(e){console.warn('vendor upsert:',e);});
+    // ⑥ vendors + vendor_contacts
+    for(const v of (DB.vendors||[])){
+      await SB.from('vendors').upsert({
+        id:v.id,
+        name:v.name||'',
+        category:v.categoryGroup||v.category||'',
+        data:v
+      },{onConflict:'id'}).catch(e=>console.warn('vendor:',e));
     }
 
     DB.lastSync=now();
     saveDB();
     setSS('ok','동기화 완료 '+new Date().toLocaleTimeString('ko-KR'));
-    toast('✓ 업로드 완료 ('+projRows.length+'개 프로젝트)','ok');
+    toast('✓ 업로드 완료 ('+(DB.projects||[]).length+'개 프로젝트)','ok');
   }catch(e){
     setSS('er','업로드 실패');
     toast('업로드 실패: '+e.message,'err');
@@ -1630,41 +1767,143 @@ async function syncDown(){
   if(!SB){toast('Supabase 미연결','err');return;}
   setSS('sv','다운로드 중...');
   try{
-    const {data:rows, error} = await SB.from('projects').select('*').order('updatedAt',{ascending:false});
-    if(error) throw error;
+    // ① 모든 테이블 병렬 조회
+    const [
+      {data:projRows,  error:pErr},
+      {data:dayRows},
+      {data:schedRows},
+      {data:quoteRows},
+      {data:guideRows},
+      {data:settleRows},
+      {data:vendorRows}
+    ] = await Promise.all([
+      SB.from('projects').select('*').order('updated_at',{ascending:false}),
+      SB.from('project_days').select('*').order('day_index'),
+      SB.from('schedule_rows').select('*').order('sort_order'),
+      SB.from('quote_rows').select('*').order('sort_order'),
+      SB.from('guide_settlements').select('*'),
+      SB.from('settlements').select('*'),
+      SB.from('vendors').select('*')
+    ]);
+    if(pErr) throw pErr;
 
-    var merged = {};
-    (DB.projects||[]).forEach(function(p){merged[p.id]=p;});
-    (rows||[]).forEach(function(row){
-      // jsonb data 필드에서 전체 복원, 없으면 row 자체 사용
-      var p = row.data||row;
-      p.id = row.id;
-      if(!merged[p.id]||new Date(row.updatedAt)>new Date((merged[p.id].updatedAt)||0)){
+    // ② 앱 데이터 구조로 재조립
+    const projects=(projRows||[]).map(function(p){
+      const durationStr=p.duration||'3박4일';
+      const nights=parseInt(durationStr.split('박')[0])||3;
+
+      // 일정 재조립
+      const myDays=(dayRows||[]).filter(d=>d.project_id===p.id).sort((a,b)=>a.day_index-b.day_index);
+      const schedule=myDays.map(function(day){
+        const myRows=(schedRows||[]).filter(r=>r.day_id===day.id).sort((a,b)=>a.sort_order-b.sort_order);
+        return {
+          titleKo:day.title_ko||'',
+          titleEn:day.title_en||'',
+          rows:myRows.map(r=>({time:r.time_val||'',ko:r.content_ko||'',en:r.content_en||'',place:''}))
+        };
+      });
+
+      // 견적 재조립
+      const quoteItems=(quoteRows||[]).filter(q=>q.project_id===p.id).sort((a,b)=>a.sort_order-b.sort_order).map(q=>({
+        id:String(q.id),
+        category:q.cat||'',
+        name:q.name_ko||'',
+        nameEN:q.name_en||'',
+        qty:q.qty||1,
+        unit:q.unit||'',
+        costKRW:parseFloat(q.cost)||0,
+        sellKRW:parseFloat(q.sell)||0,
+        confirmed:false,
+        actualKRW:null
+      }));
+
+      // 가이드 정산 재조립
+      const myGuides=(guideRows||[]).filter(g=>g.project_id===p.id);
+      const guideMap={};
+      myGuides.forEach(function(g){
+        if(!guideMap[g.guide_name]) guideMap[g.guide_name]={
+          id:String(g.id),
+          name:g.guide_name||'',
+          role:g.work_desc||'',
+          tax33:g.tax_33||false,
+          note:g.notes||'',
+          status:'unpaid',
+          ssn:'',tel:'',address:'',
+          workDays:[]
+        };
+        guideMap[g.guide_name].workDays.push({
+          date:g.work_date||'',
+          rate:parseFloat(g.guide_fee)||0,
+          extras:g.extras||[]
+        });
+      });
+
+      // 협력업체 정산 재조립
+      const vendorSettles=(settleRows||[]).filter(s=>s.project_id===p.id).map(s=>({
+        id:String(s.id),
+        vendorName:s.notes?.split(' — ')[0]||'',
+        amount:parseFloat(s.paid_amt)||0,
+        paid:s.status==='paid',
+        payDate:s.timing||'',
+        taxInvoice:false,
+        invoiceNo:'',
+        category:'',
+        note:s.notes?.split(' — ')[1]||''
+      }));
+
+      return {
+        id:p.id,
+        nameKO:p.co_ko||'',
+        nameEN:p.co_en||'',
+        clientName:p.contact_name||'',
+        clientEmail:p.email||'',
+        clientPhone:p.phone||'',
+        status:p.status||'bid',
+        eventDate:p.arrival_date||'',
+        pax:p.pax||0,
+        nights:nights,
+        origin:p.origin_city||'',
+        theme:p.theme||'',
+        notes:p.notes||'',
+        exchangeRate:parseFloat(p.fx_rate)||1380,
+        feePercent:parseFloat(p.mgmt_pct)||10,
+        taxPercent:parseFloat(p.tax_pct)||0,
+        salesperson:p.sales_name||'',
+        updatedAt:p.updated_at||'',
+        createdAt:p.created_at||'',
+        schedule:schedule,
+        quoteItems:quoteItems,
+        guides2:Object.values(guideMap),
+        vendorSettles:vendorSettles,
+        laborSettles:[],
+        tasks:[],checklist:[],rfpRaw:'',guides:[]
+      };
+    });
+
+    // ③ 로컬과 병합 (최신 우선)
+    var merged={};
+    (DB.projects||[]).forEach(p=>{merged[p.id]=p;});
+    projects.forEach(p=>{
+      if(!merged[p.id]||new Date(p.updatedAt)>new Date(merged[p.id].updatedAt||0)){
         merged[p.id]=p;
       }
     });
-    DB.projects = Object.values(merged);
+    DB.projects=Object.values(merged);
 
-    // vendors
-    try{
-      // 로컬에서 명시적으로 전체 삭제한 경우 Supabase에서 복원하지 않음
-      if(!DB._vendorsCleared){
-        const {data:vrows} = await SB.from('vendors').select('*');
-        if(vrows&&vrows.length){
-          var vMerged={};
-          (DB.vendors||[]).forEach(function(v){vMerged[v.id]=v;});
-          vrows.forEach(function(row){
-            var v=row.data||row; v.id=row.id;
-            if(v.costUnit){
-              if(SB&&ONLINE) SB.from('vendors').delete().eq('id',v.id).catch(function(){});
-              return;
-            }
-            vMerged[v.id]=v;
-          });
-          DB.vendors=Object.values(vMerged);
+    // ④ vendors
+    if(!DB._vendorsCleared){
+      var vMerged={};
+      (DB.vendors||[]).forEach(v=>{vMerged[v.id]=v;});
+      (vendorRows||[]).forEach(function(row){
+        var v=row.data||row; v.id=row.id;
+        if(v.costUnit){
+          SB.from('vendors').delete().eq('id',v.id).catch(()=>{});
+          return;
         }
-      }
-    }catch(e){}
+        vMerged[v.id]=v;
+      });
+      DB.vendors=Object.values(vMerged);
+    }
 
     DB.lastSync=now();
     saveDB();
@@ -1673,7 +1912,7 @@ async function syncDown(){
     toast('✓ 다운로드 완료 ('+DB.projects.length+'개 프로젝트)','ok');
   }catch(e){
     setSS('er','다운로드 실패');
-    var msg = e.message||'';
+    var msg=e.message||'';
     if(msg.includes('not find the table')||msg.includes('does not exist')){
       toast('테이블 없음 → SQL 스키마 복사 버튼으로 테이블을 먼저 생성하세요','err');
     } else if(msg.includes('Invalid API key')||msg.includes('401')){
