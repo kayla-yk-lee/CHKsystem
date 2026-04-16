@@ -509,7 +509,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
     <div class="nav on" data-nav="dashboard" onclick="navTo('dashboard',this)"><span class="nav-ic">◻</span>대시보드</div>
     <div class="nav" data-nav="projects" onclick="navTo('projects',this)"><span class="nav-ic"></span>전체 프로젝트<span class="nc" id="nc-all">0</span></div>
     <div class="nav" data-nav="pipeline" onclick="navTo('pipeline',this)"><span class="nav-ic">⇢</span>파이프라인</div>
-    <div class="nav" onclick="quickNewProj()"><span class="nav-ic" style="color:var(--a);font-weight:700">＋</span>새 프로젝트</div>
+    ${canCreate()?'<div class="nav" onclick="quickNewProj()"><span class="nav-ic" style="color:var(--a);font-weight:700">＋</span>새 프로젝트</div>':''}
     <div class="nav" data-nav="rfp-parse" onclick="navTo('rfp-parse',this)"><span class="nav-ic">↓</span>RFP에서 생성</div>
     <div class="nav" data-nav="calendar" onclick="navTo('calendar',this)"><span class="nav-ic"></span>캘린더</div>
     <div class="nav" data-nav="vendors" onclick="navTo('vendors',this)"><span class="nav-ic"></span>서비스 항목</div>
@@ -6359,17 +6359,45 @@ function saveThemeEdit(key){
 }
 
 /* ── ROLE / PERMISSION ── */
-function myRole(){ return CFG.role||'manager'; }  // 기본값: 담당자 (역할 미설정 시 삭제 허용)
-function canDelete(){
-  // general만 삭제 불가, 나머지(manager/dev/미설정) 모두 허용
-  return myRole()!=='general';
+/* ── 권한 시스템 ── */
+function myRole(){ return CFG.role||'manager'; }
+
+// 레벨별 권한 정의
+// dev    : 모든 권한 (시스템 설정 포함)
+// admin  : L1 — 프로젝트 전체 + 사용자 관리
+// manager: L2 — 프로젝트 생성/수정/삭제
+// staff  : L3 — 프로젝트 생성/수정 (삭제 불가)
+// viewer : L4 — 읽기 전용
+
+function canCreate(){
+  // viewer는 생성 불가
+  return ['dev','admin','manager','staff'].includes(myRole());
 }
+function canEdit(){
+  // viewer는 수정 불가
+  return ['dev','admin','manager','staff'].includes(myRole());
+}
+function canDelete(){
+  // staff, viewer는 삭제 불가
+  return ['dev','admin','manager'].includes(myRole());
+}
+function canManageUsers(){
+  // dev, admin만 사용자 관리 가능
+  return ['dev','admin'].includes(myRole());
+}
+function canAccessSettings(){
+  // dev만 시스템 설정 전체 접근
+  return myRole()==='dev';
+}
+
 function canDeleteProj(){ return canDelete(); }
 function canDeleteQI(){ return canDelete(); }
 function canDeleteCL(){ return canDelete(); }
 function canDeleteVendor(){ return canDelete(); }
 
-function noPermToast(){toast('삭제 권한이 없습니다. 설정 → 내 역할을 확인하세요.','err');}
+function noPermToast(){toast('권한이 없습니다. (현재: '+ROLE_LABELS[myRole()]||myRole()+')','err');}
+function noCreateToast(){toast('생성 권한이 없습니다 (레벨 3 이상 필요)','err');}
+function noEditToast(){toast('수정 권한이 없습니다 (레벨 3 이상 필요)','err');}
 
 /* ══ RFP 파서 ══ */
 function openRFPParser(){navTo('rfp-parse');}
@@ -8829,27 +8857,39 @@ async function checkAuth(){
 
 async function handleLoggedIn(user){
   const email = user.email||'';
-  const name = user.user_metadata?.name || user.user_metadata?.full_name || email.split('@')[0];
+  const metaName = user.user_metadata?.name || user.user_metadata?.full_name || email.split('@')[0];
 
-  // 사용자 정보 업데이트
-  CFG.myname = name;
-  CFG.myemail = email;
-  const nmEl=document.getElementById('top-nm');
-  const avEl=document.getElementById('top-av');
-  if(nmEl) nmEl.textContent=name;
-  if(avEl) avEl.textContent=name.charAt(0);
-
-  // allowed_users에 기록 (없으면 추가)
+  // Supabase에서 실제 role 조회
+  let role = CFG.role || 'manager';
   if(SB){
     try{
-      await SB.from('allowed_users').upsert({
-        email:email, name:name, role:'member',
-        created_at:new Date().toISOString()
-      },{onConflict:'email',ignoreDuplicates:true});
-    }catch(e){console.warn('allowed_users:',e);}
+      const {data} = await SB.from('allowed_users').select('name,role').eq('email',email).single();
+      if(data){
+        role = data.role || 'manager';
+        // 이름도 DB에 저장된 걸 우선 사용
+        if(data.name) CFG.myname = data.name;
+      } else {
+        // 처음 로그인 — DB에 등록
+        await SB.from('allowed_users').upsert({
+          email:email, name:metaName, role:'manager',
+          created_at:new Date().toISOString()
+        },{onConflict:'email',ignoreDuplicates:true});
+      }
+    }catch(e){ console.warn('role load:',e); }
   }
 
-  // 바로 앱 시작
+  // CFG 업데이트
+  if(!CFG.myname) CFG.myname = metaName;
+  CFG.myemail = email;
+  CFG.role = role;
+  localStorage.setItem('ck-cfg-v1', JSON.stringify(CFG));
+
+  // UI 업데이트
+  const nmEl=document.getElementById('top-nm');
+  const avEl=document.getElementById('top-av');
+  if(nmEl) nmEl.textContent=CFG.myname;
+  if(avEl) avEl.textContent=CFG.myname.charAt(0);
+
   startApp();
 }
 
@@ -8924,7 +8964,7 @@ async function signInWithGoogle(){
     if(btn) btn.disabled=true;
     const {error} = await SB.auth.signInWithOAuth({
       provider:'google',
-      options:{redirectTo: window.location.origin+window.location.pathname}
+      options:{redirectTo: 'https://chksystem.kayla-lee.workers.dev'}
     });
     if(error) throw error;
   }catch(e){
