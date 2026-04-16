@@ -8789,18 +8789,34 @@ async function revokeUser(email){
 var _currentUser = null;
 
 async function checkAuth(){
-  if(!SB) return startApp();
+  // 로그인 화면 표시
+  showLoginScreen();
+
+  if(!SB){
+    // Supabase 없으면 바로 시작
+    startApp();
+    return;
+  }
+
   try{
     const {data:{session}} = await SB.auth.getSession();
-    if(session){
+    if(session && session.user){
       _currentUser = session.user;
       await handleLoggedIn(session.user);
     } else {
+      // 세션 없으면 로그인 화면 유지
       showLoginScreen();
     }
-    // 세션 변경 감지
+  }catch(e){
+    console.warn('auth check error:',e);
+    // 오류 시 로그인 화면 유지
+    showLoginScreen();
+  }
+
+  // 세션 변경 감지 (로그인/로그아웃)
+  try{
     SB.auth.onAuthStateChange(async function(event, session){
-      if(event==='SIGNED_IN' && session){
+      if(event==='SIGNED_IN' && session && session.user){
         _currentUser = session.user;
         await handleLoggedIn(session.user);
       } else if(event==='SIGNED_OUT'){
@@ -8808,10 +8824,7 @@ async function checkAuth(){
         showLoginScreen();
       }
     });
-  }catch(e){
-    console.warn('auth check:',e);
-    startApp();
-  }
+  }catch(e){console.warn('auth listener:',e);}
 }
 
 async function handleLoggedIn(user){
@@ -8938,18 +8951,12 @@ async function signInWithGoogle(){
   if(!ONLINE) document.getElementById('off-bar').classList.add('show');
 
   // Supabase 초기화
-  if(CFG.sbUrl && CFG.sbKey){
-    try{ SB = supabase.createClient(CFG.sbUrl,CFG.sbKey); }catch(e){}
-  }
+  try{
+    SB = supabase.createClient(CFG.sbUrl, CFG.sbKey);
+  }catch(e){ console.warn('SB init:',e); }
 
-  // 로그인 화면 숨기고 바로 시작
-  const ls=document.getElementById('login-screen');
-  const ps=document.getElementById('pending-screen');
-  if(ls) ls.style.display='none';
-  if(ps) ps.style.display='none';
-
-  renderSidebar();
-  renderDash();
+  // 구글 로그인 체크
+  checkAuth();
 })();
 </script>
 </body>
