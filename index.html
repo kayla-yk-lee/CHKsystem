@@ -521,9 +521,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
     <div class="nav on" data-nav="dashboard" onclick="navTo('dashboard',this)"><span class="nav-ic">◻</span>대시보드</div>
     <div class="nav" data-nav="projects" onclick="navTo('projects',this)"><span class="nav-ic"></span>전체 프로젝트<span class="nc" id="nc-all">0</span></div>
     <div class="nav" data-nav="pipeline" onclick="navTo('pipeline',this)"><span class="nav-ic">⇢</span>파이프라인</div>
-    <div id="nav-new-proj" class="nav" onclick="quickNewProj()"><span class="nav-ic" style="color:var(--a);font-weight:700">＋</span>새 프로젝트</div>
-    <div class="nav" data-nav="rfp-parse" onclick="navTo('rfp-parse',this)"><span class="nav-ic">↓</span>RFP에서 생성</div>
-    <div class="nav" data-nav="rfp-inbox" onclick="navTo('rfp-inbox',this)"><span class="nav-ic">📨</span>RFP 수신함<span class="nc" id="nc-rfp" style="background:var(--rbg);color:var(--r)">0</span></div>
+    <div id="nav-new-proj" class="nav" data-nav="proj-create" onclick="navTo('proj-create',this)"><span class="nav-ic" style="color:var(--a);font-weight:700">📥</span>프로젝트 생성<span class="nc" id="nc-rfp" style="background:var(--rbg);color:var(--r);display:none">0</span></div>
     <div class="nav" data-nav="calendar" onclick="navTo('calendar',this)"><span class="nav-ic"></span>캘린더</div>
     <div class="nav" data-nav="vendors" onclick="navTo('vendors',this)"><span class="nav-ic"></span>서비스 항목</div>
     <div class="nav" data-nav="vendors-co" onclick="navTo('vendors-co',this)"><span class="nav-ic"></span>협력업체</div>
@@ -599,6 +597,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
       <div class="page" id="page-report"></div>
       <div class="page" id="page-internal"></div>
       <div class="page" id="page-rfp-inbox"></div>
+      <div class="page" id="page-proj-create"></div>
   </div>
 </div>
 
@@ -2088,7 +2087,7 @@ function navTo(page,el){
   document.getElementById('ph').style.display='none';
   document.getElementById('tabbar').style.display='none';
   CUR=null; showPage(page);
-  const fn={dashboard:renderDash,pipeline:renderPipeline,vendors:renderVendors,'vendors-co':renderVendorsCo,calendar:renderCalendar,themes:renderThemes,'new-proj':renderNewProj,stat:renderStatPage,projects:renderProjects,'rfp-parse':renderRFPParsePage,internal:renderInternal,'rfp-inbox':renderRFPInbox};
+  const fn={dashboard:renderDash,pipeline:renderPipeline,vendors:renderVendors,'vendors-co':renderVendorsCo,calendar:renderCalendar,themes:renderThemes,'new-proj':renderNewProj,stat:renderStatPage,projects:renderProjects,'rfp-parse':renderRFPParsePage,internal:renderInternal,'rfp-inbox':renderRFPInbox,'proj-create':renderProjCreate};
   if(fn[page])fn[page]();
 }
 
@@ -9660,8 +9659,298 @@ function exportTaxXLSX(){
 }
 
 /* ═══════════════════════════════════════════════════
-   📨 RFP 수신함 — Gmail → Supabase 연동
+   📥 프로젝트 생성 — 통합 페이지 (수신함 / RFP파싱 / 직접입력)
    ═══════════════════════════════════════════════════ */
+var _pcTab = 'inbox';
+
+function renderProjCreate(startTab){
+  if(startTab) _pcTab = startTab;
+  const pg = document.getElementById('page-proj-create');
+  pg.innerHTML = `
+  <div style="max-width:860px;margin:0 auto">
+    <!-- 헤더 -->
+    <div style="background:var(--a);border-radius:var(--rc);padding:22px 28px 18px;color:#fff;margin-bottom:18px">
+      <div style="font-size:20px;font-weight:800;margin-bottom:4px">📥 프로젝트 생성</div>
+      <div style="font-size:11.5px;opacity:.75">이메일 수신함 확인, RFP 파싱, 직접 입력 — 한 곳에서</div>
+    </div>
+
+    <!-- 탭 -->
+    <div style="display:flex;gap:2px;background:var(--sur2);padding:4px;border-radius:var(--rc);margin-bottom:20px">
+      <button id="pct-inbox" onclick="pcSwitchTab('inbox')" class="btn" style="flex:1;justify-content:center;font-size:12.5px;transition:.15s">
+        📨 RFP 수신함 <span id="pct-badge" style="background:var(--r);color:#fff;border-radius:99px;padding:1px 6px;font-size:9.5px;font-weight:700;margin-left:4px;display:none">0</span>
+      </button>
+      <button id="pct-parse" onclick="pcSwitchTab('parse')" class="btn" style="flex:1;justify-content:center;font-size:12.5px;transition:.15s">
+        🤖 RFP 파싱
+      </button>
+      <button id="pct-manual" onclick="pcSwitchTab('manual')" class="btn" style="flex:1;justify-content:center;font-size:12.5px;transition:.15s">
+        ✏️ 직접 입력
+      </button>
+    </div>
+
+    <!-- 탭 콘텐츠 -->
+    <div id="pc-content"></div>
+  </div>`;
+
+  pcSwitchTab(_pcTab);
+}
+
+function pcSwitchTab(tab){
+  _pcTab = tab;
+  ['inbox','parse','manual'].forEach(t=>{
+    const btn = document.getElementById('pct-'+t);
+    if(!btn) return;
+    if(t===tab){
+      btn.style.background='var(--a)';
+      btn.style.color='#fff';
+      btn.style.boxShadow='0 1px 4px rgba(30,58,95,.25)';
+    } else {
+      btn.style.background='transparent';
+      btn.style.color='var(--ink3)';
+      btn.style.boxShadow='none';
+    }
+  });
+  const cont = document.getElementById('pc-content');
+  if(!cont) return;
+  if(tab==='inbox') pcRenderInbox(cont);
+  else if(tab==='parse') pcRenderParse(cont);
+  else if(tab==='manual') pcRenderManual(cont);
+}
+
+// ── 탭 1: 수신함 ──
+async function pcRenderInbox(cont){
+  cont.innerHTML=`<div style="text-align:center;padding:30px;color:var(--ink4)">⏳ 로딩 중...</div>`;
+  if(!SB){cont.innerHTML='<div class="alert al-e">Supabase 미연결</div>';return;}
+  try{
+    const {data,error}=await SB.from('rfp_inbox').select('*').order('received_at',{ascending:false}).limit(100);
+    if(error) throw error;
+    _rfpList=data||[];
+    _rfpUpdateBadge();
+    // 배지 업데이트
+    const newCnt=_rfpList.filter(x=>x.status==='new').length;
+    const bdg=document.getElementById('pct-badge');
+    if(bdg){bdg.textContent=newCnt;bdg.style.display=newCnt>0?'':'none';}
+
+    if(!_rfpList.length){
+      cont.innerHTML=`
+      <div style="text-align:center;padding:60px 20px">
+        <div style="font-size:48px;margin-bottom:12px">📭</div>
+        <div style="font-size:14px;font-weight:600;color:var(--ink2);margin-bottom:6px">수신된 RFP가 없습니다</div>
+        <div style="font-size:12px;color:var(--ink4)">rfp@channelk.kr 로 메일을 보내면 5분 내에 여기에 나타납니다</div>
+      </div>`;
+      return;
+    }
+
+    // 필터
+    cont.innerHTML=`
+    <div class="frow" id="pc-filter" style="margin-bottom:14px">
+      <span class="fp on" onclick="pcFilterInbox('all',this)">전체 (${_rfpList.length})</span>
+      <span class="fp" onclick="pcFilterInbox('new',this)">🔴 미확인 (${_rfpList.filter(x=>x.status==='new').length})</span>
+      <span class="fp" onclick="pcFilterInbox('reviewed',this)">👁 확인됨</span>
+      <span class="fp" onclick="pcFilterInbox('converted',this)">✅ 생성완료</span>
+    </div>
+    <div id="pc-inbox-items"></div>`;
+    pcRenderInboxItems('all');
+  }catch(e){
+    cont.innerHTML=`<div class="alert al-e">불러오기 실패: ${h(e.message)}</div>`;
+  }
+}
+
+var _pcInboxFilter='all';
+function pcFilterInbox(f,el){
+  _pcInboxFilter=f;
+  document.querySelectorAll('#pc-filter .fp').forEach(x=>x.classList.remove('on'));
+  if(el) el.classList.add('on');
+  pcRenderInboxItems(f);
+}
+
+function pcRenderInboxItems(f){
+  const list=document.getElementById('pc-inbox-items');
+  if(!list) return;
+  const items=f==='all'?_rfpList:_rfpList.filter(x=>x.status===f);
+  if(!items.length){list.innerHTML='<div style="text-align:center;padding:30px;color:var(--ink4);font-size:12px">해당 항목 없음</div>';return;}
+  list.innerHTML=items.map(r=>{
+    const isNew=r.status==='new';
+    const dt=r.received_at?new Date(r.received_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+    const statusChip={new:'<span class="chip cr" style="font-size:9.5px">🔴 미확인</span>',reviewed:'<span class="chip cn" style="font-size:9.5px">👁 확인됨</span>',converted:'<span class="chip cg" style="font-size:9.5px">✅ 생성완료</span>'}[r.status]||'';
+    return `<div class="card" style="cursor:pointer;margin-bottom:8px;${isNew?'border-left:3px solid var(--r)':''}" onclick="rfpOpenDetail('${r.id}')">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:22px">${isNew?'📩':'📧'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
+            <span style="font-size:13px;font-weight:${isNew?700:600};color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h(r.subject||'(제목없음)')}</span>
+            ${statusChip}
+          </div>
+          <div style="font-size:11px;color:var(--ink3)">✉️ ${h(r.sender_name||r.sender_email||'')} · <span style="font-size:10.5px;color:var(--ink4)">${h((r.body||'').slice(0,80))}...</span></div>
+        </div>
+        <div style="font-size:10.5px;color:var(--ink4);white-space:nowrap">${dt}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── 탭 2: RFP 파싱 ──
+function pcRenderParse(cont){
+  const tm=team();
+  cont.innerHTML=`
+  ${!CFG.aiKey?`<div class="alert al-w" style="margin-bottom:14px">AI 자동 파싱을 사용하려면 Claude API Key가 필요합니다.
+    <button class="btn bd btn-sm" style="margin-left:8px" onclick="openM('mo-cfg')">⚙ 설정</button></div>`
+  :'<div class="alert al-o" style="margin-bottom:14px">✓ Claude API Key 연결됨 — AI 정확 파싱 활성화</div>'}
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-t">RFP 원문 붙여넣기</div>
+    <textarea class="fi" id="rfp-raw" rows="12" style="font-size:12.5px;font-family:var(--fm);resize:vertical"
+      placeholder="메일 제목, 발신자 정보, 본문 전체를 붙여넣으세요.
+
+예시:
+From: John Kim <john.kim@lgelectronics.com>
+Subject: Incentive Trip RFP — Korea 2026
+
+We are organizing an incentive trip for 85 participants from Singapore.
+Travel dates: May 12-15, 2026 (3N4D)
+Budget: approx. USD 50,000"></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn bd btn-sm" onclick="document.getElementById('rfp-raw').value=''">🗑 지우기</button>
+      <button class="btn bp" onclick="parseRFPwithAI()" id="btn-parse-rfp" style="flex:1">
+        ${CFG.aiKey?'🤖 AI 파싱 (Claude)':'⚡ 자동 파싱'}
+      </button>
+    </div>
+  </div>
+
+  <div id="rfp-parse-result" style="display:none">
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-t">내용 확인 및 수정</div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">고객사명 (KO) ★</label><input class="fi" id="rp-nameKO" placeholder="고객사명"></div>
+        <div class="fg"><label class="fl">Company Name (EN)</label><input class="fi" id="rp-nameEN" placeholder="Company Name"></div>
+      </div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">고객사 담당자</label><input class="fi" id="rp-clientName" placeholder="John Kim"></div>
+        <div class="fg"><label class="fl">담당자 이메일</label><input class="fi" id="rp-clientEmail" placeholder="john@company.com"></div>
+      </div>
+      <div class="fr3">
+        <div class="fg"><label class="fl">행사일 ★</label><input class="fi" type="date" id="rp-date"></div>
+        <div class="fg"><label class="fl">인원 (Pax)</label><input class="fi" type="number" id="rp-pax" placeholder="85"></div>
+        <div class="fg"><label class="fl">기간</label>
+          <select class="fi" id="rp-nights">
+            <option value="1">1박2일</option><option value="2">2박3일</option>
+            <option value="3" selected>3박4일</option><option value="4">4박5일</option>
+            <option value="5">5박6일</option><option value="6">6박7일</option>
+            <option value="7">7박8일</option>
+          </select>
+        </div>
+      </div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">출발 국가/도시</label><input class="fi" id="rp-origin" placeholder="싱가포르"></div>
+        <div class="fg"><label class="fl">예산 (KRW)</label><input class="fi" type="number" id="rp-budget" placeholder="69000000"></div>
+      </div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">테마 / 슬로건</label><input class="fi" id="rp-theme" placeholder="K-Culture & Heritage Tour 2026"></div>
+        <div class="fg"><label class="fl">답변 기한</label><input class="fi" type="date" id="rp-deadline"></div>
+      </div>
+      <div class="fg"><label class="fl">담당자</label>
+        <select class="fi" id="rp-sales">${tm.map(m=>'<option>'+h(m)+'</option>').join('')}</select>
+      </div>
+      <div class="fg" style="margin-bottom:0"><label class="fl">특이사항</label>
+        <textarea class="fi" id="rp-notes" rows="2" placeholder="VIP 포함, 채식 식단 등"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn bd" style="flex:1" onclick="document.getElementById('rfp-parse-result').style.display='none'">← 다시 입력</button>
+      <button class="btn bp" style="flex:3;padding:12px;font-size:13px" onclick="createProjFromRFP()">✓ 프로젝트 생성 + 체크리스트 자동 생성</button>
+    </div>
+  </div>
+  <div id="rfp-parse-raw-store" style="display:none"></div>`;
+}
+
+// ── 탭 3: 직접 입력 ──
+function pcRenderManual(cont){
+  const tm=team();
+  const today=new Date().toISOString().slice(0,10);
+  cont.innerHTML=`
+  <div class="card">
+    <div class="card-t">✏️ 프로젝트 직접 등록</div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">고객사명 (KO) ★</label><input class="fi" id="np-ko" placeholder="예: LG전자 동남아팀" oninput="npPrev()"></div>
+      <div class="fg"><label class="fl">Company Name (EN)</label><input class="fi" id="np-en" placeholder="LG Electronics SEA Team"></div>
+    </div>
+    <div class="fr3">
+      <div class="fg"><label class="fl">행사일 ★</label><input class="fi" type="date" id="np-date" oninput="npPrev()">
+        <div id="np-dday" style="font-size:10px;color:var(--am);margin-top:4px;font-family:var(--fm)"></div>
+      </div>
+      <div class="fg"><label class="fl">인원 (Pax) ★</label><input class="fi" type="number" id="np-pax" placeholder="85"></div>
+      <div class="fg"><label class="fl">기간</label>
+        <select class="fi" id="np-nights">
+          <option value="1">1박2일</option><option value="2">2박3일</option>
+          <option value="3" selected>3박4일</option><option value="4">4박5일</option>
+          <option value="5">5박6일</option><option value="6">6박7일</option>
+          <option value="7">7박8일</option>
+        </select>
+      </div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">출발 국가/도시</label><input class="fi" id="np-origin" placeholder="싱가포르, Dubai..."></div>
+      <div class="fg"><label class="fl">담당자</label>
+        <select class="fi" id="np-sales">${tm.map(m=>'<option>'+h(m)+'</option>').join('')}</select>
+      </div>
+    </div>
+    <div class="fr3">
+      <div class="fg"><label class="fl">매출 총액 (KRW)</label><input class="fi" type="number" id="np-revenue" placeholder="48000000"></div>
+      <div class="fg"><label class="fl">환율</label><input class="fi" type="number" id="np-rate" value="${CFG.rate||1380}"></div>
+      <div class="fg"><label class="fl">수수료 %</label><input class="fi" type="number" id="np-fee" value="${CFG.fee||10}"></div>
+    </div>
+    <div class="fg"><label class="fl">테마 / 슬로건</label><input class="fi" id="np-theme" placeholder="K-Culture & Heritage Tour 2026"></div>
+    <div class="fg"><label class="fl">특이사항</label><textarea class="fi" id="np-notes" rows="2" placeholder="VIP 10명 포함, 채식 식단 필요 등"></textarea></div>
+
+    <!-- 미리보기 -->
+    <div id="np-prev" style="background:var(--sur2);border:1px solid var(--bdr);border-radius:var(--ra);padding:10px 14px;font-size:12px;color:var(--ink3);margin-bottom:14px;display:none">
+      <strong style="color:var(--ink)" id="np-prev-name"></strong>
+      <span id="np-prev-dday" style="margin-left:8px;font-family:var(--fm)"></span>
+    </div>
+
+    <button class="btn bp" style="width:100%;padding:13px;font-size:13.5px;justify-content:center" onclick="pcCreateManual()">
+      ✓ 프로젝트 생성 + 체크리스트 자동 생성
+    </button>
+  </div>`;
+}
+
+function pcCreateManual(){
+  const ko=document.getElementById('np-ko')?.value.trim();
+  const date=document.getElementById('np-date')?.value;
+  const pax=parseInt(document.getElementById('np-pax')?.value)||0;
+  if(!ko){toast('고객사명을 입력해주세요','err');return;}
+  if(!date){toast('행사일을 입력해주세요','err');return;}
+  if(!pax){toast('인원을 입력해주세요','err');return;}
+  const p={
+    id:uid(),
+    nameKO:ko,
+    nameEN:document.getElementById('np-en')?.value.trim()||'',
+    eventDate:date,
+    pax,
+    nights:parseInt(document.getElementById('np-nights')?.value)||3,
+    origin:document.getElementById('np-origin')?.value.trim()||'',
+    salesperson:document.getElementById('np-sales')?.value||CFG.myname||'',
+    salesTotalKRW:parseFloat(document.getElementById('np-revenue')?.value)||0,
+    exchangeRate:parseFloat(document.getElementById('np-rate')?.value)||1380,
+    feePercent:parseFloat(document.getElementById('np-fee')?.value)||10,
+    taxPercent:0,
+    theme:document.getElementById('np-theme')?.value.trim()||'',
+    notes:document.getElementById('np-notes')?.value.trim()||'',
+    status:'bid',
+    schedule:[],quoteItems:[],tasks:[],guides:[],guides2:[],
+    checklist:makeCL(date),
+    createdAt:now(),updatedAt:now()
+  };
+  if(!DB.projects) DB.projects=[];
+  DB.projects.unshift(p);
+  persist(p);
+  if(window._pendingRfpId) rfpLinkProject(p.id);
+  renderSidebar();
+  selProj(p.id);
+  goTab('projinfo');
+  toast('✓ 프로젝트 생성 완료! 체크리스트 자동 생성됨','ok');
+}
+
+/* ───────────────────────────────────────────────── */
 
 var _rfpList = [];
 var _rfpFilter = 'all';
