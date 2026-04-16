@@ -523,6 +523,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
     <div class="nav" data-nav="pipeline" onclick="navTo('pipeline',this)"><span class="nav-ic">⇢</span>파이프라인</div>
     <div id="nav-new-proj" class="nav" onclick="quickNewProj()"><span class="nav-ic" style="color:var(--a);font-weight:700">＋</span>새 프로젝트</div>
     <div class="nav" data-nav="rfp-parse" onclick="navTo('rfp-parse',this)"><span class="nav-ic">↓</span>RFP에서 생성</div>
+    <div class="nav" data-nav="rfp-inbox" onclick="navTo('rfp-inbox',this)"><span class="nav-ic">📨</span>RFP 수신함<span class="nc" id="nc-rfp" style="background:var(--rbg);color:var(--r)">0</span></div>
     <div class="nav" data-nav="calendar" onclick="navTo('calendar',this)"><span class="nav-ic"></span>캘린더</div>
     <div class="nav" data-nav="vendors" onclick="navTo('vendors',this)"><span class="nav-ic"></span>서비스 항목</div>
     <div class="nav" data-nav="vendors-co" onclick="navTo('vendors-co',this)"><span class="nav-ic"></span>협력업체</div>
@@ -597,6 +598,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
       <div class="page" id="page-labor-settle"></div>
       <div class="page" id="page-report"></div>
       <div class="page" id="page-internal"></div>
+      <div class="page" id="page-rfp-inbox"></div>
   </div>
 </div>
 
@@ -2086,7 +2088,7 @@ function navTo(page,el){
   document.getElementById('ph').style.display='none';
   document.getElementById('tabbar').style.display='none';
   CUR=null; showPage(page);
-  const fn={dashboard:renderDash,pipeline:renderPipeline,vendors:renderVendors,'vendors-co':renderVendorsCo,calendar:renderCalendar,themes:renderThemes,'new-proj':renderNewProj,stat:renderStatPage,projects:renderProjects,'rfp-parse':renderRFPParsePage,internal:renderInternal};
+  const fn={dashboard:renderDash,pipeline:renderPipeline,vendors:renderVendors,'vendors-co':renderVendorsCo,calendar:renderCalendar,themes:renderThemes,'new-proj':renderNewProj,stat:renderStatPage,projects:renderProjects,'rfp-parse':renderRFPParsePage,internal:renderInternal,'rfp-inbox':renderRFPInbox};
   if(fn[page])fn[page]();
 }
 
@@ -9060,6 +9062,7 @@ function startApp(){
   if(newProjBtn) newProjBtn.style.display=canCreate()?'':'none';
   renderSidebar();
   renderDash();
+  loadRFPBadge();
 }
 
 async function signInWithGoogle(){
@@ -9654,6 +9657,224 @@ function exportTaxXLSX(){
   XLSX.utils.book_append_sheet(wb,ws,'세금계산서');
   XLSX.writeFile(wb,'세금계산서_'+new Date().toISOString().slice(0,10)+'.xlsx');
   toast('엑셀 다운로드 완료','ok');
+}
+
+/* ═══════════════════════════════════════════════════
+   📨 RFP 수신함 — Gmail → Supabase 연동
+   ═══════════════════════════════════════════════════ */
+
+var _rfpList = [];
+var _rfpFilter = 'all';
+
+async function renderRFPInbox(){
+  const pg = document.getElementById('page-rfp-inbox');
+  pg.innerHTML = `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:17px;font-weight:800;color:var(--ink)">📨 RFP 수신함</div>
+      <div style="font-size:11.5px;color:var(--ink4);margin-top:2px">rfp@channelk.kr 로 수신된 메일 — 5분마다 자동 동기화</div>
+    </div>
+    <button class="btn bp btn-sm" onclick="renderRFPInbox()">🔄 새로고침</button>
+  </div>
+
+  <!-- 필터 -->
+  <div class="frow" style="margin-bottom:16px">
+    <span class="fp on" onclick="rfpSetFilter('all',this)">전체</span>
+    <span class="fp" onclick="rfpSetFilter('new',this)">🔴 미확인</span>
+    <span class="fp" onclick="rfpSetFilter('reviewed',this)">👁 확인됨</span>
+    <span class="fp" onclick="rfpSetFilter('converted',this)">✅ 프로젝트 생성됨</span>
+  </div>
+
+  <!-- 목록 -->
+  <div id="rfp-inbox-list">
+    <div style="text-align:center;padding:40px;color:var(--ink4)">⏳ 로딩 중...</div>
+  </div>
+  `;
+
+  // Supabase에서 불러오기
+  if(!SB){ document.getElementById('rfp-inbox-list').innerHTML='<div class="alert al-e">Supabase 미연결 — 설정에서 확인하세요</div>'; return; }
+  try{
+    const {data, error} = await SB.from('rfp_inbox').select('*').order('received_at',{ascending:false}).limit(100);
+    if(error) throw error;
+    _rfpList = data||[];
+    _rfpUpdateBadge();
+    rfpRenderList();
+  }catch(e){
+    document.getElementById('rfp-inbox-list').innerHTML=`<div class="alert al-e">불러오기 실패: ${h(e.message)}</div>`;
+  }
+}
+
+function rfpSetFilter(f, el){
+  _rfpFilter=f;
+  document.querySelectorAll('.frow .fp').forEach(x=>x.classList.remove('on'));
+  if(el) el.classList.add('on');
+  rfpRenderList();
+}
+
+function rfpRenderList(){
+  const list = document.getElementById('rfp-inbox-list');
+  if(!list) return;
+  const filtered = _rfpFilter==='all' ? _rfpList : _rfpList.filter(r=>r.status===_rfpFilter);
+  if(!filtered.length){
+    list.innerHTML='<div style="text-align:center;padding:40px;font-size:12px;color:var(--ink4)">수신된 RFP가 없습니다</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(r=>{
+    const isNew = r.status==='new';
+    const statusChip = {
+      new: '<span class="chip cr" style="font-size:9.5px">🔴 미확인</span>',
+      reviewed: '<span class="chip cn" style="font-size:9.5px">👁 확인됨</span>',
+      converted: '<span class="chip cg" style="font-size:9.5px">✅ 프로젝트 생성됨</span>'
+    }[r.status]||'';
+    const dt = r.received_at ? new Date(r.received_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+    return `
+    <div class="card" style="cursor:pointer;margin-bottom:10px;${isNew?'border-left:3px solid var(--r)':''}" onclick="rfpOpenDetail('${r.id}')">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="font-size:22px;flex-shrink:0">${isNew?'📩':'📧'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
+            <span style="font-size:13px;font-weight:${isNew?'700':'600'};color:var(--ink)">${h(r.subject||'(제목없음)')}</span>
+            ${statusChip}
+          </div>
+          <div style="font-size:11.5px;color:var(--ink3);margin-bottom:5px">
+            ✉️ <strong>${h(r.sender_name||r.sender_email||'')}</strong>
+            ${r.sender_email&&r.sender_name?`<span style="color:var(--ink4)">&lt;${h(r.sender_email)}&gt;</span>`:''}
+          </div>
+          <div style="font-size:11px;color:var(--ink4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h((r.body||'').slice(0,120))}...</div>
+        </div>
+        <div style="font-size:10.5px;color:var(--ink4);white-space:nowrap;flex-shrink:0">${dt}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function rfpOpenDetail(id){
+  const r = _rfpList.find(x=>x.id===id);
+  if(!r) return;
+
+  // 읽음 처리
+  if(r.status==='new'){
+    r.status='reviewed';
+    if(SB) await SB.from('rfp_inbox').update({status:'reviewed'}).eq('id',id);
+    _rfpUpdateBadge();
+    rfpRenderList();
+  }
+
+  // 연결된 프로젝트 찾기
+  const linkedProj = r.project_id ? (DB.projects||[]).find(p=>p.id===r.project_id) : null;
+
+  let m = document.getElementById('mo-rfp-inbox');
+  if(!m){m=document.createElement('div');m.id='mo-rfp-inbox';m.className='mo';m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+
+  m.innerHTML=`<div class="mb xl" style="max-width:720px">
+    <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:800;color:var(--ink);margin-bottom:6px">${h(r.subject||'(제목없음)')}</div>
+        <div style="font-size:12px;color:var(--ink3)">
+          ✉️ <strong>${h(r.sender_name||'')}</strong> &lt;${h(r.sender_email||'')}&gt;
+          <span style="margin-left:12px;color:var(--ink4)">${r.received_at?new Date(r.received_at).toLocaleString('ko-KR'):''}</span>
+        </div>
+      </div>
+      <button onclick="document.getElementById('mo-rfp-inbox').classList.remove('open')" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--ink4)">✕</button>
+    </div>
+
+    <!-- 본문 -->
+    <div style="background:var(--sur2);border:1px solid var(--bdr);border-radius:var(--ra);padding:16px;font-size:12.5px;color:var(--ink2);line-height:1.8;white-space:pre-wrap;max-height:320px;overflow-y:auto;margin-bottom:16px;font-family:var(--fm)">${h(r.body||'')}</div>
+
+    ${linkedProj ? `
+    <div class="alert al-o">✅ 이미 프로젝트로 생성됨 — <strong>${h(linkedProj.nameKO)}</strong></div>
+    ` : `
+    <!-- 액션 버튼 -->
+    <div style="background:var(--abg);border:1px solid var(--abl);border-radius:var(--ra);padding:14px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--a);margin-bottom:10px">🚀 이 RFP로 프로젝트 생성</div>
+      <div class="fr2" style="gap:8px">
+        <button class="btn bp" style="flex:1" onclick="rfpParseAndCreate('${id}')">✨ AI 파싱 후 프로젝트 생성</button>
+        <button class="btn bd" style="flex:1" onclick="rfpManualCreate('${id}')">✏️ 직접 입력해서 생성</button>
+      </div>
+    </div>
+    `}
+
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn bdr2c btn-sm" onclick="rfpDelete('${id}')">🗑 삭제</button>
+      <button class="btn bd" onclick="document.getElementById('mo-rfp-inbox').classList.remove('open')">닫기</button>
+    </div>
+  </div>`;
+  m.classList.add('open');
+}
+
+async function rfpParseAndCreate(id){
+  const r = _rfpList.find(x=>x.id===id);
+  if(!r) return;
+  if(!CFG.apiKey){ toast('Claude API Key가 없습니다 — 시스템 설정에서 입력해주세요','err'); return; }
+
+  document.getElementById('mo-rfp-inbox').classList.remove('open');
+  // RFP 파싱 페이지로 이동하고 본문 자동 주입
+  navTo('rfp-parse', null);
+  setTimeout(()=>{
+    const ta = document.getElementById('rfp-raw');
+    if(ta){
+      ta.value = `From: ${r.sender_name} <${r.sender_email}>\nSubject: ${r.subject}\n\n${r.body}`;
+      // AI 파싱 자동 실행
+      parseRFPwithAI();
+      // 파싱 후 프로젝트 생성 시 rfp_id 연결
+      window._pendingRfpId = id;
+    }
+  }, 300);
+}
+
+function rfpManualCreate(id){
+  const r = _rfpList.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('mo-rfp-inbox').classList.remove('open');
+  window._pendingRfpId = id;
+  quickNewProj();
+  // 새 프로젝트 모달에 발신자 정보 자동 입력
+  setTimeout(()=>{
+    const ko = document.getElementById('np-ko');
+    if(ko && r.sender_name) ko.value = r.sender_name;
+    const note = document.getElementById('np-notes');
+    if(note) note.value = `[RFP 수신] ${r.subject}\n\n${(r.body||'').slice(0,300)}`;
+  }, 200);
+}
+
+async function rfpDelete(id){
+  if(!confirm('이 메일을 수신함에서 삭제할까요?')) return;
+  if(SB) await SB.from('rfp_inbox').delete().eq('id',id);
+  _rfpList = _rfpList.filter(x=>x.id!==id);
+  document.getElementById('mo-rfp-inbox')?.classList.remove('open');
+  _rfpUpdateBadge();
+  rfpRenderList();
+  toast('삭제됨','ok');
+}
+
+// 프로젝트 생성 후 rfp_inbox에 project_id 연결
+async function rfpLinkProject(projectId){
+  const rfpId = window._pendingRfpId;
+  if(!rfpId||!SB) return;
+  await SB.from('rfp_inbox').update({status:'converted', project_id:projectId}).eq('id',rfpId);
+  const r = _rfpList.find(x=>x.id===rfpId);
+  if(r){ r.status='converted'; r.project_id=projectId; }
+  window._pendingRfpId = null;
+  _rfpUpdateBadge();
+}
+
+function _rfpUpdateBadge(){
+  const newCount = _rfpList.filter(x=>x.status==='new').length;
+  const el = document.getElementById('nc-rfp');
+  if(el){
+    el.textContent = newCount;
+    el.style.display = newCount>0 ? '' : 'none';
+  }
+}
+
+// 앱 시작 시 수신함 배지 로드
+async function loadRFPBadge(){
+  if(!SB) return;
+  try{
+    const {data} = await SB.from('rfp_inbox').select('id,status').eq('status','new');
+    _rfpList = data||[];
+    _rfpUpdateBadge();
+  }catch(e){}
 }
 
 (function init(){
