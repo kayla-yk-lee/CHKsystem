@@ -1327,10 +1327,14 @@ function loadDB(){
 function loadCFG(){
   try{
     var stored=JSON.parse(localStorage.getItem(CFG_KEY)||'{}');
-    // 개발자 기본 API Key (미설정 시)
-    if(!stored.aiKey) stored.aiKey='';  // 여기에 API Key 입력 가능
+    if(!stored.aiKey) stored.aiKey='';
+    if(!stored.sbUrl) stored.sbUrl='https://epnoctmshfiybzqgatae.supabase.co';
+    if(!stored.sbKey) stored.sbKey='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwbm9jdG1zaGZpeWJ6cWdhdGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDU4NzgsImV4cCI6MjA5MDE4MTg3OH0.542nU3QzKvVN2rndbY0yuW9RdU9jbLwfNcNmma7szIM';
     return stored;
-  }catch(e){return {};}
+  }catch(e){return {
+    sbUrl:'https://epnoctmshfiybzqgatae.supabase.co',
+    sbKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwbm9jdG1zaGZpeWJ6cWdhdGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDU4NzgsImV4cCI6MjA5MDE4MTg3OH0.542nU3QzKvVN2rndbY0yuW9RdU9jbLwfNcNmma7szIM'
+  };}
 }
 function saveDB(){try{localStorage.setItem(DB_KEY,JSON.stringify(DB));}catch(e){if(typeof toast==='function')toast('저장 실패','err');}}
 
