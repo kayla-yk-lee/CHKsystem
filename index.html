@@ -3158,6 +3158,31 @@ function toggleAssigned(name){
   else CUR.assignedTo.push(name);
   dp(CUR);
   renderProjInfo();
+
+}
+function addCommMember(){
+  if(!CUR) return;
+  if(!CUR.commList) CUR.commList=[];
+  // 기존 단일 필드 → 배열 마이그레이션
+  if(!CUR.commList.length && CUR.commName){
+    CUR.commList=[{name:CUR.commName,company:CUR.commCompany||'',rate:CUR.commRate||0,email:''}];
+  }
+  CUR.commList.push({name:'',company:'',rate:0,email:''});
+  dp(CUR);
+  renderProjInfo();
+}
+function upCommMember(idx,field,val){
+  if(!CUR||!CUR.commList) return;
+  if(!CUR.commList[idx]) return;
+  CUR.commList[idx][field]=val;
+  dp(CUR);
+}
+function delCommMember(idx){
+  if(!CUR||!CUR.commList) return;
+  CUR.commList.splice(idx,1);
+  dp(CUR);
+  renderProjInfo();
+}
 }
 
 function renderInquiryDetailHTML(route, cur){
@@ -6458,7 +6483,7 @@ async function parseRFPwithAI(){
   if(!raw){toast('RFP 내용을 입력해주세요','err');return;}
 
   const btn=document.getElementById('btn-parse-rfp');
-  btn.textContent='⏳ 분석 중...';btn.disabled=true;
+  if(btn){btn.textContent='⏳ 분석 중...';btn.disabled=true;}
 
   try{
     let parsed={nameKO:'',nameEN:'',date:'',pax:0,nights:3,origin:'',budgetKRW:0,theme:'',notes:'',deadline:''};
@@ -6538,7 +6563,7 @@ async function parseRFPwithAI(){
       toast('파싱 실패 — 직접 입력해주세요 ('+e.message+')','warn');
     }
   }finally{
-    btn.textContent='🤖 AI 파싱';btn.disabled=false;
+    if(btn){btn.textContent=CFG.aiKey?'🤖 AI 파싱 (Claude)':'⚡ 자동 파싱';btn.disabled=false;}
   }
 }
 
@@ -6686,6 +6711,7 @@ function createProjFromRFP(){
   };
   DB.projects.push(p);
   saveDB();
+  if(window._pendingRfpId) rfpLinkProject(p.id);
   renderSidebar();
   selProj(p.id);
   toast(`"${nameKO}" 프로젝트 생성 완료 (RFP 원문 보관됨)`, 'ok');
@@ -10034,20 +10060,31 @@ async function rfpOpenDetail(id){
 async function rfpParseAndCreate(id){
   const r = _rfpList.find(x=>x.id===id);
   if(!r) return;
-  if(!CFG.aiKey){ toast('Claude API Key가 없습니다 — 시스템 설정에서 입력해주세요','err'); return; }
 
-  document.getElementById('mo-rfp-inbox').classList.remove('open');
-  // RFP 파싱 페이지로 이동하고 본문 자동 주입
-  navTo('rfp-parse', null);
+  // 모달 닫기
+  document.getElementById('mo-rfp-inbox')?.classList.remove('open');
+
+  // proj-create 페이지의 파싱 탭으로 이동
+  navTo('proj-create', document.querySelector('[data-nav="proj-create"]'));
+  window._pendingRfpId = id;
+
   setTimeout(()=>{
-    const ta = document.getElementById('rfp-raw');
-    if(ta){
-      ta.value = `From: ${r.sender_name} <${r.sender_email}>\nSubject: ${r.subject}\n\n${r.body}`;
-      // AI 파싱 자동 실행
-      parseRFPwithAI();
-      // 파싱 후 프로젝트 생성 시 rfp_id 연결
-      window._pendingRfpId = id;
-    }
+    // 파싱 탭으로 전환
+    pcSwitchTab('parse');
+    setTimeout(()=>{
+      // 이메일 내용 주입
+      const ta = document.getElementById('rfp-raw');
+      if(ta){
+        ta.value = `From: ${r.sender_name} <${r.sender_email}>\nSubject: ${r.subject}\n\n${r.body}`;
+        // API Key 있으면 자동 파싱, 없으면 안내
+        if(CFG.aiKey){
+          parseRFPwithAI();
+        } else {
+          toast('API Key를 설정에 입력하면 자동 파싱됩니다. 지금은 ⚡ 자동 파싱(정규식)으로 진행합니다.','');
+          setTimeout(()=>parseRFPwithAI(), 800);
+        }
+      }
+    }, 200);
   }, 300);
 }
 
@@ -10079,12 +10116,22 @@ async function rfpDelete(id){
 // 프로젝트 생성 후 rfp_inbox에 project_id 연결
 async function rfpLinkProject(projectId){
   const rfpId = window._pendingRfpId;
-  if(!rfpId||!SB) return;
-  await SB.from('rfp_inbox').update({status:'converted', project_id:projectId}).eq('id',rfpId);
+  if(!rfpId) return;
+  // 로컬 목록 먼저 업데이트
   const r = _rfpList.find(x=>x.id===rfpId);
   if(r){ r.status='converted'; r.project_id=projectId; }
   window._pendingRfpId = null;
   _rfpUpdateBadge();
+  // 수신함 목록 UI 새로고침 (proj-create 페이지에 있을 경우)
+  const items = document.getElementById('pc-inbox-items');
+  if(items) pcRenderInboxItems(_pcInboxFilter||'all');
+  // Supabase 업데이트
+  if(SB){
+    try{
+      await SB.from('rfp_inbox').update({status:'converted', project_id:projectId}).eq('id',rfpId);
+      toast('RFP → 프로젝트 연결 완료 ✅','ok');
+    }catch(e){ console.warn('rfpLink supabase err:',e); }
+  }
 }
 
 function _rfpUpdateBadge(){
