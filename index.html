@@ -470,7 +470,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
   <div class="tb-r">
     <div class="sync-bd s-ok" id="sync-bd"><div class="sync-dot"></div><span id="sync-txt">저장됨</span></div>
     <div class="ic-btn" onclick="openM('mo-urg')" title="긴급알림"><div class="ndot" id="ndot"></div></div>
-    <div class="ic-btn" onclick="openM('mo-cfg')" title="설정">⚙️</div>
+    <div class="ic-btn" onclick="openCfgByRole()" title="설정">⚙️</div>
     <div class="uc" onclick="toast('로그인 없이 테스트 모드','warn')">
       <div class="av" id="top-av">K</div><span id="top-nm">채널K</span>
     </div>
@@ -518,7 +518,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
     <span class="sb-lbl">진행 프로젝트</span>
     <div id="sb-projs"></div>
     <div class="sb-foot">
-      <div class="nav" onclick="openM('mo-cfg')"><span class="nav-ic">⚙</span>시스템 설정</div>
+      <div class="nav" onclick="openCfgByRole()"><span class="nav-ic">⚙</span>시스템 설정</div>
     </div>
   </div>
   <!-- MAIN -->
@@ -998,7 +998,9 @@ LG Electronics SEA Team"></textarea>
     <div class="card-t">Gmail 연동 <span style="font-size:10px;font-weight:400;color:var(--ink3)">(RFP 수신 + 인보이스 발송)</span></div>
     <div style="font-size:11px;color:var(--ink3);margin-bottom:8px">
       Google Cloud Console에서 OAuth 2.0 Client ID 발급 후 입력하세요.<br>
-      승인된 리디렉션 URI: <code style="background:var(--sur2);padding:1px 4px;border-radius:3px">http://channelkdmc.com</code>
+      승인된 리디렉션 URI: <code style="background:var(--sur2);padding:1px 4px;border-radius:3px">https://chksystem.kayla-lee.workers.dev</code>
+      <span style="color:var(--ink4)"> 및 </span>
+      <code style="background:var(--sur2);padding:1px 4px;border-radius:3px">https://channelkdmc.com</code>
     </div>
     <div class="fg"><label class="fl">Google Client ID</label>
       <input class="fi" id="cfg-gmail-client" placeholder="xxx.apps.googleusercontent.com"></div>
@@ -2368,14 +2370,15 @@ function saveNewTheme(){
 
 /* ── DASHBOARD ── */
 function renderDash(){
-  const active=DB.projects.filter(p=>['awarded','operating','settling'].includes(p.status));
+  const myProjs=myProjects();
+  const active=myProjs.filter(p=>['awarded','operating','settling'].includes(p.status));
   const urgAll=[];
-  DB.projects.forEach(p=>(p.checklist||[]).forEach(c=>{if(!c.done&&dday(c.dueDate)<=7)urgAll.push({...c,pName:p.nameKO,pId:p.id});}));
+  myProjs.forEach(p=>(p.checklist||[]).forEach(c=>{if(!c.done&&dday(c.dueDate)<=7)urgAll.push({...c,pName:p.nameKO,pId:p.id});}));
   document.getElementById('ndot').style.display=urgAll.length?'block':'none';
   const n2=new Date(),todayStr=n2.toISOString().slice(0,10);
   const MN=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
   const evMap={};
-  DB.projects.forEach(p=>{if(p.eventDate){if(!evMap[p.eventDate])evMap[p.eventDate]=[];evMap[p.eventDate].push(p);}});
+  myProjs.forEach(p=>{if(p.eventDate){if(!evMap[p.eventDate])evMap[p.eventDate]=[];evMap[p.eventDate].push(p);}});
 
   // 3개월 캘린더 생성
   function makeMonthCal(yr,mo){
@@ -3120,6 +3123,29 @@ function renderProjInfo(){
       <div id="inquiry-detail-box">${renderInquiryDetailHTML(CUR.inquiryRoute||'',CUR)}</div>
       <div class="fg"><label class="fl">특이사항 / 요청사항</label><textarea class="fi" rows="3" oninput="upC('notes',this.value)" placeholder="VIP 10명 포함, 채식 식단, 이동 최소화 등">${h(CUR.notes||'')}</textarea></div>
     </div>
+
+    <!-- 팀원 배정 카드 -->
+    <div class="card" style="margin-bottom:10px">
+      <div class="card-t">👥 프로젝트 팀원 배정
+        <span style="font-size:10px;font-weight:400;color:var(--ink3);margin-left:6px">배정된 팀원만 이 프로젝트를 볼 수 있어요</span>
+      </div>
+      <div style="margin-bottom:10px">
+        <label class="fl">배정 팀원 선택</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          ${team().map(function(m){
+            const assigned=(CUR.assignedTo||[]).includes(m);
+            return '<label style="display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;border:1px solid '+(assigned?'var(--a)':'var(--bdr)')+';background:'+(assigned?'var(--abg)':'var(--sur)')+';cursor:pointer;font-size:12px;font-weight:'+(assigned?'700':'400')+';color:'+(assigned?'var(--a)':'var(--ink3)')+'" onclick="toggleAssigned(\''+h(m)+'\')">'
+              +'<input type="checkbox" style="display:none">'
+              +h(m)
+              +'</label>';
+          }).join('')}
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--ink3)">
+        현재 배정: <b style="color:var(--ink2)">${[CUR.salesperson,...(CUR.assignedTo||[])].filter((v,i,a)=>v&&a.indexOf(v)===i).join(', ')||'—'}</b>
+        <span style="margin-left:8px;color:var(--ink4)">(담당자는 자동 포함)</span>
+      </div>
+    </div>
     ${CUR.rfpRaw?`<div class="card">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <span style="font-size:13px;font-weight:700;color:var(--ink)"> 수신 RFP 원문 (클라이언트 요청서)</span>
@@ -3166,6 +3192,16 @@ function renderProjInfo(){
       </div>
     </div>
     `;}
+function toggleAssigned(name){
+  if(!CUR) return;
+  if(!CUR.assignedTo) CUR.assignedTo=[];
+  const idx=CUR.assignedTo.indexOf(name);
+  if(idx>=0) CUR.assignedTo.splice(idx,1);
+  else CUR.assignedTo.push(name);
+  dp(CUR);
+  renderProjInfo();
+}
+
 function renderInquiryDetailHTML(route, cur){
   if(!route) return '';
   cur=cur||CUR||{};
@@ -4667,7 +4703,7 @@ function printCT(){
 
 /* ── SIDEBAR ── */
 function renderSidebar(){
-  const active=DB.projects.filter(p=>['awarded','operating','settling'].includes(p.status));
+  const active=myProjects().filter(p=>['awarded','operating','settling'].includes(p.status));
 
   const PROPOSAL_TABS=[
     {key:'projinfo', icon:'📋', label:'프로젝트'},
@@ -5899,9 +5935,25 @@ function markDone(){if(!CUR)return;const uf=(CUR.quoteItems||[]).filter(i=>i.act
 /* ── ALL PROJECTS PAGE ── */
 let _projSort='dday', _projFilter='';
 
+// 내가 볼 수 있는 프로젝트 필터
+function myProjects(){
+  // dev/admin은 전체 조회
+  if(['dev','admin'].includes(myRole())) return DB.projects;
+  const myName = CFG.myname||'';
+  const myEmail = CFG.myemail||'';
+  return DB.projects.filter(function(p){
+    // 담당자(salesperson)이거나 배정된 팀원(assignedTo)에 포함된 경우
+    if(p.salesperson && p.salesperson===myName) return true;
+    if(p.assignedTo && Array.isArray(p.assignedTo)){
+      if(p.assignedTo.includes(myName)||p.assignedTo.includes(myEmail)) return true;
+    }
+    return false;
+  });
+}
+
 function renderProjects(){
   const tm=team();
-  let projs=[...DB.projects];
+  let projs=[...myProjects()]; // 권한 기반 필터링
 
   // 검색 필터
   if(_projFilter){
@@ -6395,7 +6447,20 @@ function canDeleteQI(){ return canDelete(); }
 function canDeleteCL(){ return canDelete(); }
 function canDeleteVendor(){ return canDelete(); }
 
-function noPermToast(){toast('권한이 없습니다. (현재: '+ROLE_LABELS[myRole()]||myRole()+')','err');}
+function openCfgByRole(){
+  const role=myRole();
+  if(role==='viewer'){toast('설정 접근 권한이 없습니다','err');return;}
+  // staff/manager는 기본 설정만 (Supabase·사용자관리 숨김)
+  openM('mo-cfg');
+  // 비관리자는 일부 섹션 숨기기
+  setTimeout(function(){
+    const isAdmin=['dev','admin'].includes(role);
+    const sbCard=document.querySelector('#mo-cfg .card:has(#cfg-sb-url)');
+    const userCard=document.querySelector('#mo-cfg .card:has(#pending-users-list)');
+    if(sbCard) sbCard.style.display=isAdmin?'':'none';
+    if(userCard) userCard.style.display=isAdmin?'':'none';
+  },50);
+}
 function noCreateToast(){toast('생성 권한이 없습니다 (레벨 3 이상 필요)','err');}
 function noEditToast(){toast('수정 권한이 없습니다 (레벨 3 이상 필요)','err');}
 
@@ -8320,17 +8385,16 @@ function saveCfgGmail(){
 function gmailAuth(){
   const clientId=document.getElementById('cfg-gmail-client')?.value.trim()||CFG.gmailClientId;
   if(!clientId){toast('Google Client ID를 먼저 입력하세요','err');return;}
-  const scope='https://www.googleapis.com/auth/gmail.readonly';
-  const redirect=window.location.href.split('?')[0].split('#')[0];
+  const scope='https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send';
+  // 현재 사이트 주소를 redirect_uri로 사용
+  const redirect='https://chksystem.kayla-lee.workers.dev';
   const url='https://accounts.google.com/o/oauth2/v2/auth'
     +'?client_id='+encodeURIComponent(clientId)
     +'&redirect_uri='+encodeURIComponent(redirect)
     +'&response_type=token'
     +'&scope='+encodeURIComponent(scope)
     +'&prompt=select_account';
-  // 팝업으로 열기
   const popup=window.open(url,'gmail-auth','width=500,height=600');
-  // 토큰 수신 대기
   const timer=setInterval(function(){
     try{
       if(!popup||popup.closed){clearInterval(timer);return;}
@@ -8346,7 +8410,7 @@ function gmailAuth(){
         localStorage.setItem(CFG_KEY,JSON.stringify(CFG));
         const st=document.getElementById('gmail-auth-status');
         if(st)st.textContent='✅ Gmail 연동 완료';
-        toast('✅ Gmail 연동 성공! 이제 새 RFP 확인 버튼을 사용할 수 있습니다','ok');
+        toast('✅ Gmail 연동 성공!','ok');
       }
     }catch(e){}
   },500);
