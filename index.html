@@ -10034,7 +10034,7 @@ async function rfpOpenDetail(id){
 async function rfpParseAndCreate(id){
   const r = _rfpList.find(x=>x.id===id);
   if(!r) return;
-  if(!CFG.apiKey){ toast('Claude API Key가 없습니다 — 시스템 설정에서 입력해주세요','err'); return; }
+  if(!CFG.aiKey){ toast('Claude API Key가 없습니다 — 시스템 설정에서 입력해주세요','err'); return; }
 
   document.getElementById('mo-rfp-inbox').classList.remove('open');
   // RFP 파싱 페이지로 이동하고 본문 자동 주입
