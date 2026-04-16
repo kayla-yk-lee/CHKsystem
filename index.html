@@ -8693,31 +8693,28 @@ async function checkAuth(){
 
 async function handleLoggedIn(user){
   const email = user.email||'';
-  // allowed_users 테이블에서 승인 여부 확인
-  try{
-    const {data,error} = await SB.from('allowed_users').select('*').eq('email',email).single();
-    if(data && data.role){
-      // 승인된 사용자
-      hidePendingScreen();
-      hideLoginScreen();
-      // 사용자 이름 업데이트
-      const name = data.name || user.user_metadata?.name || email.split('@')[0];
-      CFG.myname = name;
-      const nmEl=document.getElementById('top-nm');
-      const avEl=document.getElementById('top-av');
-      if(nmEl) nmEl.textContent=name;
-      if(avEl) avEl.textContent=name.charAt(0);
-      startApp();
-    } else {
-      // 미승인 — 승인 요청 등록
-      await requestApproval(user);
-      showPendingScreen(email);
-    }
-  }catch(e){
-    // 테이블에 없으면 승인 요청
-    await requestApproval(user);
-    showPendingScreen(email);
+  const name = user.user_metadata?.name || user.user_metadata?.full_name || email.split('@')[0];
+
+  // 사용자 정보 업데이트
+  CFG.myname = name;
+  CFG.myemail = email;
+  const nmEl=document.getElementById('top-nm');
+  const avEl=document.getElementById('top-av');
+  if(nmEl) nmEl.textContent=name;
+  if(avEl) avEl.textContent=name.charAt(0);
+
+  // allowed_users에 기록 (없으면 추가)
+  if(SB){
+    try{
+      await SB.from('allowed_users').upsert({
+        email:email, name:name, role:'member',
+        created_at:new Date().toISOString()
+      },{onConflict:'email',ignoreDuplicates:true});
+    }catch(e){console.warn('allowed_users:',e);}
   }
+
+  // 바로 앱 시작
+  startApp();
 }
 
 async function requestApproval(user){
