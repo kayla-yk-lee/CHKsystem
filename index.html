@@ -8743,29 +8743,38 @@ function showLoginScreen(){
   const ls=document.getElementById('login-screen');
   const ps=document.getElementById('pending-screen');
   const body=document.getElementById('body');
-  if(ls){ls.style.display='flex';}
-  if(ps){ps.style.display='none';}
-  if(body){body.style.visibility='hidden';}
+  if(ls){ls.style.display='flex';ls.style.pointerEvents='all';}
+  if(ps){ps.style.display='none';ps.style.pointerEvents='none';}
+  if(body){body.style.visibility='hidden';body.style.pointerEvents='none';}
 }
 function hideLoginScreen(){
   const ls=document.getElementById('login-screen');
   const body=document.getElementById('body');
-  if(ls){ls.style.display='none';}
-  if(body){body.style.visibility='visible';}
+  if(ls){ls.style.display='none';ls.style.pointerEvents='none';}
+  if(body){body.style.visibility='visible';body.style.pointerEvents='all';}
 }
 function showPendingScreen(email){
   const ls=document.getElementById('login-screen');
   const ps=document.getElementById('pending-screen');
   const body=document.getElementById('body');
   const em=document.getElementById('pending-email');
-  if(ls){ls.style.display='none';}
-  if(ps){ps.style.display='flex';}
-  if(body){body.style.visibility='hidden';}
+  if(ls){ls.style.display='none';ls.style.pointerEvents='none';}
+  if(ps){ps.style.display='flex';ps.style.pointerEvents='all';}
+  if(body){body.style.visibility='hidden';body.style.pointerEvents='none';}
   if(em){em.textContent=email+' 로 로그인됨';}
 }
 function hidePendingScreen(){
   const ps=document.getElementById('pending-screen');
-  if(ps){ps.style.display='none';}
+  if(ps){ps.style.display='none';ps.style.pointerEvents='none';}
+}
+
+function startApp(){
+  hideLoginScreen();
+  hidePendingScreen();
+  const body=document.getElementById('body');
+  if(body){body.style.visibility='visible';body.style.pointerEvents='all';}
+  renderSidebar();
+  renderDash();
 }
 
 async function signInWithGoogle(){
@@ -8793,14 +8802,6 @@ async function signInWithGoogle(){
   }
 }
 
-function startApp(){
-  hideLoginScreen();
-  hidePendingScreen();
-  const body=document.getElementById('body');
-  if(body) body.style.visibility='visible';
-  renderSidebar();
-  renderDash();
-}
 
 (function init(){
   const myname = CFG.myname||'김채널';
