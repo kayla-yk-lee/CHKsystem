@@ -33,10 +33,10 @@ body{font-family:var(--ff);background:var(--bg);color:var(--ink);height:100vh;ov
 .tb-div{width:1px;height:16px;background:var(--bdr)}
 .tb-r{margin-left:auto;display:flex;align-items:center;gap:8px}
 .sync-bd{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:10.5px;font-weight:600;border:1px solid;transition:all .3s}
-.s-ok{background:var(--gbg);border-color:var(--gbl);color:var(--g)}
-.s-sv{background:var(--ambg);border-color:var(--ambl);color:var(--am)}
-.s-er{background:var(--rbg);border-color:var(--rbl);color:var(--r)}
-.s-of{background:var(--sur3);border-color:var(--bdr2);color:var(--ink3)}
+.s-ok{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff}
+.s-sv{background:rgba(251,191,36,.2);border-color:rgba(251,191,36,.6);color:#FDE68A}
+.s-er{background:rgba(239,68,68,.25);border-color:rgba(239,68,68,.6);color:#FCA5A5}
+.s-of{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.6)}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
 .ic-btn{width:30px;height:30px;border-radius:var(--ra);border:1px solid var(--bdr);background:var(--sur);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;transition:all .12s;position:relative;color:var(--ink2)}
 .ic-btn:hover{background:var(--sur3);border-color:var(--bdr2)}
@@ -527,6 +527,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
     <div class="nav" data-nav="vendors" onclick="navTo('vendors',this)"><span class="nav-ic"></span>서비스 항목</div>
     <div class="nav" data-nav="vendors-co" onclick="navTo('vendors-co',this)"><span class="nav-ic"></span>협력업체</div>
     <div class="nav" data-nav="themes" onclick="navTo('themes',this)"><span class="nav-ic"></span>테마 관리</div>
+    <div class="nav" data-nav="internal" onclick="navTo('internal',this)"><span class="nav-ic">🏢</span>사내 프로젝트<span class="nc" id="nc-int">0</span></div>
     <span class="sb-lbl">진행 프로젝트</span>
     <div id="sb-projs"></div>
     <div class="sb-foot">
@@ -595,7 +596,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
       <div class="page" id="page-vendor-settle"></div>
       <div class="page" id="page-labor-settle"></div>
       <div class="page" id="page-report"></div>
-    </div>
+      <div class="page" id="page-internal"></div>
   </div>
 </div>
 
@@ -1622,6 +1623,10 @@ function buildSample(){
       {id:uid(),name:'반얀트리 서울',category:'fb_gala',manager:'정매니저',tel:'02-2250-8000',email:'fnb@banyantree.com',note:'루프탑 갈라디너'},
     ],
     lastSync:null,
+    internalTasks:[],
+    internalMeetings:[],
+    notices:[],
+    internalBudgets:[],
   };
 }
 
@@ -2081,7 +2086,7 @@ function navTo(page,el){
   document.getElementById('ph').style.display='none';
   document.getElementById('tabbar').style.display='none';
   CUR=null; showPage(page);
-  const fn={dashboard:renderDash,pipeline:renderPipeline,vendors:renderVendors,'vendors-co':renderVendorsCo,calendar:renderCalendar,themes:renderThemes,'new-proj':renderNewProj,stat:renderStatPage,projects:renderProjects,'rfp-parse':renderRFPParsePage};
+  const fn={dashboard:renderDash,pipeline:renderPipeline,vendors:renderVendors,'vendors-co':renderVendorsCo,calendar:renderCalendar,themes:renderThemes,'new-proj':renderNewProj,stat:renderStatPage,projects:renderProjects,'rfp-parse':renderRFPParsePage,internal:renderInternal};
   if(fn[page])fn[page]();
 }
 
@@ -9082,6 +9087,574 @@ async function signInWithGoogle(){
   }
 }
 
+
+/* ═══════════════════════════════════════════════════
+   사내 프로젝트 — 전체 기능 모듈
+   ═══════════════════════════════════════════════════ */
+
+// ── 탭 상태 ──
+var _intTab = 'tasks';
+
+function renderInternal(){
+  if(!DB.internalTasks) DB.internalTasks=[];
+  if(!DB.internalMeetings) DB.internalMeetings=[];
+  if(!DB.notices) DB.notices=[];
+  if(!DB.internalBudgets) DB.internalBudgets=[];
+  _intUpdateBadge();
+
+  const pg=document.getElementById('page-internal');
+  pg.innerHTML=`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:17px;font-weight:800;color:var(--ink)">🏢 사내 프로젝트</div>
+      <div style="font-size:11.5px;color:var(--ink4);margin-top:2px">업무·회의·공지·예산·세금계산서 통합 관리</div>
+    </div>
+    <div id="int-act-btns" style="display:flex;gap:6px"></div>
+  </div>
+
+  <!-- 탭바 -->
+  <div style="display:flex;gap:2px;border-bottom:2px solid var(--bdr);margin-bottom:18px;overflow-x:auto">
+    <div class="int-tab on" data-itab="tasks" onclick="switchIntTab('tasks',this)" style="padding:9px 16px;font-size:12.5px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--a);color:var(--a);white-space:nowrap;margin-bottom:-2px">📋 업무·태스크</div>
+    <div class="int-tab" data-itab="meetings" onclick="switchIntTab('meetings',this)" style="padding:9px 16px;font-size:12.5px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--ink3);white-space:nowrap;margin-bottom:-2px">📅 회의·일정</div>
+    <div class="int-tab" data-itab="notices" onclick="switchIntTab('notices',this)" style="padding:9px 16px;font-size:12.5px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--ink3);white-space:nowrap;margin-bottom:-2px">📢 공지사항</div>
+    <div class="int-tab" data-itab="budget" onclick="switchIntTab('budget',this)" style="padding:9px 16px;font-size:12.5px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--ink3);white-space:nowrap;margin-bottom:-2px">💳 예산·비용</div>
+    <div class="int-tab" data-itab="tax" onclick="switchIntTab('tax',this)" style="padding:9px 16px;font-size:12.5px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--ink3);white-space:nowrap;margin-bottom:-2px">🧾 세금계산서</div>
+  </div>
+
+  <!-- 탭 콘텐츠 -->
+  <div id="int-tab-content"></div>
+  `;
+  switchIntTab(_intTab);
+}
+
+function switchIntTab(tab, el){
+  _intTab=tab;
+  document.querySelectorAll('.int-tab').forEach(t=>{
+    const isOn=t.dataset.itab===tab;
+    t.style.borderBottomColor=isOn?'var(--a)':'transparent';
+    t.style.color=isOn?'var(--a)':'var(--ink3)';
+  });
+  const actBtns=document.getElementById('int-act-btns');
+  if(actBtns){
+    const btns={
+      tasks:`<button class="btn bp btn-sm" onclick="openIntTask()">+ 업무 추가</button>`,
+      meetings:`<button class="btn bp btn-sm" onclick="openIntMeeting()">+ 회의 추가</button>`,
+      notices:`<button class="btn bp btn-sm" onclick="openIntNotice()">+ 공지 작성</button>`,
+      budget:`<button class="btn bp btn-sm" onclick="openIntBudget()">+ 비용 등록</button>`,
+      tax:`<button class="btn bp btn-sm" onclick="openIntTax()">+ 세금계산서 등록</button>`,
+    };
+    actBtns.innerHTML=btns[tab]||'';
+  }
+  const content=document.getElementById('int-tab-content');
+  if(!content) return;
+  const fn={tasks:renderIntTasks,meetings:renderIntMeetings,notices:renderIntNotices,budget:renderIntBudget,tax:renderIntTax};
+  if(fn[tab]) fn[tab](content);
+}
+
+// ── 업무·태스크 ──
+function renderIntTasks(cont){
+  const tasks=DB.internalTasks||[];
+  const byStatus={todo:[],doing:[],done:[]};
+  tasks.forEach(t=>(byStatus[t.status]||byStatus['todo']).push(t));
+
+  const priColor={high:'var(--r)',mid:'var(--am)',low:'var(--g)'};
+  const priLabel={high:'🔴 긴급',mid:'🟡 보통',low:'🟢 낮음'};
+
+  function taskCard(t){
+    const proj=t.projectId?(DB.projects||[]).find(p=>p.id===t.projectId):null;
+    const overdue=t.dueDate&&t.status!=='done'&&new Date(t.dueDate)<new Date();
+    return `<div class="kbc" onclick="openIntTask('${t.id}')">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+        <span style="font-size:10px;font-weight:700;color:${priColor[t.priority]||'var(--ink4)'}">●</span>
+        <span style="font-size:11px;font-weight:600;color:${priColor[t.priority]||'var(--ink4)'};">${priLabel[t.priority]||''}</span>
+        ${proj?`<span class="chip ca" style="font-size:9.5px;padding:1px 6px">${h(proj.nameKO)}</span>`:''}
+      </div>
+      <div class="kbc-t">${h(t.title)}</div>
+      <div class="kbc-f">
+        <span style="font-size:10px;color:var(--ink3)">👤 ${h(t.assignee||'미지정')}</span>
+        <span style="font-size:10px;color:${overdue?'var(--r)':'var(--ink4)'};margin-left:auto">📅 ${t.dueDate||'기한없음'}</span>
+      </div>
+      ${t.memo?`<div style="font-size:10.5px;color:var(--ink3);margin-top:5px;border-top:1px solid var(--bdr);padding-top:4px">${h(t.memo)}</div>`:''}
+    </div>`;
+  }
+
+  cont.innerHTML=`
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+    <div class="kb">
+      <div class="kb-h"><span style="font-size:13px">📥</span><span class="kb-t">할 일</span><span class="kb-c">${byStatus.todo.length}</span></div>
+      ${byStatus.todo.map(taskCard).join('')}
+      ${!byStatus.todo.length?'<div style="text-align:center;padding:20px;font-size:12px;color:var(--ink4)">업무 없음</div>':''}
+    </div>
+    <div class="kb">
+      <div class="kb-h"><span style="font-size:13px">⚡</span><span class="kb-t">진행 중</span><span class="kb-c">${byStatus.doing.length}</span></div>
+      ${byStatus.doing.map(taskCard).join('')}
+      ${!byStatus.doing.length?'<div style="text-align:center;padding:20px;font-size:12px;color:var(--ink4)">진행 중 없음</div>':''}
+    </div>
+    <div class="kb">
+      <div class="kb-h"><span style="font-size:13px">✅</span><span class="kb-t">완료</span><span class="kb-c">${byStatus.done.length}</span></div>
+      ${byStatus.done.map(taskCard).join('')}
+      ${!byStatus.done.length?'<div style="text-align:center;padding:20px;font-size:12px;color:var(--ink4)">완료 없음</div>':''}
+    </div>
+  </div>`;
+}
+
+// ── 회의·일정 ──
+function renderIntMeetings(cont){
+  const meetings=(DB.internalMeetings||[]).sort((a,b)=>a.date>b.date?1:-1);
+  const today=new Date().toISOString().slice(0,10);
+  const upcoming=meetings.filter(m=>m.date>=today);
+  const past=meetings.filter(m=>m.date<today);
+
+  function meetCard(m){
+    const proj=m.projectId?(DB.projects||[]).find(p=>p.id===m.projectId):null;
+    return `<div class="card" style="cursor:pointer;margin-bottom:10px" onclick="openIntMeeting('${m.id}')">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="text-align:center;background:var(--abg);border-radius:8px;padding:8px 12px;min-width:50px;flex-shrink:0">
+          <div style="font-size:18px;font-weight:800;color:var(--a);line-height:1">${m.date?m.date.slice(8):''}</div>
+          <div style="font-size:9px;color:var(--ink3);font-weight:600">${m.date?m.date.slice(5,7)+'월':''}</div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:3px">${h(m.title)}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--ink3)">
+            ${m.time?`<span>🕐 ${m.time}</span>`:''}
+            ${m.location?`<span>📍 ${h(m.location)}</span>`:''}
+            ${proj?`<span class="chip ca" style="font-size:9.5px">🔗 ${h(proj.nameKO)}</span>`:''}
+          </div>
+          ${m.attendees?`<div style="font-size:10.5px;color:var(--ink4);margin-top:4px">👥 ${h(m.attendees)}</div>`:''}
+          ${m.agenda?`<div style="font-size:10.5px;color:var(--ink3);margin-top:4px;border-top:1px solid var(--bdr);padding-top:4px">${h(m.agenda)}</div>`:''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  cont.innerHTML=`
+  <div class="sec-l">예정 회의 (${upcoming.length})</div>
+  ${upcoming.length?upcoming.map(meetCard).join(''):'<div style="text-align:center;padding:30px;font-size:12px;color:var(--ink4)">예정된 회의가 없습니다</div>'}
+  ${past.length?`<div class="sec-l" style="margin-top:20px">지난 회의 (${past.length})</div>${past.map(meetCard).join('')}`:''}`;
+}
+
+// ── 공지사항 ──
+function renderIntNotices(cont){
+  const notices=(DB.notices||[]).sort((a,b)=>{
+    if(a.pinned&&!b.pinned) return -1;
+    if(!a.pinned&&b.pinned) return 1;
+    return b.createdAt>a.createdAt?1:-1;
+  });
+  cont.innerHTML=notices.length?notices.map(n=>`
+    <div class="card" style="margin-bottom:10px;cursor:pointer;${n.pinned?'border-left:3px solid var(--a)':''}" onclick="openIntNotice('${n.id}')">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        ${n.pinned?`<span style="font-size:14px;flex-shrink:0" title="고정">📌</span>`:'<span style="font-size:14px;flex-shrink:0">📢</span>'}
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:4px">${h(n.title)}</div>
+          <div style="font-size:11.5px;color:var(--ink2);white-space:pre-wrap;line-height:1.6;margin-bottom:8px">${h(n.content).slice(0,200)}${n.content.length>200?'...':''}</div>
+          <div style="font-size:10px;color:var(--ink4)">✍️ ${h(n.author||'관리자')} · ${n.createdAt?n.createdAt.slice(0,10):''}</div>
+        </div>
+      </div>
+    </div>`).join('')
+  :'<div style="text-align:center;padding:40px;font-size:12px;color:var(--ink4)">공지사항이 없습니다</div>';
+}
+
+// ── 예산·비용 ──
+function renderIntBudget(cont){
+  const items=DB.internalBudgets||[];
+  const total=items.reduce((s,i)=>s+(i.amount||0),0);
+  const byMethod={카드:0,현금:0,계좌이체:0,기타:0};
+  items.forEach(i=>{const k=i.payMethod||'기타';byMethod[k]=(byMethod[k]||0)+(i.amount||0);});
+  const cats=[...new Set(items.map(i=>i.category||'기타'))];
+  const fmtW=n=>n.toLocaleString('ko-KR')+'원';
+
+  cont.innerHTML=`
+  <div class="kpi-grid" style="margin-bottom:20px">
+    <div class="kpi"><div class="kpi-l">총 지출</div><div class="kpi-v">${fmtW(total)}</div><div class="kpi-s">${items.length}건</div></div>
+    <div class="kpi"><div class="kpi-l">카드</div><div class="kpi-v acc">${fmtW(byMethod['카드']||0)}</div></div>
+    <div class="kpi"><div class="kpi-l">계좌이체</div><div class="kpi-v">${fmtW(byMethod['계좌이체']||0)}</div></div>
+    <div class="kpi"><div class="kpi-l">현금/기타</div><div class="kpi-v">${fmtW((byMethod['현금']||0)+(byMethod['기타']||0))}</div></div>
+  </div>
+  <div class="tw">
+  <table>
+    <thead><tr>
+      <th>날짜</th><th>카테고리</th><th>내용</th><th>연결 프로젝트</th><th>결제방법</th><th>카드번호</th><th class="r">금액</th><th>세금계산서</th><th>작업</th>
+    </tr></thead>
+    <tbody>
+    ${items.length?[...items].sort((a,b)=>b.date>a.date?1:-1).map(i=>{
+      const proj=i.projectId?(DB.projects||[]).find(p=>p.id===i.projectId):null;
+      return `<tr>
+        <td>${i.date||''}</td>
+        <td><span class="chip cn" style="font-size:10px">${h(i.category||'기타')}</span></td>
+        <td style="font-weight:500">${h(i.title)}</td>
+        <td>${proj?`<span class="chip ca" style="font-size:9.5px">${h(proj.nameKO)}</span>`:'<span style="color:var(--ink4)">—</span>'}</td>
+        <td>${h(i.payMethod||'—')}</td>
+        <td style="font-family:var(--fm);font-size:11px;color:var(--ink3)">${i.cardNo?'****-'+i.cardNo.slice(-4):'—'}</td>
+        <td class="num">${(i.amount||0).toLocaleString()}</td>
+        <td>${i.taxInvoice?`<span class="chip cg" style="font-size:9.5px">발행완료</span>`:`<span class="chip cn" style="font-size:9.5px">미발행</span>`}</td>
+        <td><button class="btn bd btn-sm" onclick="openIntBudget('${i.id}')">수정</button></td>
+      </tr>`;
+    }).join(''):'<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--ink4)">비용 내역이 없습니다</td></tr>'}
+    </tbody>
+    ${items.length?`<tfoot><tr><td colspan="6" style="font-weight:700">합계</td><td class="num">${total.toLocaleString()}</td><td colspan="2"></td></tr></tfoot>`:''}
+  </table>
+  </div>`;
+}
+
+// ── 세금계산서 ──
+function renderIntTax(cont){
+  const items=(DB.internalBudgets||[]).filter(i=>i.taxInvoice||i.hometaxNo);
+  cont.innerHTML=`
+  <div class="alert al-i" style="margin-bottom:16px">
+    💡 <strong>홈텍스 세금계산서</strong> — 발행된 세금계산서 및 카드사 내역을 관리합니다. 실제 연동은 홈텍스(hometax.go.kr)에서 확인하세요.
+  </div>
+  <div class="tw">
+  <table>
+    <thead><tr>
+      <th>발행일</th><th>공급업체</th><th>내용</th><th>승인번호</th><th>카드사</th><th class="r">공급가액</th><th class="r">부가세</th><th class="r">합계</th><th>작업</th>
+    </tr></thead>
+    <tbody>
+    ${items.length?items.map(i=>{
+      const supply=Math.round((i.amount||0)/1.1);
+      const vat=(i.amount||0)-supply;
+      return `<tr>
+        <td>${i.date||''}</td>
+        <td style="font-weight:600">${h(i.vendor||'—')}</td>
+        <td>${h(i.title)}</td>
+        <td style="font-family:var(--fm);font-size:11px;color:var(--a)">${h(i.hometaxNo||'—')}</td>
+        <td>${i.cardCompany?`<span class="chip cb" style="font-size:9.5px">${h(i.cardCompany)}</span>`:'—'}</td>
+        <td class="num">${supply.toLocaleString()}</td>
+        <td class="num" style="color:var(--am)">${vat.toLocaleString()}</td>
+        <td class="num dp">${(i.amount||0).toLocaleString()}</td>
+        <td><button class="btn bd btn-sm" onclick="openIntBudget('${i.id}')">보기</button></td>
+      </tr>`;
+    }).join(''):'<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--ink4)">세금계산서 내역이 없습니다</td></tr>'}
+    </tbody>
+  </table>
+  </div>
+  <div style="margin-top:12px;display:flex;gap:8px">
+    <button class="btn bd btn-sm" onclick="window.open('https://www.hometax.go.kr','_blank')">🏛 홈텍스 바로가기</button>
+    <button class="btn bd btn-sm" onclick="exportTaxXLSX()">📊 엑셀 내보내기</button>
+  </div>`;
+}
+
+// ── 배지 업데이트 ──
+function _intUpdateBadge(){
+  const pending=(DB.internalTasks||[]).filter(t=>t.status!=='done').length;
+  const el=document.getElementById('nc-int');
+  if(el) el.textContent=pending;
+}
+
+/* ───────────────── MODALS ───────────────── */
+
+// 업무 모달
+function openIntTask(id){
+  let t=id?(DB.internalTasks||[]).find(x=>x.id===id):null;
+  const projOpts=(DB.projects||[]).map(p=>`<option value="${p.id}" ${t?.projectId===p.id?'selected':''}>${h(p.nameKO)}</option>`).join('');
+  let m=document.getElementById('mo-int-task');
+  if(!m){m=document.createElement('div');m.id='mo-int-task';m.className='mo';m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+  m.innerHTML=`<div class="mb wide"><div class="mo-t">${id?'업무 수정':'업무 추가'}</div>
+    <div class="fr2">
+      <div class="fg" style="grid-column:span 2"><label class="fl">업무 제목 ★</label><input class="fi" id="it-title" value="${h(t?.title||'')}" placeholder="예: 견적서 초안 작성"></div>
+    </div>
+    <div class="fr3">
+      <div class="fg"><label class="fl">담당자</label><input class="fi" id="it-assignee" list="it-team-list" value="${h(t?.assignee||'')}">
+        <datalist id="it-team-list">${(team()||[]).map(m=>`<option>${h(m)}</option>`).join('')}</datalist></div>
+      <div class="fg"><label class="fl">마감일</label><input class="fi" type="date" id="it-due" value="${t?.dueDate||''}"></div>
+      <div class="fg"><label class="fl">우선순위</label>
+        <select class="fi" id="it-priority">
+          <option value="high" ${t?.priority==='high'?'selected':''}>🔴 긴급</option>
+          <option value="mid" ${(!t||t.priority==='mid')?'selected':''}>🟡 보통</option>
+          <option value="low" ${t?.priority==='low'?'selected':''}>🟢 낮음</option>
+        </select></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">진행 상태</label>
+        <select class="fi" id="it-status">
+          <option value="todo" ${(!t||t.status==='todo')?'selected':''}>📥 할 일</option>
+          <option value="doing" ${t?.status==='doing'?'selected':''}>⚡ 진행 중</option>
+          <option value="done" ${t?.status==='done'?'selected':''}>✅ 완료</option>
+        </select></div>
+      <div class="fg"><label class="fl">연결 프로젝트</label>
+        <select class="fi" id="it-proj">
+          <option value="">— 없음 —</option>${projOpts}
+        </select></div>
+    </div>
+    <div class="fg"><label class="fl">메모</label><textarea class="fi" id="it-memo" rows="2">${h(t?.memo||'')}</textarea></div>
+    <div class="mo-f">
+      <button class="btn bd" style="flex:1" onclick="closeIntModal('mo-int-task')">취소</button>
+      ${id?`<button class="btn bdr2c btn-sm" onclick="delIntTask('${id}')">삭제</button>`:''}
+      <button class="btn bp" style="flex:2" onclick="saveIntTask('${id||''}')">저장</button>
+    </div>
+  </div>`;
+  m.classList.add('open');
+}
+
+function saveIntTask(id){
+  if(!DB.internalTasks)DB.internalTasks=[];
+  const title=document.getElementById('it-title').value.trim();
+  if(!title){toast('업무 제목을 입력해주세요','err');return;}
+  const obj={
+    id:id||uid(), title,
+    assignee:document.getElementById('it-assignee').value.trim(),
+    dueDate:document.getElementById('it-due').value,
+    priority:document.getElementById('it-priority').value,
+    status:document.getElementById('it-status').value,
+    projectId:document.getElementById('it-proj').value||null,
+    memo:document.getElementById('it-memo').value.trim(),
+    updatedAt:now()
+  };
+  if(id){const i=DB.internalTasks.findIndex(x=>x.id===id);if(i>=0)DB.internalTasks[i]=obj;}
+  else DB.internalTasks.push(obj);
+  saveDB(); closeIntModal('mo-int-task');
+  _intUpdateBadge();
+  renderIntTasks(document.getElementById('int-tab-content'));
+  toast(id?'업무 수정됨':'업무 추가됨','ok');
+}
+
+function delIntTask(id){
+  if(!confirm('이 업무를 삭제할까요?'))return;
+  DB.internalTasks=(DB.internalTasks||[]).filter(x=>x.id!==id);
+  saveDB(); closeIntModal('mo-int-task');
+  _intUpdateBadge();
+  renderIntTasks(document.getElementById('int-tab-content'));
+  toast('삭제됨','ok');
+}
+
+// 회의 모달
+function openIntMeeting(id){
+  let m2=id?(DB.internalMeetings||[]).find(x=>x.id===id):null;
+  const projOpts=(DB.projects||[]).map(p=>`<option value="${p.id}" ${m2?.projectId===p.id?'selected':''}>${h(p.nameKO)}</option>`).join('');
+  let m=document.getElementById('mo-int-meet');
+  if(!m){m=document.createElement('div');m.id='mo-int-meet';m.className='mo';m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+  m.innerHTML=`<div class="mb wide"><div class="mo-t">${id?'회의 수정':'회의 추가'}</div>
+    <div class="fg"><label class="fl">회의명 ★</label><input class="fi" id="im-title" value="${h(m2?.title||'')}" placeholder="예: 3분기 프로젝트 검토 회의"></div>
+    <div class="fr3">
+      <div class="fg"><label class="fl">날짜</label><input class="fi" type="date" id="im-date" value="${m2?.date||''}"></div>
+      <div class="fg"><label class="fl">시간</label><input class="fi" type="time" id="im-time" value="${m2?.time||''}"></div>
+      <div class="fg"><label class="fl">장소</label><input class="fi" id="im-loc" value="${h(m2?.location||'')}" placeholder="회의실 A, Zoom 링크 등"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">참석자</label><input class="fi" id="im-att" value="${h(m2?.attendees||'')}" placeholder="김채널, 이케이, 박디엠씨"></div>
+      <div class="fg"><label class="fl">연결 프로젝트</label>
+        <select class="fi" id="im-proj"><option value="">— 없음 —</option>${projOpts}</select></div>
+    </div>
+    <div class="fg"><label class="fl">안건 / 메모</label><textarea class="fi" id="im-agenda" rows="3" placeholder="회의 안건, 결정사항, 액션아이템...">${h(m2?.agenda||'')}</textarea></div>
+    <div class="mo-f">
+      <button class="btn bd" style="flex:1" onclick="closeIntModal('mo-int-meet')">취소</button>
+      ${id?`<button class="btn bdr2c btn-sm" onclick="delIntMeeting('${id}')">삭제</button>`:''}
+      <button class="btn bp" style="flex:2" onclick="saveIntMeeting('${id||''}')">저장</button>
+    </div>
+  </div>`;
+  m.classList.add('open');
+}
+
+function saveIntMeeting(id){
+  if(!DB.internalMeetings)DB.internalMeetings=[];
+  const title=document.getElementById('im-title').value.trim();
+  if(!title){toast('회의명을 입력해주세요','err');return;}
+  const obj={
+    id:id||uid(), title,
+    date:document.getElementById('im-date').value,
+    time:document.getElementById('im-time').value,
+    location:document.getElementById('im-loc').value.trim(),
+    attendees:document.getElementById('im-att').value.trim(),
+    projectId:document.getElementById('im-proj').value||null,
+    agenda:document.getElementById('im-agenda').value.trim(),
+    updatedAt:now()
+  };
+  if(id){const i=DB.internalMeetings.findIndex(x=>x.id===id);if(i>=0)DB.internalMeetings[i]=obj;}
+  else DB.internalMeetings.push(obj);
+  saveDB(); closeIntModal('mo-int-meet');
+  renderIntMeetings(document.getElementById('int-tab-content'));
+  toast(id?'회의 수정됨':'회의 추가됨','ok');
+}
+
+function delIntMeeting(id){
+  if(!confirm('이 회의를 삭제할까요?'))return;
+  DB.internalMeetings=(DB.internalMeetings||[]).filter(x=>x.id!==id);
+  saveDB(); closeIntModal('mo-int-meet');
+  renderIntMeetings(document.getElementById('int-tab-content'));
+  toast('삭제됨','ok');
+}
+
+// 공지사항 모달
+function openIntNotice(id){
+  let n=id?(DB.notices||[]).find(x=>x.id===id):null;
+  let m=document.getElementById('mo-int-notice');
+  if(!m){m=document.createElement('div');m.id='mo-int-notice';m.className='mo';m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+  m.innerHTML=`<div class="mb wide"><div class="mo-t">${id?'공지 수정':'공지 작성'}</div>
+    <div class="fg"><label class="fl">제목 ★</label><input class="fi" id="in-title" value="${h(n?.title||'')}" placeholder="공지 제목"></div>
+    <div class="fg"><label class="fl">내용</label><textarea class="fi" id="in-content" rows="5" placeholder="공지 내용을 입력하세요...">${h(n?.content||'')}</textarea></div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">작성자</label><input class="fi" id="in-author" value="${h(n?.author||CFG.myname||'관리자')}"></div>
+      <div class="fg" style="display:flex;align-items:center;gap:10px;padding-top:20px">
+        <input type="checkbox" id="in-pin" ${n?.pinned?'checked':''} style="width:16px;height:16px">
+        <label for="in-pin" style="font-size:12px;font-weight:600;cursor:pointer">📌 상단 고정</label>
+      </div>
+    </div>
+    <div class="mo-f">
+      <button class="btn bd" style="flex:1" onclick="closeIntModal('mo-int-notice')">취소</button>
+      ${id?`<button class="btn bdr2c btn-sm" onclick="delIntNotice('${id}')">삭제</button>`:''}
+      <button class="btn bp" style="flex:2" onclick="saveIntNotice('${id||''}')">저장</button>
+    </div>
+  </div>`;
+  m.classList.add('open');
+}
+
+function saveIntNotice(id){
+  if(!DB.notices)DB.notices=[];
+  const title=document.getElementById('in-title').value.trim();
+  if(!title){toast('제목을 입력해주세요','err');return;}
+  const obj={
+    id:id||uid(), title,
+    content:document.getElementById('in-content').value.trim(),
+    author:document.getElementById('in-author').value.trim()||'관리자',
+    pinned:document.getElementById('in-pin').checked,
+    createdAt:id?(DB.notices.find(x=>x.id===id)?.createdAt||now()):now(),
+    updatedAt:now()
+  };
+  if(id){const i=DB.notices.findIndex(x=>x.id===id);if(i>=0)DB.notices[i]=obj;}
+  else DB.notices.push(obj);
+  saveDB(); closeIntModal('mo-int-notice');
+  renderIntNotices(document.getElementById('int-tab-content'));
+  toast(id?'공지 수정됨':'공지 등록됨','ok');
+}
+
+function delIntNotice(id){
+  if(!confirm('이 공지를 삭제할까요?'))return;
+  DB.notices=(DB.notices||[]).filter(x=>x.id!==id);
+  saveDB(); closeIntModal('mo-int-notice');
+  renderIntNotices(document.getElementById('int-tab-content'));
+  toast('삭제됨','ok');
+}
+
+// 비용/세금계산서 모달
+const CARD_COMPANIES=['KB국민카드','신한카드','롯데카드','삼성카드','현대카드','하나카드','우리카드','BC카드','NH농협카드','기타'];
+const BUDGET_CATS=['교통비','식비','숙박비','비품/소모품','인건비/외주','홍보/마케팅','SW/구독료','교육/훈련','접대비','기타'];
+
+function openIntBudget(id){
+  let b=id?(DB.internalBudgets||[]).find(x=>x.id===id):null;
+  const projOpts=(DB.projects||[]).map(p=>`<option value="${p.id}" ${b?.projectId===p.id?'selected':''}>${h(p.nameKO)}</option>`).join('');
+  let m=document.getElementById('mo-int-budget');
+  if(!m){m=document.createElement('div');m.id='mo-int-budget';m.className='mo';m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+  m.innerHTML=`<div class="mb wide" style="max-width:640px"><div class="mo-t">${id?'비용 수정':'비용 등록'}</div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">내용 ★</label><input class="fi" id="ib-title" value="${h(b?.title||'')}" placeholder="예: 거래처 미팅 식사비"></div>
+      <div class="fg"><label class="fl">카테고리</label>
+        <select class="fi" id="ib-cat">
+          ${BUDGET_CATS.map(c=>`<option ${b?.category===c?'selected':''}>${c}</option>`).join('')}
+        </select></div>
+    </div>
+    <div class="fr3">
+      <div class="fg"><label class="fl">날짜</label><input class="fi" type="date" id="ib-date" value="${b?.date||''}"></div>
+      <div class="fg"><label class="fl">금액 (원)</label><input class="fi" type="number" id="ib-amount" value="${b?.amount||''}" placeholder="0"></div>
+      <div class="fg"><label class="fl">결제방법</label>
+        <select class="fi" id="ib-pay" onchange="toggleCardFields()">
+          <option ${b?.payMethod==='카드'?'selected':''}>카드</option>
+          <option ${b?.payMethod==='현금'?'selected':''}>현금</option>
+          <option ${b?.payMethod==='계좌이체'?'selected':''}>계좌이체</option>
+          <option ${b?.payMethod==='기타'?'selected':''}>기타</option>
+        </select></div>
+    </div>
+    <div id="ib-card-fields" style="${(!b||b.payMethod==='카드')?'':'display:none'}">
+      <div class="fr2">
+        <div class="fg"><label class="fl">카드사</label>
+          <select class="fi" id="ib-card-co">
+            ${CARD_COMPANIES.map(c=>`<option ${b?.cardCompany===c?'selected':''}>${c}</option>`).join('')}
+          </select></div>
+        <div class="fg"><label class="fl">카드번호 (마지막 4자리)</label><input class="fi" id="ib-card-no" maxlength="4" value="${h(b?.cardNo||'')}" placeholder="1234"></div>
+      </div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">공급업체명</label><input class="fi" id="ib-vendor" value="${h(b?.vendor||'')}" placeholder="업체명"></div>
+      <div class="fg"><label class="fl">연결 프로젝트</label>
+        <select class="fi" id="ib-proj"><option value="">— 없음 —</option>${projOpts}</select></div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:13px;padding:10px 12px;background:var(--sur2);border-radius:var(--ra)">
+      <input type="checkbox" id="ib-tax" ${b?.taxInvoice?'checked':''} onchange="toggleHometax()" style="width:16px;height:16px">
+      <label for="ib-tax" style="font-size:12px;font-weight:600;cursor:pointer">🧾 세금계산서 발행</label>
+    </div>
+    <div id="ib-hometax-field" style="${b?.taxInvoice?'':'display:none'}">
+      <div class="fg"><label class="fl">홈텍스 승인번호</label><input class="fi" id="ib-hometax" value="${h(b?.hometaxNo||'')}" placeholder="홈텍스 조회 후 입력"></div>
+    </div>
+    <div class="fg"><label class="fl">메모</label><input class="fi" id="ib-memo" value="${h(b?.memo||'')}" placeholder="메모"></div>
+    <div class="mo-f">
+      <button class="btn bd" style="flex:1" onclick="closeIntModal('mo-int-budget')">취소</button>
+      ${id?`<button class="btn bdr2c btn-sm" onclick="delIntBudget('${id}')">삭제</button>`:''}
+      <button class="btn bp" style="flex:2" onclick="saveIntBudget('${id||''}')">저장</button>
+    </div>
+  </div>`;
+  m.classList.add('open');
+}
+
+function openIntTax(){ openIntBudget(); setTimeout(()=>{const el=document.getElementById('ib-tax');if(el){el.checked=true;toggleHometax();}},100); }
+
+function toggleCardFields(){
+  const sel=document.getElementById('ib-pay');
+  const f=document.getElementById('ib-card-fields');
+  if(f) f.style.display=sel&&sel.value==='카드'?'':'none';
+}
+function toggleHometax(){
+  const cb=document.getElementById('ib-tax');
+  const f=document.getElementById('ib-hometax-field');
+  if(f) f.style.display=cb&&cb.checked?'':'none';
+}
+
+function saveIntBudget(id){
+  if(!DB.internalBudgets)DB.internalBudgets=[];
+  const title=document.getElementById('ib-title').value.trim();
+  if(!title){toast('내용을 입력해주세요','err');return;}
+  const payMethod=document.getElementById('ib-pay').value;
+  const obj={
+    id:id||uid(), title,
+    category:document.getElementById('ib-cat').value,
+    date:document.getElementById('ib-date').value,
+    amount:parseFloat(document.getElementById('ib-amount').value)||0,
+    payMethod,
+    cardCompany:payMethod==='카드'?(document.getElementById('ib-card-co')?.value||''):'',
+    cardNo:payMethod==='카드'?(document.getElementById('ib-card-no')?.value||''):'',
+    vendor:document.getElementById('ib-vendor').value.trim(),
+    projectId:document.getElementById('ib-proj').value||null,
+    taxInvoice:document.getElementById('ib-tax').checked,
+    hometaxNo:document.getElementById('ib-hometax')?.value.trim()||'',
+    memo:document.getElementById('ib-memo').value.trim(),
+    updatedAt:now()
+  };
+  if(id){const i=DB.internalBudgets.findIndex(x=>x.id===id);if(i>=0)DB.internalBudgets[i]=obj;}
+  else DB.internalBudgets.push(obj);
+  saveDB(); closeIntModal('mo-int-budget');
+  const cont=document.getElementById('int-tab-content');
+  if(_intTab==='budget') renderIntBudget(cont);
+  else if(_intTab==='tax') renderIntTax(cont);
+  toast(id?'비용 수정됨':'비용 등록됨','ok');
+}
+
+function delIntBudget(id){
+  if(!confirm('이 항목을 삭제할까요?'))return;
+  DB.internalBudgets=(DB.internalBudgets||[]).filter(x=>x.id!==id);
+  saveDB(); closeIntModal('mo-int-budget');
+  const cont=document.getElementById('int-tab-content');
+  if(_intTab==='budget') renderIntBudget(cont);
+  else if(_intTab==='tax') renderIntTax(cont);
+  toast('삭제됨','ok');
+}
+
+function closeIntModal(id){
+  const m=document.getElementById(id);
+  if(m) m.classList.remove('open');
+}
+
+// 세금계산서 엑셀 내보내기
+function exportTaxXLSX(){
+  const items=(DB.internalBudgets||[]).filter(i=>i.taxInvoice||i.hometaxNo);
+  if(!items.length){toast('세금계산서 내역이 없습니다','err');return;}
+  const ws_data=[['날짜','공급업체','내용','승인번호','카드사','금액','공급가액','부가세']];
+  items.forEach(i=>{
+    const s=Math.round((i.amount||0)/1.1);
+    ws_data.push([i.date||'',i.vendor||'',i.title||'',i.hometaxNo||'',i.cardCompany||'',(i.amount||0),s,(i.amount||0)-s]);
+  });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(ws_data);
+  XLSX.utils.book_append_sheet(wb,ws,'세금계산서');
+  XLSX.writeFile(wb,'세금계산서_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('엑셀 다운로드 완료','ok');
+}
 
 (function init(){
   const myname = CFG.myname||'김채널';
