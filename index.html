@@ -1326,7 +1326,7 @@ const fmt=n=>{if(n==null)return'—';return'₩'+Math.round(Math.abs(n)).toLocal
 const fUSD=(n,r=1380)=>'$'+Math.round(Math.abs(n)/r).toLocaleString('en-US');
 const sts=k=>STATUSES.find(s=>s.k===k)||STATUSES[0];
 const h=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-function team(){var _t=CFG&&CFG.team;return Array.isArray(_t)?_t:(_t||'김채널,이케이,박디엠씨,최운영').split(',').map(function(s){return s.trim();});}
+function team(){var _t=CFG&&CFG.team;return Array.isArray(_t)?_t:(_t||'').split(',').map(function(s){return s.trim();}).filter(Boolean);}
 function setSS(t,m){const e=document.getElementById('sync-bd');if(!e)return;e.className='sync-bd '+({ok:'s-ok',sv:'s-sv',er:'s-er',of:'s-of'}[t]||'s-ok');document.getElementById('sync-txt').textContent=m;}
 
 /* ── DB 초기화 ── */
@@ -1533,7 +1533,7 @@ function buildSample(){
     svcItems:svcItems,
     vendors:vendorCos,
     projects:[
-      {id:'p1',nameKO:'LG전자 동남아팀 인센티브 투어',nameEN:'LG Electronics SEA Incentive Tour',eventDate:d(42),pax:85,nights:3,origin:'싱가포르',salesperson:'김채널',status:'awarded',salesTotalKRW:48000000,exchangeRate:1380,feePercent:10,taxPercent:0,theme:'K-Culture & Heritage Tour',notes:'VIP 10명 포함, 채식 식단 필요',
+      {id:'p1',nameKO:'LG전자 동남아팀 인센티브 투어',nameEN:'LG Electronics SEA Incentive Tour',eventDate:d(42),pax:85,nights:3,origin:'싱가포르',salesperson:CFG.myname||'',status:'awarded',salesTotalKRW:48000000,exchangeRate:1380,feePercent:10,taxPercent:0,theme:'K-Culture & Heritage Tour',notes:'VIP 10명 포함, 채식 식단 필요',
         schedule:[
           {id:uid(),titleKo:'Day 1 — 도착 & 환영',titleEn:'Day 1 — Arrival & Welcome',rows:[{time:'15:00',ko:'인천공항 픽업',en:'Incheon Airport pickup'},{time:'17:00',ko:'그랜드하얏트 서울 체크인',en:'Grand Hyatt Seoul check-in'},{time:'19:00',ko:'한강 야경 크루즈 환영 디너',en:'Han River Night Cruise Welcome Dinner'}],vendors:['새한버스','그랜드하얏트','한강크루즈']},
           {id:uid(),titleKo:'Day 2 — 문화 투어',titleEn:'Day 2 — Culture Tour',rows:[{time:'09:00',ko:'DMZ 판문점 투어',en:'DMZ Panmunjom Tour'},{time:'13:00',ko:'경복궁 관람 및 북촌 한복체험',en:'Gyeongbokgung Palace & Bukchon Hanbok Experience'},{time:'18:00',ko:'인사동 전통 한정식 디너',en:'Insadong Traditional Korean Set Dinner'}],vendors:['코리아DMZ투어','한복나라']},
@@ -1548,7 +1548,7 @@ function buildSample(){
         tasks:[
           {id:uid(),day:'Day 1',content:'인천공항 픽업',vendor:'새한버스',assignee:'최운영',status:'pending'},
           {id:uid(),day:'Day 2',content:'DMZ 투어 인솔',vendor:'코리아DMZ투어',assignee:'박디엠씨',status:'pending'},
-          {id:uid(),day:'Day 3',content:'갈라 디너 감독',vendor:'반얀트리',assignee:'김채널',status:'pending'},
+          {id:uid(),day:'Day 3',content:'갈라 디너 감독',vendor:'반얀트리',assignee:CFG.myname||'',status:'pending'},
         ],
         checklist:makeCL(d(42)),
         guides:[{id:uid(),name:'홍길동',role:'한국어 가이드',days:3,rate:200000,taxInvoice:false,paid:false}],
@@ -1627,7 +1627,7 @@ function makeCL(ev, partial=false, template='default'){
       ...item,
       id:uid(),
       dueDate:days>0?d(days):ev,
-      assignee:tm[i%tm.length]||'김채널',
+      assignee:tm[i%tm.length]||CFG.myname||'',
       done:partial&&g==='D-30',
       doneAt:partial&&g==='D-30'?now():null,
       memo:'', link:''
@@ -4500,7 +4500,7 @@ function toggleCtForm(){
 /* ── SETTINGS shim (기존 계약서 함수 호환) ── */
 const SETTINGS={
   get co(){return CFG.company||'Channel K Corp.'},
-  get ct(){return CFG.myname||'김채널'},
+  get ct(){return CFG.myname||''},
   get em(){return 'info@channelkdmc.kr'},
   get ph(){return '+82-10-0000-0000'},
   get web(){return 'www.channelkdmc.kr'},
@@ -6741,7 +6741,7 @@ function createProjFromRFP(){
 
   const p={
     id:uid(), nameKO, nameEN, eventDate:date, pax, nights, origin,
-    salesperson:document.getElementById('rp-sales')?.value||tm[0]||'김채널', reqDate:deadline, status:'bid',
+    salesperson:document.getElementById('rp-sales')?.value||tm[0]||CFG.myname||'', reqDate:deadline, status:'bid',
     salesTotalKRW:budget, exchangeRate:CFG.rate||1380,
     feePercent:CFG.fee||10, taxPercent:CFG.tax||0,
     theme, notes, clientName, clientEmail,
@@ -10195,7 +10195,7 @@ async function loadRFPBadge(){
 }
 
 (function init(){
-  const myname = CFG.myname||'김채널';
+  const myname = CFG.myname||'User';
   document.getElementById('top-nm').textContent   = myname;
   document.getElementById('top-av').textContent   = myname.charAt(0);
 
