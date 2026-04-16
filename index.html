@@ -477,12 +477,12 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
   </div>
 </div>
 <!-- 로그인 화면 -->
-<div id="login-screen" style="display:none;position:fixed;inset:0;background:#1E40AF;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center">
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:#1E40AF;z-index:9999;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:16px;padding:48px 40px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)">
     <div style="font-size:32px;margin-bottom:8px">✈️</div>
     <div style="font-size:22px;font-weight:800;color:#1E40AF;margin-bottom:4px">Channel K DMC</div>
     <div style="font-size:12px;color:#64748B;margin-bottom:32px;letter-spacing:.05em">MICE 통합관리 시스템</div>
-    <button onclick="signInWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px 20px;border:2px solid #E2E8F0;border-radius:10px;background:#fff;cursor:pointer;font-size:14px;font-weight:600;color:#334155;transition:all .15s" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='#fff'">
+    <button id="google-login-btn" onclick="signInWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px 20px;border:2px solid #E2E8F0;border-radius:10px;background:#fff;cursor:pointer;font-size:14px;font-weight:600;color:#334155">
       <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       Google 계정으로 로그인
     </button>
@@ -491,7 +491,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
 </div>
 
 <!-- 승인 대기 화면 -->
-<div id="pending-screen" style="display:none;position:fixed;inset:0;background:#F8FAFC;z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center">
+<div id="pending-screen" style="display:none;position:fixed;inset:0;background:#F8FAFC;z-index:9998;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:16px;padding:48px 40px;max-width:420px;width:90%;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)">
     <div style="font-size:48px;margin-bottom:16px">⏳</div>
     <div style="font-size:18px;font-weight:700;color:#1E40AF;margin-bottom:8px">승인 대기 중</div>
@@ -8732,21 +8732,6 @@ async function requestApproval(user){
   }catch(e){console.warn('approval request:',e);}
 }
 
-async function signInWithGoogle(){
-  if(!SB){toast('Supabase 미연결','err');return;}
-  const msg=document.getElementById('login-msg');
-  if(msg) msg.textContent='Google 로그인 창을 여는 중...';
-  try{
-    const {error} = await SB.auth.signInWithOAuth({
-      provider:'google',
-      options:{redirectTo: window.location.origin}
-    });
-    if(error) throw error;
-  }catch(e){
-    if(msg) msg.textContent='오류: '+e.message;
-    toast('로그인 실패: '+e.message,'err');
-  }
-}
 
 async function signOut(){
   if(SB) await SB.auth.signOut();
@@ -8781,6 +8766,31 @@ function showPendingScreen(email){
 function hidePendingScreen(){
   const ps=document.getElementById('pending-screen');
   if(ps){ps.style.display='none';}
+}
+
+async function signInWithGoogle(){
+  const msg=document.getElementById('login-msg');
+  try{
+    if(!SB){
+      // SB 재초기화 시도
+      const url='https://epnoctmshfiybzqgatae.supabase.co';
+      const key='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwbm9jdG1zaGZpeWJ6cWdhdGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDU4NzgsImV4cCI6MjA5MDE4MTg3OH0.542nU3QzKvVN2rndbY0yuW9RdU9jbLwfNcNmma7szIM';
+      SB = supabase.createClient(url, key);
+    }
+    if(msg) msg.textContent='Google 로그인 창 열리는 중...';
+    const btn=document.getElementById('google-login-btn');
+    if(btn) btn.disabled=true;
+    const {error} = await SB.auth.signInWithOAuth({
+      provider:'google',
+      options:{redirectTo: window.location.origin+window.location.pathname}
+    });
+    if(error) throw error;
+  }catch(e){
+    console.error('login error:',e);
+    if(msg) msg.textContent='오류: '+(e.message||'로그인 실패');
+    const btn=document.getElementById('google-login-btn');
+    if(btn) btn.disabled=false;
+  }
 }
 
 function startApp(){
