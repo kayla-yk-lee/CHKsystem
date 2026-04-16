@@ -8633,7 +8633,7 @@ async function loadPendingUsers(){
           +'<div style="font-size:12px;font-weight:600;color:var(--ink)">'+h(u.name||'')+'</div>'
           +'<div style="font-size:10.5px;color:var(--ink3)">'+h(u.email||'')+'</div>'
         +'</div>'
-        +'<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:'+(approved?'var(--gbg)':'var(--ybg)')+';color:'+(approved?'var(--g)':'var(--y)');font-weight:600">'+(approved?'승인됨':'대기중')+'</span>'
+        +'<span style="font-size:10px;padding:2px 8px;border-radius:999px;font-weight:600;background:'+(approved?'var(--gbg)':'var(--ybg)')+';color:'+(approved?'var(--g)':'var(--y)')+'">'+( approved?'승인됨':'대기중')+'</span>'
         +(!approved?'<button class="btn bp btn-sm" style="font-size:10px" data-email="'+h(u.email)+'" data-name="'+h(u.name||'')+'" onclick="approveUser(this.dataset.email,this.dataset.name)">승인</button>':'')
         +'<button class="btn bdr2c btn-sm" style="font-size:10px" data-email="'+h(u.email)+'" onclick="revokeUser(this.dataset.email)">삭제</button>'
       +'</div>';
@@ -8805,7 +8805,6 @@ async function signInWithGoogle(){
   document.getElementById('top-nm').textContent   = myname;
   document.getElementById('top-av').textContent   = myname.charAt(0);
 
-  // 팀원 셀렉트
   const tm = team();
   ['np-sales','nt-who'].forEach(id=>{
     const el=document.getElementById(id);
@@ -8813,23 +8812,21 @@ async function signInWithGoogle(){
     el.innerHTML=tm.map(m=>`<option>${h(m)}</option>`).join('');
   });
 
-  // 오프라인 체크
   if(!ONLINE) document.getElementById('off-bar').classList.add('show');
 
-  // Supabase 초기화 후 로그인 체크
+  // Supabase 초기화
   if(CFG.sbUrl && CFG.sbKey){
-    try{
-      SB = supabase.createClient(CFG.sbUrl, CFG.sbKey);
-      // 로그인 화면 먼저 표시 후 세션 확인
-      showLoginScreen();
-      checkAuth();
-    }catch(e){
-      console.warn('SB init:',e);
-      startApp();
-    }
-  } else {
-    startApp();
+    try{ SB = supabase.createClient(CFG.sbUrl,CFG.sbKey); }catch(e){}
   }
+
+  // 로그인 화면 숨기고 바로 시작
+  const ls=document.getElementById('login-screen');
+  const ps=document.getElementById('pending-screen');
+  if(ls) ls.style.display='none';
+  if(ps) ps.style.display='none';
+
+  renderSidebar();
+  renderDash();
 })();
 </script>
 </body>
