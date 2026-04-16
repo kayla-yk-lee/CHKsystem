@@ -476,6 +476,31 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
     </div>
   </div>
 </div>
+<!-- 로그인 화면 -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:#1E40AF;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:48px 40px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="font-size:32px;margin-bottom:8px">✈️</div>
+    <div style="font-size:22px;font-weight:800;color:#1E40AF;margin-bottom:4px">Channel K DMC</div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:32px;letter-spacing:.05em">MICE 통합관리 시스템</div>
+    <button onclick="signInWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px 20px;border:2px solid #E2E8F0;border-radius:10px;background:#fff;cursor:pointer;font-size:14px;font-weight:600;color:#334155;transition:all .15s" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='#fff'">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Google 계정으로 로그인
+    </button>
+    <div id="login-msg" style="margin-top:16px;font-size:12px;color:#64748B"></div>
+  </div>
+</div>
+
+<!-- 승인 대기 화면 -->
+<div id="pending-screen" style="display:none;position:fixed;inset:0;background:#F8FAFC;z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:48px 40px;max-width:420px;width:90%;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)">
+    <div style="font-size:48px;margin-bottom:16px">⏳</div>
+    <div style="font-size:18px;font-weight:700;color:#1E40AF;margin-bottom:8px">승인 대기 중</div>
+    <div id="pending-email" style="font-size:13px;color:#64748B;margin-bottom:16px"></div>
+    <div style="font-size:13px;color:#475569;line-height:1.7;margin-bottom:24px">관리자의 승인 후 사용 가능합니다.<br>승인 요청이 전송되었습니다.</div>
+    <button onclick="signOut()" style="padding:10px 24px;border:1px solid #CBD5E1;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;color:#475569">로그아웃</button>
+  </div>
+</div>
+
 <div id="off-bar">⚡ 오프라인 — 로컬 저장 중. 연결 복구 시 자동 동기화됩니다.</div>
 <div id="body">
   <!-- SIDEBAR -->
@@ -981,9 +1006,14 @@ LG Electronics SEA Team"></textarea>
       <button class="btn bd btn-sm" onclick="copySBSchema()">SQL 스키마 복사</button>
     </div>
     <div style="font-size:10.5px;color:var(--ink3);margin-top:6px;line-height:1.6"><strong style="color:var(--r)">Anon Key는 eyJ...로 시작하는 키입니다</strong> (sb_publishable_ 아님)<br>팀원 모두 같은 URL/Key 입력 → 저장 및 연결 → 실시간 ON<br>테이블 먼저 생성: SQL 스키마 복사 → Supabase SQL Editor → RUN</div>
-    </button>
-      <button class="btn bg btn-sm" onclick="syncAll()">전체 업로드</button>
-    </div>
+  </div>
+
+  <!-- 사용자 승인 관리 -->
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-t">👥 사용자 승인 관리</div>
+    <div style="font-size:11.5px;color:var(--ink3);margin-bottom:10px">Google 로그인 후 승인 대기 중인 사용자를 승인/거절합니다.</div>
+    <button class="btn bp btn-sm" onclick="loadPendingUsers()" style="margin-bottom:10px">승인 대기 목록 새로고침</button>
+    <div id="pending-users-list" style="font-size:12px;color:var(--ink3)">버튼을 눌러 목록을 불러오세요.</div>
   </div>
 
   <!-- 데이터 관리 -->
@@ -8584,6 +8614,180 @@ window.addEventListener('offline',()=>{ ONLINE=false; document.getElementById('o
 setInterval(()=>{ saveDB(); if(ONLINE&&SQ.length) flushSQ(); }, 30000);
 
 /* ── INIT ── */
+async function loadPendingUsers(){
+  if(!SB){toast('Supabase 미연결','err');return;}
+  const el=document.getElementById('pending-users-list');
+  if(el) el.innerHTML='불러오는 중...';
+  try{
+    const {data,error}=await SB.from('allowed_users').select('*').order('created_at',{ascending:false});
+    if(error) throw error;
+    if(!data||!data.length){if(el)el.innerHTML='<div style="color:var(--ink4)">등록된 사용자가 없습니다.</div>';return;}
+    const html=data.map(function(u){
+      const approved=u.role&&u.role!=='pending';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bdr)">'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:12px;font-weight:600;color:var(--ink)">'+h(u.name||'')+'</div>'
+          +'<div style="font-size:10.5px;color:var(--ink3)">'+h(u.email||'')+'</div>'
+        +'</div>'
+        +'<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:'+(approved?'var(--gbg)':'var(--ybg)')+';color:'+(approved?'var(--g)':'var(--y)');font-weight:600">'+(approved?'승인됨':'대기중')+'</span>'
+        +(!approved?'<button class="btn bp btn-sm" style="font-size:10px" data-email="'+h(u.email)+'" data-name="'+h(u.name||'')+'" onclick="approveUser(this.dataset.email,this.dataset.name)">승인</button>':'')
+        +'<button class="btn bdr2c btn-sm" style="font-size:10px" data-email="'+h(u.email)+'" onclick="revokeUser(this.dataset.email)">삭제</button>'
+      +'</div>';
+    }).join('');
+    if(el) el.innerHTML=html;
+  }catch(e){
+    if(el) el.innerHTML='<div style="color:var(--r)">오류: '+e.message+'</div>';
+  }
+}
+
+async function approveUser(email, name){
+  if(!SB||!email) return;
+  try{
+    await SB.from('allowed_users').update({role:'member'}).eq('email',email);
+    toast('✓ '+name+' 승인 완료','ok');
+    loadPendingUsers();
+  }catch(e){toast('승인 실패: '+e.message,'err');}
+}
+
+async function revokeUser(email){
+  if(!confirm(email+' 을 삭제하시겠습니까?')) return;
+  try{
+    await SB.from('allowed_users').delete().eq('email',email);
+    toast('삭제됨','ok');
+    loadPendingUsers();
+  }catch(e){toast('삭제 실패: '+e.message,'err');}
+}
+
+/* ── 구글 로그인 / 승인 시스템 ── */
+var _currentUser = null;
+
+async function checkAuth(){
+  if(!SB) return startApp();
+  try{
+    const {data:{session}} = await SB.auth.getSession();
+    if(session){
+      _currentUser = session.user;
+      await handleLoggedIn(session.user);
+    } else {
+      showLoginScreen();
+    }
+    // 세션 변경 감지
+    SB.auth.onAuthStateChange(async function(event, session){
+      if(event==='SIGNED_IN' && session){
+        _currentUser = session.user;
+        await handleLoggedIn(session.user);
+      } else if(event==='SIGNED_OUT'){
+        _currentUser = null;
+        showLoginScreen();
+      }
+    });
+  }catch(e){
+    console.warn('auth check:',e);
+    startApp();
+  }
+}
+
+async function handleLoggedIn(user){
+  const email = user.email||'';
+  // allowed_users 테이블에서 승인 여부 확인
+  try{
+    const {data,error} = await SB.from('allowed_users').select('*').eq('email',email).single();
+    if(data && data.role){
+      // 승인된 사용자
+      hidePendingScreen();
+      hideLoginScreen();
+      // 사용자 이름 업데이트
+      const name = data.name || user.user_metadata?.name || email.split('@')[0];
+      CFG.myname = name;
+      const nmEl=document.getElementById('top-nm');
+      const avEl=document.getElementById('top-av');
+      if(nmEl) nmEl.textContent=name;
+      if(avEl) avEl.textContent=name.charAt(0);
+      startApp();
+    } else {
+      // 미승인 — 승인 요청 등록
+      await requestApproval(user);
+      showPendingScreen(email);
+    }
+  }catch(e){
+    // 테이블에 없으면 승인 요청
+    await requestApproval(user);
+    showPendingScreen(email);
+  }
+}
+
+async function requestApproval(user){
+  try{
+    // 이미 요청했으면 중복 방지
+    await SB.from('allowed_users').upsert({
+      email: user.email,
+      name: user.user_metadata?.name||user.email.split('@')[0],
+      role: null, // null = 미승인 대기
+      created_at: new Date().toISOString()
+    },{onConflict:'email',ignoreDuplicates:true});
+  }catch(e){console.warn('approval request:',e);}
+}
+
+async function signInWithGoogle(){
+  if(!SB){toast('Supabase 미연결','err');return;}
+  const msg=document.getElementById('login-msg');
+  if(msg) msg.textContent='Google 로그인 창을 여는 중...';
+  try{
+    const {error} = await SB.auth.signInWithOAuth({
+      provider:'google',
+      options:{redirectTo: window.location.origin}
+    });
+    if(error) throw error;
+  }catch(e){
+    if(msg) msg.textContent='오류: '+e.message;
+    toast('로그인 실패: '+e.message,'err');
+  }
+}
+
+async function signOut(){
+  if(SB) await SB.auth.signOut();
+  _currentUser=null;
+  showLoginScreen();
+}
+
+function showLoginScreen(){
+  const ls=document.getElementById('login-screen');
+  const ps=document.getElementById('pending-screen');
+  const body=document.getElementById('body');
+  if(ls){ls.style.display='flex';}
+  if(ps){ps.style.display='none';}
+  if(body){body.style.visibility='hidden';}
+}
+function hideLoginScreen(){
+  const ls=document.getElementById('login-screen');
+  const body=document.getElementById('body');
+  if(ls){ls.style.display='none';}
+  if(body){body.style.visibility='visible';}
+}
+function showPendingScreen(email){
+  const ls=document.getElementById('login-screen');
+  const ps=document.getElementById('pending-screen');
+  const body=document.getElementById('body');
+  const em=document.getElementById('pending-email');
+  if(ls){ls.style.display='none';}
+  if(ps){ps.style.display='flex';}
+  if(body){body.style.visibility='hidden';}
+  if(em){em.textContent=email+' 로 로그인됨';}
+}
+function hidePendingScreen(){
+  const ps=document.getElementById('pending-screen');
+  if(ps){ps.style.display='none';}
+}
+
+function startApp(){
+  hideLoginScreen();
+  hidePendingScreen();
+  const body=document.getElementById('body');
+  if(body) body.style.visibility='visible';
+  renderSidebar();
+  renderDash();
+}
+
 (function init(){
   const myname = CFG.myname||'김채널';
   document.getElementById('top-nm').textContent   = myname;
@@ -8597,15 +8801,23 @@ setInterval(()=>{ saveDB(); if(ONLINE&&SQ.length) flushSQ(); }, 30000);
     el.innerHTML=tm.map(m=>`<option>${h(m)}</option>`).join('');
   });
 
-  // Supabase
-  initSB();
-
   // 오프라인 체크
   if(!ONLINE) document.getElementById('off-bar').classList.add('show');
 
-  // 렌더
-  renderSidebar();
-  renderDash();
+  // Supabase 초기화 후 로그인 체크
+  if(CFG.sbUrl && CFG.sbKey){
+    try{
+      SB = supabase.createClient(CFG.sbUrl, CFG.sbKey);
+      // 로그인 화면 먼저 표시 후 세션 확인
+      showLoginScreen();
+      checkAuth();
+    }catch(e){
+      console.warn('SB init:',e);
+      startApp();
+    }
+  } else {
+    startApp();
+  }
 })();
 </script>
 </body>
