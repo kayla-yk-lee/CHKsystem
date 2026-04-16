@@ -949,20 +949,28 @@ LG Electronics SEA Team"></textarea>
 
   <!-- 팀 설정 -->
   <div class="card" style="margin-bottom:10px">
-    <div class="card-t">팀 설정</div>
+    <div class="card-t">👤 내 계정 설정</div>
+    <div style="background:var(--sur2);border-radius:6px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--a);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700" id="cfg-avatar-preview">K</div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--ink)" id="cfg-email-display">로그인 정보 없음</div>
+        <div style="font-size:10.5px;color:var(--ink3)" id="cfg-level-display">레벨 확인 중...</div>
+      </div>
+      <button class="btn bd btn-sm" style="margin-left:auto;font-size:10.5px" onclick="signOut()">로그아웃</button>
+    </div>
     <div class="fr2">
-      <div class="fg"><label class="fl">내 이름</label><input class="fi" id="cfg-name" placeholder="김채널"></div>
+      <div class="fg"><label class="fl">표시 이름</label><input class="fi" id="cfg-name" placeholder="김채널"></div>
       <div class="fg"><label class="fl">회사명</label><input class="fi" id="cfg-co" placeholder="Channel K Corp."></div>
     </div>
-    <div class="fg"><label class="fl">내 역할 (삭제 권한)</label>
+    <div class="fg"><label class="fl">내 권한 레벨</label>
       <select class="fi" id="cfg-role">
-        <option value="general">일반 팀원 — 삭제 불가</option>
-        <option value="manager" selected>담당자 (매니저) — 삭제 가능</option>
-        <option value="dev">개발자 (관리자) — 모든 권한</option>
+        <option value="viewer">👁 레벨 4 — 뷰어 (읽기 전용)</option>
+        <option value="staff">📋 레벨 3 — 스태프 (조회/수정)</option>
+        <option value="manager" selected>✏️ 레벨 2 — 담당자 (생성/수정/삭제)</option>
+        <option value="admin">⚡ 레벨 1 — 관리자 (전체 권한)</option>
+        <option value="dev">🔧 개발자 — 시스템 포함 모든 권한</option>
       </select>
     </div>
-    <div class="fg"><label class="fl">팀원 목록 (쉼표 구분)</label>
-      <input class="fi" id="cfg-team" placeholder="김채널,이케이,박디엠씨,최운영"></div>
     <div class="fr3">
       <div class="fg"><label class="fl">기본 환율</label><input class="fi" type="number" id="cfg-rate" placeholder="1380"></div>
       <div class="fg"><label class="fl">수수료 %</label><input class="fi" type="number" id="cfg-fee" placeholder="10"></div>
@@ -971,8 +979,22 @@ LG Electronics SEA Team"></textarea>
     <button class="btn bp btn-sm" onclick="saveCfgTeam()">저장</button>
   </div>
 
-  <!-- Gmail -->
+  <!-- 팀원 관리 -->
   <div class="card" style="margin-bottom:10px">
+    <div class="card-t">👥 팀원 관리 <span style="font-size:10px;font-weight:400;color:var(--ink3)">레벨별 권한 부여</span></div>
+    <div style="font-size:11px;color:var(--ink3);margin-bottom:10px;line-height:1.7">
+      🔧 <b>개발자</b> — 시스템 전체<br>
+      ⚡ <b>레벨 1 관리자</b> — 프로젝트 전체 + 사용자 관리<br>
+      ✏️ <b>레벨 2 담당자</b> — 프로젝트 생성/수정/삭제<br>
+      📋 <b>레벨 3 스태프</b> — 조회/수정 (삭제 불가)<br>
+      👁 <b>레벨 4 뷰어</b> — 읽기 전용
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn bp btn-sm" onclick="loadPendingUsers()">👥 팀원 목록 새로고침</button>
+      <button class="btn bd btn-sm" onclick="openAddUserModal()">+ 팀원 직접 추가</button>
+    </div>
+    <div id="pending-users-list" style="font-size:12px;color:var(--ink3)">버튼을 눌러 목록을 불러오세요.</div>
+  </div>
     <div class="card-t">Gmail 연동 <span style="font-size:10px;font-weight:400;color:var(--ink3)">(RFP 수신 + 인보이스 발송)</span></div>
     <div style="font-size:11px;color:var(--ink3);margin-bottom:8px">
       Google Cloud Console에서 OAuth 2.0 Client ID 발급 후 입력하세요.<br>
@@ -3092,9 +3114,10 @@ function renderProjInfo(){
         <div class="fg"><label class="fl">CHK 담당자</label><select class="fi" onchange="upC('salesperson',this.value)">${tm.map(m=>`<option${CUR.salesperson===m?' selected':''}>${h(m)}</option>`).join('')}</select></div>
       </div>
       <div class="fr2">
-        <div class="fg"><label class="fl">문의 경로</label><select class="fi" oninput="upC('inquiryRoute',this.value)"><option value="">선택</option><option value="email" ${CUR.inquiryRoute==='email'?'selected':''}>이메일</option><option value="call" ${CUR.inquiryRoute==='call'?'selected':''}>전화</option><option value="referral" ${CUR.inquiryRoute==='referral'?'selected':''}>소개</option><option value="web" ${CUR.inquiryRoute==='web'?'selected':''}>웹사이트</option><option value="sns" ${CUR.inquiryRoute==='sns'?'selected':''}>SNS</option><option value="repeat" ${CUR.inquiryRoute==='repeat'?'selected':''}>재계약</option><option value="other" ${CUR.inquiryRoute==='other'?'selected':''}>기타</option></select></div>
-        <div class="fg"><label class="fl">행사명 / 행사명 / 테마 / 슬로건</label><input class="fi" value="${h(CUR.theme||'')}" oninput="upC('theme',this.value)" placeholder="K-Culture & Heritage Tour 2026"></div>
+        <div class="fg"><label class="fl">문의 경로</label><select class="fi" onchange="upC('inquiryRoute',this.value);renderInquiryDetail(this.value)"><option value="">선택</option><option value="email" ${CUR.inquiryRoute==='email'?'selected':''}>이메일</option><option value="call" ${CUR.inquiryRoute==='call'?'selected':''}>전화</option><option value="referral" ${CUR.inquiryRoute==='referral'?'selected':''}>소개</option><option value="web" ${CUR.inquiryRoute==='web'?'selected':''}>웹사이트</option><option value="sns" ${CUR.inquiryRoute==='sns'?'selected':''}>SNS</option><option value="repeat" ${CUR.inquiryRoute==='repeat'?'selected':''}>재계약</option><option value="other" ${CUR.inquiryRoute==='other'?'selected':''}>기타</option></select></div>
+        <div class="fg"><label class="fl">행사명 / 테마 / 슬로건</label><input class="fi" value="${h(CUR.theme||'')}" oninput="upC('theme',this.value)" placeholder="K-Culture & Heritage Tour 2026"></div>
       </div>
+      <div id="inquiry-detail-box">${renderInquiryDetailHTML(CUR.inquiryRoute||'',CUR)}</div>
       <div class="fg"><label class="fl">특이사항 / 요청사항</label><textarea class="fi" rows="3" oninput="upC('notes',this.value)" placeholder="VIP 10명 포함, 채식 식단, 이동 최소화 등">${h(CUR.notes||'')}</textarea></div>
     </div>
     ${CUR.rfpRaw?`<div class="card">
@@ -3143,6 +3166,33 @@ function renderProjInfo(){
       </div>
     </div>
     `;}
+function renderInquiryDetailHTML(route, cur){
+  if(!route) return '';
+  cur=cur||CUR||{};
+  if(route==='email'){
+    return '<div class="fr3" style="margin-top:4px">'
+      +'<div class="fg"><label class="fl">발신자명</label><input class="fi" value="'+h(cur.inqSenderName||'')+'" placeholder="Sara Innocenti" oninput="upC(\'inqSenderName\',this.value)"></div>'
+      +'<div class="fg"><label class="fl">발신자 이메일</label><input class="fi" type="email" value="'+h(cur.inqSenderEmail||'')+'" placeholder="sara@company.com" oninput="upC(\'inqSenderEmail\',this.value)"></div>'
+      +'<div class="fg"><label class="fl">메일 제목</label><input class="fi" value="'+h(cur.inqSubject||'')+'" placeholder="RFP - FAO Meeting 2026" oninput="upC(\'inqSubject\',this.value)"></div>'
+      +'</div>'
+      +'<div class="fg" style="margin-top:4px"><label class="fl">수신일</label><input class="fi" type="date" value="'+h(cur.inqDate||'')+'" onchange="upC(\'inqDate\',this.value)" style="max-width:200px"></div>';
+  }
+  if(route==='call'){
+    return '<div class="fr2" style="margin-top:4px">'
+      +'<div class="fg"><label class="fl">통화 상대방</label><input class="fi" value="'+h(cur.inqSenderName||'')+'" placeholder="홍길동" oninput="upC(\'inqSenderName\',this.value)"></div>'
+      +'<div class="fg"><label class="fl">연락처</label><input class="fi" value="'+h(cur.inqSenderEmail||'')+'" placeholder="010-0000-0000" oninput="upC(\'inqSenderEmail\',this.value)"></div>'
+      +'</div>';
+  }
+  if(route==='referral'){
+    return '<div class="fg" style="margin-top:4px"><label class="fl">소개자</label><input class="fi" value="'+h(cur.inqSenderName||'')+'" placeholder="소개자 이름 / 회사" oninput="upC(\'inqSenderName\',this.value)"></div>';
+  }
+  return '<div class="fg" style="margin-top:4px"><label class="fl">상세 메모</label><input class="fi" value="'+h(cur.inqSubject||'')+'" placeholder="추가 정보" oninput="upC(\'inqSubject\',this.value)"></div>';
+}
+function renderInquiryDetail(route){
+  const box=document.getElementById('inquiry-detail-box');
+  if(box) box.innerHTML=renderInquiryDetailHTML(route);
+}
+
 function upC(f,v){
   if(!CUR)return;
   CUR[f]=v;
@@ -7052,17 +7102,33 @@ function openCfg(){
   document.getElementById('cfg-sb-key').value=CFG.sbKey||'';
   document.getElementById('cfg-name').value=CFG.myname||'';
   document.getElementById('cfg-co').value=CFG.company||'';
-  document.getElementById('cfg-team').value=(CFG.team||[]).join(',');
   document.getElementById('cfg-rate').value=CFG.rate||1380;
   document.getElementById('cfg-fee').value=CFG.fee||10;
   document.getElementById('cfg-tax').value=CFG.tax||0;
   const roleEl=document.getElementById('cfg-role');
   if(roleEl)roleEl.value=CFG.role||'manager';
+  // 로그인 사용자 정보 표시
+  const emailEl=document.getElementById('cfg-email-display');
+  const levelEl=document.getElementById('cfg-level-display');
+  const avatarEl=document.getElementById('cfg-avatar-preview');
+  if(_currentUser){
+    const email=_currentUser.email||'';
+    const name=CFG.myname||email.split('@')[0];
+    if(emailEl)emailEl.textContent=email;
+    if(avatarEl)avatarEl.textContent=name.charAt(0).toUpperCase();
+    if(levelEl){
+      const roleMap={dev:'🔧 개발자',admin:'⚡ 레벨 1 관리자',manager:'✏️ 레벨 2 담당자',staff:'📋 레벨 3 스태프',viewer:'👁 레벨 4 뷰어'};
+      levelEl.textContent=roleMap[CFG.role||'manager']||'담당자';
+    }
+  } else {
+    if(emailEl)emailEl.textContent='로컬 모드 (미로그인)';
+    if(levelEl)levelEl.textContent=ROLE_LABELS[CFG.role||'manager']||'담당자';
+  }
   // Gmail
   const gmailEl=document.getElementById('cfg-gmail-client');
   if(gmailEl)gmailEl.value=CFG.gmailClientId||'';
   const gst=document.getElementById('gmail-auth-status');
-  if(gst)gst.textContent=CFG.gmailToken?'✅ Gmail 연동됨 (만료: '+(CFG.gmailTokenExpires?new Date(CFG.gmailTokenExpires).toLocaleTimeString('ko-KR'):'?')+')':'⬜ 미연동';
+  if(gst)gst.textContent=CFG.gmailToken?'✅ Gmail 연동됨':'⬜ 미연동';
 }
 
 function openM(id){
@@ -8618,6 +8684,48 @@ window.addEventListener('offline',()=>{ ONLINE=false; document.getElementById('o
 setInterval(()=>{ saveDB(); if(ONLINE&&SQ.length) flushSQ(); }, 30000);
 
 /* ── INIT ── */
+function openAddUserModal(){
+  var m=document.getElementById('mo-add-user');
+  if(!m){m=document.createElement('div');m.id='mo-add-user';m.className='mo';m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+  m.innerHTML='<div class="mb"><div class="mo-t">+ 팀원 직접 추가</div>'
+    +'<div class="fg"><label class="fl">이름</label><input class="fi" id="au-name" placeholder="홍길동"></div>'
+    +'<div class="fg"><label class="fl">이메일 ★</label><input class="fi" id="au-email" placeholder="hong@channelk.kr"></div>'
+    +'<div class="fg"><label class="fl">권한 레벨</label>'
+    +'<select class="fi" id="au-role">'
+    +'<option value="viewer">👁 레벨 4 — 뷰어</option>'
+    +'<option value="staff">📋 레벨 3 — 스태프</option>'
+    +'<option value="manager" selected>✏️레벨 2 — 담당자</option>'
+    +'<option value="admin">⚡ 레벨 1 — 관리자</option>'
+    +'</select></div>'
+    +'<div class="mo-f"><button class="btn bd" style="flex:1" onclick="document.getElementById(\'mo-add-user\').classList.remove(\'open\')">취소</button>'
+    +'<button class="btn bp" style="flex:2" onclick="addUserDirectly()">추가</button></div>'
+    +'</div>';
+  m.classList.add('open');
+}
+
+async function addUserDirectly(){
+  if(!SB){toast('Supabase 미연결','err');return;}
+  var name=(document.getElementById('au-name')||{}).value||'';
+  var email=(document.getElementById('au-email')||{}).value||'';
+  var role=(document.getElementById('au-role')||{}).value||'staff';
+  if(!email.trim()){toast('이메일 필수','err');return;}
+  try{
+    await SB.from('allowed_users').upsert({email:email.trim(),name:name.trim(),role:role,created_at:new Date().toISOString()},{onConflict:'email'});
+    document.getElementById('mo-add-user')?.classList.remove('open');
+    toast('✓ '+( name||email)+' 추가 완료','ok');
+    loadPendingUsers();
+  }catch(e){toast('추가 실패: '+e.message,'err');}
+}
+
+const ROLE_LABELS={
+  dev:'🔧 개발자',
+  admin:'⚡ L1 관리자',
+  manager:'✏️ L2 담당자',
+  staff:'📋 L3 스태프',
+  viewer:'👁 L4 뷰어',
+  pending:'⏳ 대기중'
+};
+
 async function loadPendingUsers(){
   if(!SB){toast('Supabase 미연결','err');return;}
   const el=document.getElementById('pending-users-list');
@@ -8625,16 +8733,23 @@ async function loadPendingUsers(){
   try{
     const {data,error}=await SB.from('allowed_users').select('*').order('created_at',{ascending:false});
     if(error) throw error;
-    if(!data||!data.length){if(el)el.innerHTML='<div style="color:var(--ink4)">등록된 사용자가 없습니다.</div>';return;}
-    const html=data.map(function(u){
-      const approved=u.role&&u.role!=='pending';
-      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bdr)">'
-        +'<div style="flex:1;min-width:0">'
-          +'<div style="font-size:12px;font-weight:600;color:var(--ink)">'+h(u.name||'')+'</div>'
+    if(!data||!data.length){if(el)el.innerHTML='<div style="color:var(--ink4)">등록된 팀원이 없습니다.</div>';return;}
+    const roleOpts=['dev','admin','manager','staff','viewer'].map(function(r){
+      return '<option value="'+r+'">'+ROLE_LABELS[r]+'</option>';
+    }).join('');
+    const html=data.map(function(u,i){
+      var curRole=u.role||'pending';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--bdr);flex-wrap:wrap">'
+        +'<div style="width:30px;height:30px;border-radius:50%;background:var(--a);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">'+(u.name?u.name.charAt(0):'?')+'</div>'
+        +'<div style="flex:1;min-width:120px">'
+          +'<div style="font-size:12px;font-weight:600;color:var(--ink)">'+h(u.name||'이름 없음')+'</div>'
           +'<div style="font-size:10.5px;color:var(--ink3)">'+h(u.email||'')+'</div>'
         +'</div>'
-        +'<span style="font-size:10px;padding:2px 8px;border-radius:999px;font-weight:600;background:'+(approved?'var(--gbg)':'var(--ybg)')+';color:'+(approved?'var(--g)':'var(--y)')+'">'+( approved?'승인됨':'대기중')+'</span>'
-        +(!approved?'<button class="btn bp btn-sm" style="font-size:10px" data-email="'+h(u.email)+'" data-name="'+h(u.name||'')+'" onclick="approveUser(this.dataset.email,this.dataset.name)">승인</button>':'')
+        +'<select class="fi" style="font-size:11px;padding:3px 6px;width:140px" data-email="'+h(u.email)+'" onchange="changeUserRole(this.dataset.email,this.value)">'
+          +['dev','admin','manager','staff','viewer','pending'].map(function(r){
+            return '<option value="'+r+'"'+(curRole===r?' selected':'')+'>'+ROLE_LABELS[r]+'</option>';
+          }).join('')
+        +'</select>'
         +'<button class="btn bdr2c btn-sm" style="font-size:10px" data-email="'+h(u.email)+'" onclick="revokeUser(this.dataset.email)">삭제</button>'
       +'</div>';
     }).join('');
@@ -8644,10 +8759,18 @@ async function loadPendingUsers(){
   }
 }
 
+async function changeUserRole(email, role){
+  if(!SB||!email) return;
+  try{
+    await SB.from('allowed_users').update({role:role}).eq('email',email);
+    toast('✓ 권한 변경 완료','ok');
+  }catch(e){toast('변경 실패: '+e.message,'err');}
+}
+
 async function approveUser(email, name){
   if(!SB||!email) return;
   try{
-    await SB.from('allowed_users').update({role:'member'}).eq('email',email);
+    await SB.from('allowed_users').update({role:'staff'}).eq('email',email);
     toast('✓ '+name+' 승인 완료','ok');
     loadPendingUsers();
   }catch(e){toast('승인 실패: '+e.message,'err');}
