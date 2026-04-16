@@ -2072,6 +2072,7 @@ function goTab(n,el){
   showPage(n);
   const fn={projinfo:renderProjInfo,schedule:renderSched,quote:renderQuote,invoice:renderInvoice,rfp:renderRFP,contract:renderContract,preview:renderPreview,checklist:renderCL,tasks:renderTasks,budget:renderBudget,guides:renderGuides,'vendor-settle':renderVendorSettle,'labor-settle':renderLaborSettle,report:renderReport};
   if(fn[n])fn[n]();
+  if(n==='projinfo') setTimeout(reloadTeamAssign, 100);
 }
 
 /* ── NEW PROJECT PAGE ── */
@@ -3083,24 +3084,21 @@ function renderProjInfo(){
     </div>
 
     <!-- 팀원 배정 카드 -->
-    <div class="card" style="margin-bottom:10px">
+    <div class="card" style="margin-bottom:10px" id="team-assign-card">
       <div class="card-t">👥 프로젝트 팀원 배정
         <span style="font-size:10px;font-weight:400;color:var(--ink3);margin-left:6px">배정된 팀원만 이 프로젝트를 볼 수 있어요</span>
+        <button class="btn bd btn-sm" style="margin-left:auto;font-size:11px" onclick="reloadTeamAssign()">🔄 팀원 새로고침</button>
       </div>
-      <div style="margin-bottom:10px">
-        <label class="fl">배정 팀원 선택</label>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
-          ${team().map(function(m){
-            const assigned=(CUR.assignedTo||[]).includes(m);
-            return '<label style="display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;border:1px solid '+(assigned?'var(--a)':'var(--bdr)')+';background:'+(assigned?'var(--abg)':'var(--sur)')+';cursor:pointer;font-size:12px;font-weight:'+(assigned?'700':'400')+';color:'+(assigned?'var(--a)':'var(--ink3)')+'" onclick="toggleAssigned(\''+h(m)+'\')">'
-              +'<input type="checkbox" style="display:none">'
-              +h(m)
-              +'</label>';
-          }).join('')}
-        </div>
+      <div id="team-assign-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+        <span style="font-size:11px;color:var(--ink4)">⏳ 팀원 로딩 중...</span>
+      </div>
+      <!-- 직접 추가 -->
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <input class="fi" id="team-add-input" placeholder="이름 직접 추가" style="max-width:180px;font-size:12px">
+        <button class="btn bd btn-sm" onclick="addAssignedManual()">+ 추가</button>
       </div>
       <div style="font-size:11px;color:var(--ink3)">
-        현재 배정: <b style="color:var(--ink2)">${[CUR.salesperson,...(CUR.assignedTo||[])].filter((v,i,a)=>v&&a.indexOf(v)===i).join(', ')||'—'}</b>
+        현재 배정: <b id="team-assign-current" style="color:var(--ink2)">${[CUR.salesperson,...(CUR.assignedTo||[])].filter((v,i,a)=>v&&a.indexOf(v)===i).join(', ')||'—'}</b>
         <span style="margin-left:8px;color:var(--ink4)">(담당자는 자동 포함)</span>
       </div>
     </div>
@@ -3157,8 +3155,52 @@ function toggleAssigned(name){
   if(idx>=0) CUR.assignedTo.splice(idx,1);
   else CUR.assignedTo.push(name);
   dp(CUR);
-  renderProjInfo();
+  _renderTeamChips();
+}
 
+function _renderTeamChips(members){
+  const list=document.getElementById('team-assign-list');
+  const cur=document.getElementById('team-assign-current');
+  if(!list||!CUR) return;
+  const all=members||window._teamMembers||[];
+  if(!all.length){
+    list.innerHTML='<span style="font-size:11px;color:var(--ink4)">팀원이 없습니다 — 시스템 설정 &gt; 팀원 관리에서 추가하세요</span>';
+  } else {
+    list.innerHTML=all.map(function(m){
+      const assigned=(CUR.assignedTo||[]).includes(m);
+      return '<span onclick="toggleAssigned(\''+h(m)+'\')" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;border:1px solid '+(assigned?'var(--a)':'var(--bdr)')+';background:'+(assigned?'var(--abg)':'var(--sur)')+';cursor:pointer;font-size:12px;font-weight:'+(assigned?700:400)+';color:'+(assigned?'var(--a)':'var(--ink3)')+';">'
+        +(assigned?'✓ ':'')+h(m)+'</span>';
+    }).join('');
+  }
+  if(cur) cur.textContent=[CUR.salesperson,...(CUR.assignedTo||[])].filter((v,i,a)=>v&&a.indexOf(v)===i).join(', ')||'—';
+}
+
+async function reloadTeamAssign(){
+  const list=document.getElementById('team-assign-list');
+  if(list) list.innerHTML='<span style="font-size:11px;color:var(--ink4)">⏳ 로딩 중...</span>';
+  let members=[];
+  if(SB){
+    try{
+      const {data}=await SB.from('allowed_users').select('name,email,role').not('role','is',null);
+      members=(data||[]).map(u=>u.name||u.email.split('@')[0]);
+    }catch(e){ console.warn('team load:',e); }
+  }
+  // fallback: CFG.team
+  if(!members.length) members=team();
+  window._teamMembers=members;
+  _renderTeamChips(members);
+}
+
+function addAssignedManual(){
+  const inp=document.getElementById('team-add-input');
+  if(!inp||!inp.value.trim()) return;
+  const name=inp.value.trim();
+  if(!CUR.assignedTo) CUR.assignedTo=[];
+  if(!CUR.assignedTo.includes(name)) CUR.assignedTo.push(name);
+  if(window._teamMembers&&!window._teamMembers.includes(name)) window._teamMembers.push(name);
+  inp.value='';
+  dp(CUR);
+  _renderTeamChips();
 }
 function addCommMember(){
   if(!CUR) return;
