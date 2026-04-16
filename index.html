@@ -1632,127 +1632,108 @@ async function syncUp(){
       // ① projects 테이블
       const nights=p.nights||0;
       const projRow={
-        id:p.id,
-        status:p.status||'bid',
-        co_ko:p.nameKO||'',
-        co_en:p.nameEN||'',
-        contact_name:p.clientName||'',
-        email:p.clientEmail||'',
-        phone:p.clientPhone||'',
-        country:p.country||'',
-        origin_city:p.origin||'',
-        arrival_date:p.eventDate||null,
-        duration:nights+'박'+(nights+1)+'일',
-        pax:p.pax||0,
-        theme:p.theme||'',
-        notes:p.notes||'',
-        fx_rate:p.exchangeRate||1380,
-        mgmt_pct:p.feePercent||10,
-        tax_pct:p.taxPercent||0,
-        tax_on:false,
-        sales_name:p.salesperson||'',
-        sales_co:'Channel K Corp.',
-        sales_email:'',
-        sales_pct:0,
+        id:p.id, status:p.status||'bid',
+        co_ko:p.nameKO||'', co_en:p.nameEN||'',
+        contact_name:p.clientName||'', email:p.clientEmail||'',
+        phone:p.clientPhone||'', country:p.country||'',
+        origin_city:p.origin||'', arrival_date:p.eventDate||null,
+        duration:nights+'박'+(nights+1)+'일', pax:p.pax||0,
+        theme:p.theme||'', notes:p.notes||'',
+        fx_rate:p.exchangeRate||1380, mgmt_pct:p.feePercent||10,
+        tax_pct:p.taxPercent||0, tax_on:false,
+        sales_name:p.salesperson||'', sales_co:'Channel K Corp.',
+        sales_email:'', sales_pct:0,
         updated_at:new Date().toISOString(),
         created_at:p.createdAt||new Date().toISOString()
       };
       const {error:pErr}=await SB.from('projects').upsert(projRow,{onConflict:'id'});
       if(pErr) throw pErr;
 
-      // ② project_days + schedule_rows (기존 삭제 후 재삽입)
+      // ② project_days + schedule_rows
       const schedule=p.schedule||[];
-      // 기존 days 조회
-      const {data:existingDays}=await SB.from('project_days').select('id').eq('project_id',p.id);
-      if(existingDays&&existingDays.length){
-        const dayIds=existingDays.map(d=>d.id);
-        // schedule_rows 먼저 삭제
-        await SB.from('schedule_rows').delete().in('day_id',dayIds).catch(()=>{});
-        // project_days 삭제
-        await SB.from('project_days').delete().eq('project_id',p.id).catch(()=>{});
-      }
-      // 새로 삽입
-      for(let di=0;di<schedule.length;di++){
-        const day=schedule[di];
-        const {data:dayData,error:dErr}=await SB.from('project_days')
-          .insert({project_id:p.id,day_index:di,title_ko:day.titleKo||('Day '+(di+1)),title_en:day.titleEn||''})
-          .select('id').single();
-        if(dErr){console.warn('day insert:',dErr);continue;}
-        const dayId=dayData.id;
-        const rows=day.rows||[];
-        for(let ri=0;ri<rows.length;ri++){
-          const r=rows[ri];
-          await SB.from('schedule_rows').insert({
-            day_id:dayId,time_val:r.time||'',content_ko:r.ko||'',content_en:r.en||'',sort_order:ri
-          }).catch(e=>console.warn('sched row:',e));
+      try{
+        const {data:existingDays}=await SB.from('project_days').select('id').eq('project_id',p.id);
+        if(existingDays&&existingDays.length){
+          const dayIds=existingDays.map(d=>d.id);
+          await SB.from('schedule_rows').delete().in('day_id',dayIds);
+          await SB.from('project_days').delete().eq('project_id',p.id);
         }
-      }
-
-      // ③ quote_rows (기존 삭제 후 재삽입)
-      await SB.from('quote_rows').delete().eq('project_id',p.id).catch(()=>{});
-      const quoteItems=p.quoteItems||[];
-      for(let qi=0;qi<quoteItems.length;qi++){
-        const q=quoteItems[qi];
-        await SB.from('quote_rows').insert({
-          project_id:p.id,
-          cat:q.category||'',
-          name_ko:q.name||'',
-          name_en:q.nameEN||'',
-          qty:q.qty||1,
-          unit:q.unit||'',
-          cost:q.costKRW||0,
-          sell:q.sellKRW||0,
-          sort_order:qi,
-          is_manual:true
-        }).catch(e=>console.warn('quote row:',e));
-      }
-
-      // ④ guide_settlements (기존 삭제 후 재삽입)
-      await SB.from('guide_settlements').delete().eq('project_id',p.id).catch(()=>{});
-      const guides=p.guides2||[];
-      for(const g of guides){
-        const workDays=g.workDays||[];
-        for(const d of workDays){
-          await SB.from('guide_settlements').insert({
-            project_id:p.id,
-            guide_name:g.name||'',
-            work_date:d.date||null,
-            work_desc:g.role||'',
-            guide_fee:d.rate||0,
-            tax_33:g.tax33||false,
-            extras:d.extras||[],
-            notes:g.note||''
-          }).catch(e=>console.warn('guide:',e));
+        for(let di=0;di<schedule.length;di++){
+          const day=schedule[di];
+          const {data:dayData,error:dErr}=await SB.from('project_days')
+            .insert({project_id:p.id,day_index:di,title_ko:day.titleKo||('Day '+(di+1)),title_en:day.titleEn||''})
+            .select('id').single();
+          if(dErr){console.warn('day insert:',dErr);continue;}
+          const dayId=dayData.id;
+          const rows=day.rows||[];
+          for(let ri=0;ri<rows.length;ri++){
+            const r=rows[ri];
+            await SB.from('schedule_rows').insert({
+              day_id:dayId,time_val:r.time||'',content_ko:r.ko||'',content_en:r.en||'',sort_order:ri
+            });
+          }
         }
-      }
+      }catch(e){console.warn('schedule sync:',e);}
 
-      // ⑤ settlements (협력업체 정산)
-      await SB.from('settlements').delete().eq('project_id',p.id).catch(()=>{});
-      const vSettles=p.vendorSettles||[];
-      for(const vs of vSettles){
-        await SB.from('settlements').insert({
-          project_id:p.id,
-          status:vs.paid?'paid':'unpaid',
-          timing:vs.payDate||'',
-          notes:(vs.vendorName||'')+(vs.note?(' — '+vs.note):''),
-          paid_amt:vs.amount||0,
-          updated_at:new Date().toISOString()
-        }).catch(e=>console.warn('settlement:',e));
-      }
+      // ③ quote_rows
+      try{
+        await SB.from('quote_rows').delete().eq('project_id',p.id);
+        const quoteItems=p.quoteItems||[];
+        for(let qi=0;qi<quoteItems.length;qi++){
+          const q=quoteItems[qi];
+          await SB.from('quote_rows').insert({
+            project_id:p.id, cat:q.category||'',
+            name_ko:q.name||'', name_en:q.nameEN||'',
+            qty:q.qty||1, unit:q.unit||'',
+            cost:q.costKRW||0, sell:q.sellKRW||0,
+            sort_order:qi, is_manual:true
+          });
+        }
+      }catch(e){console.warn('quote sync:',e);}
+
+      // ④ guide_settlements
+      try{
+        await SB.from('guide_settlements').delete().eq('project_id',p.id);
+        const guides=p.guides2||[];
+        for(const g of guides){
+          const workDays=g.workDays||[];
+          for(const d of workDays){
+            await SB.from('guide_settlements').insert({
+              project_id:p.id, guide_name:g.name||'',
+              work_date:d.date||null, work_desc:g.role||'',
+              guide_fee:d.rate||0, tax_33:g.tax33||false,
+              extras:d.extras||[], notes:g.note||''
+            });
+          }
+        }
+      }catch(e){console.warn('guide sync:',e);}
+
+      // ⑤ settlements
+      try{
+        await SB.from('settlements').delete().eq('project_id',p.id);
+        const vSettles=p.vendorSettles||[];
+        for(const vs of vSettles){
+          await SB.from('settlements').insert({
+            project_id:p.id, status:vs.paid?'paid':'unpaid',
+            timing:vs.payDate||'',
+            notes:(vs.vendorName||'')+(vs.note?(' — '+vs.note):''),
+            paid_amt:vs.amount||0, updated_at:new Date().toISOString()
+          });
+        }
+      }catch(e){console.warn('settlement sync:',e);}
     }
 
-    // ⑥ vendors + vendor_contacts
+    // ⑥ vendors
     for(const v of (DB.vendors||[])){
-      await SB.from('vendors').upsert({
-        id:v.id,
-        name:v.name||'',
-        category:v.categoryGroup||v.category||'',
-        data:v
-      },{onConflict:'id'}).catch(e=>console.warn('vendor:',e));
+      try{
+        await SB.from('vendors').upsert({
+          id:v.id, name:v.name||'',
+          category:v.categoryGroup||v.category||'', data:v
+        },{onConflict:'id'});
+      }catch(e){console.warn('vendor sync:',e);}
     }
 
-    DB.lastSync=now();
-    saveDB();
+    DB.lastSync=now(); saveDB();
     setSS('ok','동기화 완료 '+new Date().toLocaleTimeString('ko-KR'));
     toast('✓ 업로드 완료 ('+(DB.projects||[]).length+'개 프로젝트)','ok');
   }catch(e){
