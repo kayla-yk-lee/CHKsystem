@@ -1335,25 +1335,11 @@ function loadDB(){
       const catMigrate={'av':'mice_av','interp':'mice_interp_booth','photo':'mice_photo','print':'mice_printing','gift':'gift_souvenir','equipment':'mice_av','other':'misc'};
       if(d.svcItems) d.svcItems.forEach(function(v){if(catMigrate[v.cat])v.cat=catMigrate[v.cat];});
 
-      // 2. DB.vendors에 섞여 있던 구식 서비스 항목 분리
-      // costUnit 필드가 있으면 서비스 항목 (장비/인력 단가)으로 간주
-      if(d.vendors){
-        var realVendors=[];
-        var migratedSvc=[];
-        d.vendors.forEach(function(v){
-          if(v.costUnit){
-            var catKey=catMigrate[v.cat]||v.category||'misc';
-            migratedSvc.push({id:v.id,name:v.name,nameEN:v.nameEN||'',cat:catKey,unit:v.costUnit,costKRW:v.costKRW||0});
-          } else {
-            realVendors.push(v);
-          }
-        });
-        d.vendors=realVendors;
-        if(!d.svcItems) d.svcItems=[];
-        migratedSvc.forEach(function(s){
-          if(!d.svcItems.some(function(x){return x.id===s.id;})) d.svcItems.push(s);
-        });
-      }
+      // 2. 협력업체/서비스항목 항상 초기화 (직접 등록 예정)
+      d.vendors=[];
+      d.svcItems=d.svcItems||[];
+      d._vendors_legacy=[];
+
       return d;
     }
   }catch(e){}
@@ -1884,20 +1870,8 @@ async function syncDown(){
     });
     DB.projects=Object.values(merged);
 
-    // ④ vendors
-    if(!DB._vendorsCleared){
-      var vMerged={};
-      (DB.vendors||[]).forEach(v=>{vMerged[v.id]=v;});
-      (vendorRows||[]).forEach(function(row){
-        var v=row.data||row; v.id=row.id;
-        if(v.costUnit){
-          SB.from('vendors').delete().eq('id',v.id).catch(()=>{});
-          return;
-        }
-        vMerged[v.id]=v;
-      });
-      DB.vendors=Object.values(vMerged);
-    }
+    // ④ vendors — 직접 등록 예정, Supabase에서 덮어쓰지 않음
+    DB.vendors=[];
 
     DB.lastSync=now();
     saveDB();
@@ -3095,8 +3069,7 @@ function renderProjInfo(){
         <button class="btn bd btn-sm" onclick="addAssignedManual()">+ 추가</button>
       </div>
       <div style="font-size:11px;color:var(--ink3)">
-        현재 배정: <b id="team-assign-current" style="color:var(--ink2)">${[CUR.salesperson,...(CUR.assignedTo||[])].filter((v,i,a)=>v&&a.indexOf(v)===i).join(', ')||'—'}</b>
-        <span style="margin-left:8px;color:var(--ink4)">(담당자는 자동 포함)</span>
+        현재 배정: <b id="team-assign-current" style="color:var(--ink2)">${(CUR.assignedTo||[]).filter(Boolean).join(', ')||'—'}</b>
       </div>
     </div>
     ${CUR.rfpRaw?`<div class="card">
@@ -3173,7 +3146,7 @@ function _renderTeamChips(members){
         +'</span>';
     }).join('');
   }
-  if(cur) cur.textContent=[CUR.salesperson,...(CUR.assignedTo||[])].filter((v,i,a)=>v&&a.indexOf(v)===i).join(', ')||'—';
+  if(cur) cur.textContent=(CUR.assignedTo||[]).filter(Boolean).join(', ')||'—';
 }
 
 async function reloadTeamAssign(){
