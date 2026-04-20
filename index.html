@@ -1340,9 +1340,8 @@ function loadDB(){
   try{
     const d=JSON.parse(localStorage.getItem(DB_KEY)||'null');
     if(d&&d.projects){
-      // 협력업체 & 서비스항목 데이터 항상 초기화 (직접 등록 예정)
+      // 협력업체만 초기화 (직접 등록 예정) — 서비스 항목은 유지
       d.vendors=[];
-      d.svcItems=[];
       d._vendors_legacy=[];
       return d;
     }
