@@ -1354,6 +1354,9 @@ function loadCFG(){
     if(!stored.aiKey) stored.aiKey='';
     if(!stored.sbUrl) stored.sbUrl='https://epnoctmshfiybzqgatae.supabase.co';
     if(!stored.sbKey) stored.sbKey='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwbm9jdG1zaGZpeWJ6cWdhdGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDU4NzgsImV4cCI6MjA5MDE4MTg3OH0.542nU3QzKvVN2rndbY0yuW9RdU9jbLwfNcNmma7szIM';
+    // 가짜 기본 이름 제거 — 실제 로그인 이름으로 대체됨
+    var fakeNames=['김채널','이케이','박디엠씨','최운영','User'];
+    if(fakeNames.includes(stored.myname)) stored.myname='';
     return stored;
   }catch(e){return {
     sbUrl:'https://epnoctmshfiybzqgatae.supabase.co',
@@ -9019,8 +9022,8 @@ async function handleLoggedIn(user){
     }catch(e){ console.warn('role load:',e); }
   }
 
-  // CFG 업데이트
-  if(!CFG.myname) CFG.myname = metaName;
+  // CFG 업데이트 — 항상 실제 로그인 이름으로 갱신
+  CFG.myname = CFG.myname && CFG.myname !== 'User' ? CFG.myname : metaName;
   CFG.myemail = email;
   CFG.role = role;
   localStorage.setItem('ck-cfg-v1', JSON.stringify(CFG));
