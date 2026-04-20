@@ -526,7 +526,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
     <div class="nav" data-nav="vendors" onclick="navTo('vendors',this)"><span class="nav-ic"></span>서비스 항목</div>
     <div class="nav" data-nav="vendors-co" onclick="navTo('vendors-co',this)"><span class="nav-ic"></span>협력업체</div>
     <div class="nav" data-nav="themes" onclick="navTo('themes',this)"><span class="nav-ic"></span>테마 관리</div>
-    <div class="nav" data-nav="internal" onclick="navTo('internal',this)"><span class="nav-ic">🏢</span>사내 프로젝트<span class="nc" id="nc-int">0</span></div>
+    <div class="nav" data-nav="freelancers" onclick="navTo('freelancers',this)"><span class="nav-ic">👤</span>가이드·통역 인력</div>
     <div class="nav" data-nav="internal" onclick="navTo('internal',this)"><span class="nav-ic">🏢</span>사내 프로젝트<span class="nc" id="nc-int">0</span></div>
     <span class="sb-lbl">진행 프로젝트</span>
     <div id="sb-projs"></div>
@@ -594,6 +594,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
       <div class="page" id="page-labor-settle"></div>
       <div class="page" id="page-report"></div>
       <div class="page" id="page-internal"></div>
+      <div class="page" id="page-freelancers"></div>
       <div class="page" id="page-rfp-inbox"></div>
       <div class="page" id="page-proj-create"></div>
       <div class="page" id="page-rfp-inbox"></div>
@@ -1554,6 +1555,7 @@ function buildSample(){
     internalMeetings:[],
     notices:[],
     internalBudgets:[],
+    freelancers:[],
   };
 }
 
@@ -2001,7 +2003,7 @@ function navTo(page,el){
   document.getElementById('ph').style.display='none';
   document.getElementById('tabbar').style.display='none';
   CUR=null; showPage(page);
-  const fn={dashboard:renderDash,pipeline:renderPipeline,vendors:renderVendors,'vendors-co':renderVendorsCo,calendar:renderCalendar,themes:renderThemes,'new-proj':renderNewProj,stat:renderStatPage,projects:renderProjects,'rfp-parse':renderRFPParsePage,internal:renderInternal,'rfp-inbox':renderRFPInbox,'proj-create':renderProjCreate};
+  const fn={dashboard:renderDash,pipeline:renderPipeline,vendors:renderVendors,'vendors-co':renderVendorsCo,calendar:renderCalendar,themes:renderThemes,'new-proj':renderNewProj,stat:renderStatPage,projects:renderProjects,'rfp-parse':renderRFPParsePage,internal:renderInternal,'rfp-inbox':renderRFPInbox,'proj-create':renderProjCreate,freelancers:renderFreelancers};
   if(fn[page])fn[page]();
 }
 
@@ -9110,6 +9112,138 @@ async function signInWithGoogle(){
 
 // ── 탭 상태 ──
 var _intTab = 'tasks';
+
+/* ═══════════════════════════════════════════════════
+   👤 가이드·통역 인력 관리
+   ═══════════════════════════════════════════════════ */
+function renderFreelancers(){
+  if(!DB.freelancers) DB.freelancers=[];
+  const fl=DB.freelancers;
+  const search=(window._flSearch||'').toLowerCase();
+  const filtered=search?fl.filter(f=>(f.name||'').toLowerCase().includes(search)||(f.langs||'').toLowerCase().includes(search)||(f.note||'').toLowerCase().includes(search)):fl;
+
+  let rows='';
+  if(!filtered.length){
+    rows='<div class="alert al-i">등록된 인력이 없습니다. + 인력 추가 버튼을 이용하세요.</div>';
+  } else {
+    rows='<div class="tw" style="overflow-x:auto"><table><thead><tr>'
+      +'<th>이름</th><th>구분</th><th>언어</th><th>연락처</th><th>이메일</th><th>주민등록번호</th><th>계좌정보</th><th>단가</th><th>비고</th><th style="text-align:center">관리</th>'
+      +'</tr></thead><tbody>'
+      +filtered.map(f=>`<tr>
+        <td style="font-weight:700">${h(f.name||'')}</td>
+        <td><span class="chip ${f.type==='guide'?'cg':'cb'}" style="font-size:9.5px">${f.type==='guide'?'🧭 가이드':'🎙 통역'}</span></td>
+        <td style="font-size:12px">${h(f.langs||'')}</td>
+        <td style="white-space:nowrap;font-size:12px">${h(f.tel||'')}</td>
+        <td style="font-size:11.5px">${f.email?`<a href="mailto:${h(f.email)}" style="color:var(--a)">${h(f.email)}</a>`:''}</td>
+        <td style="font-family:monospace;font-size:11px;color:var(--ink3)">${f.ssn?'***-***-*******':'—'}</td>
+        <td style="font-size:11px;color:var(--ink3)">${h(f.bank||'')} ${h(f.account||'')}</td>
+        <td style="font-family:var(--fm);font-size:12px;text-align:right">${f.rate?(parseInt(f.rate)||0).toLocaleString()+'원':'—'}</td>
+        <td style="font-size:11.5px;color:var(--ink3)">${h(f.note||'')}</td>
+        <td style="text-align:center;white-space:nowrap">
+          <button class="btn bd btn-sm" data-id="${f.id}" onclick="editFreelancer(this.dataset.id)" style="margin-right:4px">수정</button>
+          <button class="btn bdr2c btn-sm" data-id="${f.id}" onclick="delFreelancer(this.dataset.id)">삭제</button>
+        </td>
+      </tr>`).join('')
+      +'</tbody></table></div>';
+  }
+
+  document.getElementById('page-freelancers').innerHTML=
+    `<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="font-size:16px;font-weight:700;color:var(--ink)">👤 가이드·통역 인력</div>
+      <span class="chip ca">${fl.length}명</span>
+      <input class="fi" style="max-width:200px;margin-left:auto" placeholder="이름/언어 검색..." value="${h(window._flSearch||'')}" oninput="window._flSearch=this.value;renderFreelancers()">
+      <button class="btn bd btn-sm" onclick="exportFlXLSX()">📊 엑셀 내보내기</button>
+      <button class="btn bp btn-sm" onclick="openFreelancerModal()">+ 인력 추가</button>
+    </div>`+rows;
+}
+
+function openFreelancerModal(id){
+  const f=id?(DB.freelancers||[]).find(x=>x.id===id):null;
+  let m=document.getElementById('mo-freelancer');
+  if(!m){m=document.createElement('div');m.id='mo-freelancer';m.className='mo';m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+  m.innerHTML=`<div class="mb wide" style="max-width:640px">
+    <div class="mo-t">${id?'인력 수정':'인력 추가'}</div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">이름 ★</label><input class="fi" id="fl-name" value="${h(f?.name||'')}" placeholder="홍길동"></div>
+      <div class="fg"><label class="fl">구분</label>
+        <select class="fi" id="fl-type">
+          <option value="guide" ${(!f||f.type==='guide')?'selected':''}>🧭 가이드</option>
+          <option value="interp" ${f?.type==='interp'?'selected':''}>🎙 통역</option>
+        </select>
+      </div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">언어 (예: 영어, 중국어)</label><input class="fi" id="fl-langs" value="${h(f?.langs||'')}" placeholder="영어, 일본어"></div>
+      <div class="fg"><label class="fl">연락처</label><input class="fi" id="fl-tel" value="${h(f?.tel||'')}" placeholder="010-0000-0000"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">이메일</label><input class="fi" id="fl-email" value="${h(f?.email||'')}" placeholder="hong@email.com"></div>
+      <div class="fg"><label class="fl">일당 단가 (원)</label><input class="fi" type="number" id="fl-rate" value="${f?.rate||''}" placeholder="300000"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">주민등록번호</label><input class="fi" id="fl-ssn" value="${h(f?.ssn||'')}" placeholder="000000-0000000" autocomplete="off"></div>
+      <div class="fg"><label class="fl">주소</label><input class="fi" id="fl-addr" value="${h(f?.addr||'')}" placeholder="서울시 강남구..."></div>
+    </div>
+    <div class="fr3">
+      <div class="fg"><label class="fl">은행</label><input class="fi" id="fl-bank" value="${h(f?.bank||'')}" placeholder="국민은행"></div>
+      <div class="fg" style="grid-column:span 2"><label class="fl">계좌번호</label><input class="fi" id="fl-account" value="${h(f?.account||'')}" placeholder="000000-00-000000"></div>
+    </div>
+    <div class="fg"><label class="fl">비고</label><textarea class="fi" id="fl-note" rows="2" placeholder="경력, 특이사항 등">${h(f?.note||'')}</textarea></div>
+    <div class="mo-f">
+      <button class="btn bd" style="flex:1" onclick="document.getElementById('mo-freelancer').classList.remove('open')">취소</button>
+      ${id?`<button class="btn bdr2c btn-sm" onclick="delFreelancer('${id}')">삭제</button>`:''}
+      <button class="btn bp" style="flex:2" onclick="saveFreelancer('${id||''}')">저장</button>
+    </div>
+  </div>`;
+  m.classList.add('open');
+}
+
+function editFreelancer(id){ openFreelancerModal(id); }
+
+function saveFreelancer(id){
+  const name=document.getElementById('fl-name').value.trim();
+  if(!name){toast('이름 필수','err');return;}
+  if(!DB.freelancers) DB.freelancers=[];
+  const obj={
+    id:id||uid(),
+    name, type:document.getElementById('fl-type').value,
+    langs:document.getElementById('fl-langs').value.trim(),
+    tel:document.getElementById('fl-tel').value.trim(),
+    email:document.getElementById('fl-email').value.trim(),
+    rate:parseFloat(document.getElementById('fl-rate').value)||0,
+    ssn:document.getElementById('fl-ssn').value.trim(),
+    addr:document.getElementById('fl-addr').value.trim(),
+    bank:document.getElementById('fl-bank').value.trim(),
+    account:document.getElementById('fl-account').value.trim(),
+    note:document.getElementById('fl-note').value.trim(),
+    updatedAt:now()
+  };
+  if(id){const i=DB.freelancers.findIndex(x=>x.id===id);if(i>=0)DB.freelancers[i]=obj;}
+  else DB.freelancers.push(obj);
+  saveDB();
+  document.getElementById('mo-freelancer').classList.remove('open');
+  renderFreelancers();
+  toast(id?'수정 완료':'추가 완료','ok');
+}
+
+function delFreelancer(id){
+  if(!confirm('이 인력을 삭제할까요?')) return;
+  DB.freelancers=(DB.freelancers||[]).filter(x=>x.id!==id);
+  saveDB();
+  const m=document.getElementById('mo-freelancer');
+  if(m) m.classList.remove('open');
+  renderFreelancers();
+  toast('삭제됨','ok');
+}
+
+function exportFlXLSX(){
+  const rows=[['이름','구분','언어','연락처','이메일','주민등록번호','주소','은행','계좌번호','일당단가','비고']];
+  (DB.freelancers||[]).forEach(f=>rows.push([f.name||'',f.type==='guide'?'가이드':'통역',f.langs||'',f.tel||'',f.email||'',f.ssn||'',f.addr||'',f.bank||'',f.account||'',f.rate||'',f.note||'']));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'인력');
+  XLSX.writeFile(wb,'가이드통역인력_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('엑셀 내보내기 완료','ok');
+}
 
 function renderInternal(){
   if(!DB.internalTasks) DB.internalTasks=[];
