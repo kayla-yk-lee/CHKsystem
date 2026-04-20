@@ -526,7 +526,6 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
     <div class="nav" data-nav="vendors" onclick="navTo('vendors',this)"><span class="nav-ic"></span>서비스 항목</div>
     <div class="nav" data-nav="vendors-co" onclick="navTo('vendors-co',this)"><span class="nav-ic"></span>협력업체</div>
     <div class="nav" data-nav="themes" onclick="navTo('themes',this)"><span class="nav-ic"></span>테마 관리</div>
-    <div class="nav" data-nav="freelancers" onclick="navTo('freelancers',this)"><span class="nav-ic">👤</span>가이드·통역 인력</div>
     <div class="nav" data-nav="internal" onclick="navTo('internal',this)"><span class="nav-ic">🏢</span>사내 프로젝트<span class="nc" id="nc-int">0</span></div>
     <span class="sb-lbl">진행 프로젝트</span>
     <div id="sb-projs"></div>
@@ -2611,8 +2610,15 @@ function renderVendors(){
   if(!filtered.length) body='<div class="alert al-i">서비스 항목이 없습니다. 아래 버튼으로 샘플을 불러오거나 직접 등록하세요.</div>';
 
   document.getElementById('page-vendors').innerHTML=
-    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">'
     +'<div style="font-size:16px;font-weight:700;color:var(--ink)">서비스 항목</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:2px;border-bottom:2px solid var(--bdr);margin-bottom:16px">'
+    +'<button id="svc-tab-items" onclick="switchVendorTab(\'items\')" class="btn" style="font-size:12.5px;padding:8px 16px;border-bottom:2px solid var(--a);color:var(--a);background:transparent;margin-bottom:-2px">📦 서비스 항목</button>'
+    +'<button id="svc-tab-fl" onclick="switchVendorTab(\'fl\')" class="btn" style="font-size:12.5px;padding:8px 16px;border-bottom:2px solid transparent;color:var(--ink3);background:transparent;margin-bottom:-2px">👤 가이드·통역 인력</button>'
+    +'</div>'
+    +'<div id="svc-tab-content">'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
     +'<span class="chip ca">'+items.length+'개</span>'
     +'<button class="btn bd btn-sm" onclick="expandAllSvc()" style="font-size:10.5px">전체 펼치기</button>'
     +'<button class="btn bd btn-sm" onclick="collapseAllSvc()" style="font-size:10.5px">전체 접기</button>'
@@ -2620,7 +2626,57 @@ function renderVendors(){
     +'<button class="btn bd btn-sm" onclick="loadSampleVendors()">샘플 불러오기</button>'
     +'<button class="btn bp btn-sm" onclick="newSvcItem()">+ 항목 추가</button>'
     +'</div>'
-    +body;
+    +body
+    +'</div>';
+}
+
+function switchVendorTab(tab){
+  const btnItems=document.getElementById('svc-tab-items');
+  const btnFl=document.getElementById('svc-tab-fl');
+  const cont=document.getElementById('svc-tab-content');
+  if(!cont) return;
+  if(tab==='items'){
+    if(btnItems){btnItems.style.borderBottomColor='var(--a)';btnItems.style.color='var(--a)';}
+    if(btnFl){btnFl.style.borderBottomColor='transparent';btnFl.style.color='var(--ink3)';}
+    renderVendors();
+  } else {
+    if(btnItems){btnItems.style.borderBottomColor='transparent';btnItems.style.color='var(--ink3)';}
+    if(btnFl){btnFl.style.borderBottomColor='var(--a)';btnFl.style.color='var(--a)';}
+    // 가이드·통역 인력 렌더링
+    if(!DB.freelancers) DB.freelancers=[];
+    const fl=DB.freelancers;
+    const search=(window._flSearch||'').toLowerCase();
+    const filtered=search?fl.filter(f=>(f.name||'').toLowerCase().includes(search)||(f.langs||'').toLowerCase().includes(search)):fl;
+    cont.innerHTML=
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+      +'<span class="chip ca">'+fl.length+'명</span>'
+      +'<input class="fi" style="max-width:200px;margin-left:auto" placeholder="이름/언어 검색..." value="'+h(window._flSearch||'')+'" oninput="window._flSearch=this.value;switchVendorTab(\'fl\')">'
+      +'<button class="btn bd btn-sm" onclick="exportFlXLSX()">📊 엑셀 내보내기</button>'
+      +'<button class="btn bp btn-sm" onclick="openFreelancerModal()">+ 인력 추가</button>'
+      +'</div>'
+      +(filtered.length
+        ?'<div class="tw" style="overflow-x:auto"><table><thead><tr>'
+          +'<th>이름</th><th>구분</th><th>언어</th><th>연락처</th><th>이메일</th><th>주민등록번호</th><th>계좌정보</th><th>단가</th><th>비고</th><th style="text-align:center">관리</th>'
+          +'</tr></thead><tbody>'
+          +filtered.map(f=>`<tr>
+            <td style="font-weight:700">${h(f.name||'')}</td>
+            <td><span class="chip ${f.type==='guide'?'cg':'cb'}" style="font-size:9.5px">${f.type==='guide'?'🧭 가이드':'🎙 통역'}</span></td>
+            <td style="font-size:12px">${h(f.langs||'')}</td>
+            <td style="white-space:nowrap;font-size:12px">${h(f.tel||'')}</td>
+            <td style="font-size:11.5px">${f.email?`<a href="mailto:${h(f.email)}" style="color:var(--a)">${h(f.email)}</a>`:''}</td>
+            <td style="font-family:monospace;font-size:11px;color:var(--ink3)">${f.ssn?'●●●●●●-●●●●●●●':'—'}</td>
+            <td style="font-size:11px;color:var(--ink3)">${h(f.bank||'')} ${h(f.account||'')}</td>
+            <td style="font-family:var(--fm);font-size:12px;text-align:right">${f.rate?(parseInt(f.rate)||0).toLocaleString()+'원':'—'}</td>
+            <td style="font-size:11.5px;color:var(--ink3)">${h(f.note||'')}</td>
+            <td style="text-align:center;white-space:nowrap">
+              <button class="btn bd btn-sm" data-id="${f.id}" onclick="openFreelancerModal(this.dataset.id)" style="margin-right:4px">수정</button>
+              <button class="btn bdr2c btn-sm" data-id="${f.id}" onclick="delFreelancer(this.dataset.id)">삭제</button>
+            </td>
+          </tr>`).join('')
+          +'</tbody></table></div>'
+        :'<div class="alert al-i">등록된 인력이 없습니다.</div>'
+      );
+  }
 }
 
 function renderVendorCard(v){
