@@ -527,6 +527,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
     <div class="nav" data-nav="vendors-co" onclick="navTo('vendors-co',this)"><span class="nav-ic"></span>협력업체</div>
     <div class="nav" data-nav="themes" onclick="navTo('themes',this)"><span class="nav-ic"></span>테마 관리</div>
     <div class="nav" data-nav="internal" onclick="navTo('internal',this)"><span class="nav-ic">🏢</span>사내 프로젝트<span class="nc" id="nc-int">0</span></div>
+    <div class="nav" data-nav="internal" onclick="navTo('internal',this)"><span class="nav-ic">🏢</span>사내 프로젝트<span class="nc" id="nc-int">0</span></div>
     <span class="sb-lbl">진행 프로젝트</span>
     <div id="sb-projs"></div>
     <div class="sb-foot">
@@ -593,6 +594,8 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
       <div class="page" id="page-labor-settle"></div>
       <div class="page" id="page-report"></div>
       <div class="page" id="page-internal"></div>
+      <div class="page" id="page-rfp-inbox"></div>
+      <div class="page" id="page-proj-create"></div>
       <div class="page" id="page-rfp-inbox"></div>
       <div class="page" id="page-proj-create"></div>
   </div>
@@ -872,22 +875,28 @@ LG Electronics SEA Team"></textarea>
 </div></div>
 
 <!-- 협력업체 등록/수정 모달 -->
-<div class="mo" id="mo-co"><div class="mb" style="max-width:620px">
+<div class="mo" id="mo-co"><div class="mb" style="max-width:660px">
   <div class="mo-t" id="mo-co-t">협력업체 등록/수정</div>
   <div class="fr2">
-    <div class="fg"><label class="fl">업체명 ★</label><input class="fi" id="co-name" placeholder="예: 블루밍미디어"></div>
-    <div class="fg"><label class="fl">주 카테고리</label><select class="fi" id="co-cat"></select></div>
+    <div class="fg"><label class="fl">회사명 ★</label><input class="fi" id="co-name" placeholder="예: 블루밍미디어"></div>
+    <div class="fg"><label class="fl">사업자등록번호</label><input class="fi" id="co-brn" placeholder="000-00-00000"></div>
   </div>
-  <div class="fg" style="margin-bottom:10px">
-    <label class="fl">제공 서비스 <span style="font-size:10px;color:var(--ink4);font-weight:400">(복수 선택 가능)</span></label>
-    <div id="co-svc-picker" style="border:1px solid var(--bdr);border-radius:var(--ra);padding:10px;max-height:220px;overflow-y:auto;background:#fafbfd"></div>
+  <div class="fg"><label class="fl">주소</label><input class="fi" id="co-addr" placeholder="서울시 강남구 테헤란로 123"></div>
+  <div class="fr2">
+    <div class="fg"><label class="fl">대표 연락처</label><input class="fi" id="co-tel" placeholder="02-0000-0000"></div>
+    <div class="fg"><label class="fl">담당자</label><input class="fi" id="co-mgr" placeholder="홍길동"></div>
   </div>
-  <div class="fr3">
-    <div class="fg"><label class="fl">담당자</label><input class="fi" id="co-mgr" placeholder="이름"></div>
-    <div class="fg"><label class="fl">연락처</label><input class="fi" id="co-tel" placeholder="010-0000-0000"></div>
+  <div class="fr2">
+    <div class="fg"><label class="fl">담당자 휴대폰</label><input class="fi" id="co-mobile" placeholder="010-0000-0000"></div>
     <div class="fg"><label class="fl">이메일</label><input class="fi" id="co-email" placeholder="email@company.com"></div>
   </div>
-  <div class="fg"><label class="fl">메모</label><input class="fi" id="co-note" placeholder="특이사항, 계약조건 등"></div>
+  <div class="fg">
+    <label class="fl">서비스 항목 <span style="font-size:10px;color:var(--ink4);font-weight:400">Enter 또는 쉼표로 추가</span></label>
+    <div style="border:1px solid var(--bdr2);border-radius:var(--ra);padding:8px;background:var(--sur);min-height:42px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;cursor:text" id="co-svc-tags" onclick="document.getElementById('co-svc-input').focus()">
+      <input id="co-svc-input" style="border:none;outline:none;padding:2px 4px;min-width:140px;flex:1;background:transparent;font-size:12px;font-family:var(--fs)" placeholder="버스대절, 호텔, 식음료..." onkeydown="coSvcKeydown(event)">
+    </div>
+  </div>
+  <div class="fg"><label class="fl">비고</label><textarea class="fi" id="co-note" rows="2" placeholder="특이사항, 계약조건 등"></textarea></div>
   <div class="mo-f">
     <button class="btn bd" style="flex:1" onclick="closeM('mo-co')">취소</button>
     <button class="btn bdr2c btn-sm" id="btn-del-co" onclick="delCoFromModal()" style="display:none">삭제</button>
@@ -1331,15 +1340,9 @@ function loadDB(){
   try{
     const d=JSON.parse(localStorage.getItem(DB_KEY)||'null');
     if(d&&d.projects){
-      // 1. 구식 cat 키 마이그레이션
-      const catMigrate={'av':'mice_av','interp':'mice_interp_booth','photo':'mice_photo','print':'mice_printing','gift':'gift_souvenir','equipment':'mice_av','other':'misc'};
-      if(d.svcItems) d.svcItems.forEach(function(v){if(catMigrate[v.cat])v.cat=catMigrate[v.cat];});
-
-      // 2. 협력업체/서비스항목 항상 초기화 (직접 등록 예정)
+      // 협력업체 데이터 항상 초기화 (직접 등록 예정)
       d.vendors=[];
-      d.svcItems=d.svcItems||[];
       d._vendors_legacy=[];
-
       return d;
     }
   }catch(e){}
@@ -2693,108 +2696,228 @@ function renderVdCatSelect(){
 }
 
 
-function toggleCoGroup(groupKey){
-  if(!window._coCollapsed) window._coCollapsed=new Set();
-  if(window._coCollapsed.has(groupKey)) window._coCollapsed.delete(groupKey);
-  else window._coCollapsed.add(groupKey);
-  renderVendorsCo();
-}
-function expandAllCo(){window._coCollapsed=new Set();renderVendorsCo();}
-function collapseAllCo(){
-  var groups=[...new Set((DB.vendors||[]).map(v=>svcCat(v.category||'misc').group))];
-  window._coCollapsed=new Set(groups);renderVendorsCo();
-}
 
 function renderVendorsCo(){
   if(!DB.vendors) DB.vendors=[];
   var vs=DB.vendors;
   var search=(window._coSearch||'').toLowerCase();
-  var filtered=search?vs.filter(function(v){return (v.name||'').toLowerCase().includes(search)||(v.note||'').toLowerCase().includes(search);}):vs;
-
-  // SVC_GROUPS 순서대로 그룹핑
-  var groupMap={};
-  filtered.forEach(function(v){
-    var catObj=svcCat(v.category||'misc');
-    var g=catObj.group;
-    if(!groupMap[g]) groupMap[g]=[];
-    groupMap[g].push(v);
-  });
-  var orderedGroups=SVC_GROUPS.filter(function(g){return groupMap[g]&&groupMap[g].length;});
-  Object.keys(groupMap).forEach(function(g){if(!orderedGroups.includes(g))orderedGroups.push(g);});
-
-  // 기본: 처음 진입시 모두 접힘. 검색 중엔 모두 펼침
-  if(!window._coCollapsed) window._coCollapsed=new Set(orderedGroups);
-  if(search) window._coCollapsed=new Set();
-  var collapsed=window._coCollapsed;
+  var filtered=search?vs.filter(function(v){
+    return (v.name||'').toLowerCase().includes(search)
+      ||(v.manager||'').toLowerCase().includes(search)
+      ||(v.services||[]).join(' ').toLowerCase().includes(search)
+      ||(v.note||'').toLowerCase().includes(search);
+  }):vs;
 
   var body='';
   if(!filtered.length){
-    body='<div class="alert al-i">등록된 협력업체가 없습니다.</div>';
+    body='<div class="alert al-i">등록된 협력업체가 없습니다. + 업체 추가 또는 일괄 업로드를 이용하세요.</div>';
   } else {
-    orderedGroups.forEach(function(groupName){
-      var grp=groupMap[groupName];
-      var isOpen=!collapsed.has(groupName);
-      var groupIcon=(SVC_CATS.find(function(c){return c.group===groupName;})||{}).icon||'📌';
-
-      body+='<div style="margin-bottom:6px;border:1px solid var(--bdr);border-radius:6px;overflow:hidden">';
-      body+='<div data-group="'+h(groupName)+'" onclick="toggleCoGroup(this.dataset.group)" style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--sur2);cursor:pointer;user-select:none" '
-        +'onmouseover="this.style.background=\'#dbeafe\'" onmouseout="this.style.background=\'var(--sur2)\'">';
-      body+='<span style="font-size:15px">'+groupIcon+'</span>';
-      body+='<span style="font-size:12.5px;font-weight:700;color:var(--ink2);flex:1">'+groupName+'</span>';
-      body+='<span style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--abl);color:var(--a)">'+grp.length+'개</span>';
-      body+='<span style="font-size:12px;color:var(--ink4);margin-left:6px;display:inline-block;transform:'+(isOpen?'rotate(90deg)':'rotate(0deg)')+'">▶</span>';
-      body+='</div>';
-
-      if(isOpen){
-        body+='<table style="width:100%;border-collapse:collapse">';
-        body+='<thead><tr style="background:#f8fafc;border-top:1px solid var(--bdr)">';
-        body+='<th style="padding:6px 14px;font-size:10.5px;text-align:left;color:var(--ink4);font-weight:600">업체명</th>';
-        body+='<th style="padding:6px 10px;font-size:10.5px;text-align:left;color:var(--ink4);font-weight:600">카테고리</th>';
-        body+='<th style="padding:6px 10px;font-size:10.5px;text-align:left;color:var(--ink4);font-weight:600">제공 서비스</th>';
-        body+='<th style="padding:6px 10px;font-size:10.5px;text-align:left;color:var(--ink4);font-weight:600">담당자</th>';
-        body+='<th style="padding:6px 10px;font-size:10.5px;text-align:left;color:var(--ink4);font-weight:600">연락처</th>';
-        body+='<th style="padding:6px 10px;font-size:10.5px;text-align:left;color:var(--ink4);font-weight:600">이메일</th>';
-        body+='<th style="padding:6px 10px;font-size:10.5px;text-align:center;color:var(--ink4);font-weight:600">수정/삭제</th>';
-        body+='</tr></thead><tbody>';
-        grp.forEach(function(v,ri){
-          var catObj=svcCat(v.category||'misc');
-          body+='<tr style="border-top:1px solid var(--bdr);'+(ri%2===0?'':'background:#fafbfd')+'">';
-          body+='<td style="padding:8px 14px;font-weight:600;font-size:12.5px">'+h(v.name||'')+'</td>';
-          body+='<td style="padding:8px 10px">'
-            +(function(){
-              var cats=v.categories&&v.categories.length?v.categories:[v.category||'misc'];
-              return cats.slice(0,3).map(function(k){
-                var c=svcCat(k);
-                return '<span style="display:inline-block;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:999px;background:var(--abl);color:var(--a);margin-right:3px;margin-bottom:2px">'+c.icon+' '+c.label+'</span>';
-              }).join('')+(cats.length>3?'<span style="font-size:9.5px;color:var(--ink4)">+'+( cats.length-3)+'</span>':'');
-            }())
-            +'</td>';
-          body+='<td style="padding:8px 10px;font-size:11.5px;color:var(--ink3)">'+h(v.note||'')+'</td>';
-          body+='<td style="padding:8px 10px;font-size:12px">'+h(v.manager||'')+'</td>';
-          body+='<td style="padding:8px 10px;font-size:12px">'+h(v.tel||'')+'</td>';
-          body+='<td style="padding:8px 10px;font-size:12px">'+(v.email?'<a href="mailto:'+h(v.email)+'" style="color:var(--a)">'+h(v.email)+'</a>':'')+'</td>';
-          body+='<td style="padding:8px 10px;text-align:center;white-space:nowrap">'
-            +'<button class="btn bd btn-sm" data-id="'+v.id+'" onclick="editVendorCo(this.dataset.id)" style="margin-right:4px">수정</button>'
-            +'<button class="btn bdr2c btn-sm" data-id="'+v.id+'" onclick="delVendorCo(this.dataset.id)">삭제</button>'
-            +'</td></tr>';
-        });
-        body+='</tbody></table>';
-      }
-      body+='</div>';
+    body='<div class="tw" style="overflow-x:auto"><table><thead><tr>'
+      +'<th>회사명</th><th>사업자번호</th><th>주소</th><th>대표연락처</th>'
+      +'<th>담당자</th><th>담당자 휴대폰</th><th>서비스 항목</th><th>비고</th><th style="text-align:center">관리</th>'
+      +'</tr></thead><tbody>';
+    filtered.forEach(function(v){
+      var svcs=v.services||v.categories||[];
+      body+='<tr>'
+        +'<td style="font-weight:700;white-space:nowrap">'+h(v.name||'')+'</td>'
+        +'<td style="font-family:monospace;font-size:11px;color:var(--ink3)">'+h(v.brn||'')+'</td>'
+        +'<td style="font-size:11.5px;color:var(--ink3);max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+h(v.addr||'')+'">'+h(v.addr||'')+'</td>'
+        +'<td style="white-space:nowrap;font-size:12px">'+h(v.tel||'')+'</td>'
+        +'<td style="font-size:12px">'+h(v.manager||'')+'</td>'
+        +'<td style="white-space:nowrap;font-size:12px">'+h(v.mobile||'')+'</td>'
+        +'<td>'+svcs.map(function(s){return '<span class="chip ca" style="font-size:9.5px;margin:1px">'+h(s)+'</span>';}).join('')+'</td>'
+        +'<td style="font-size:11.5px;color:var(--ink3);max-width:120px">'+h(v.note||'')+'</td>'
+        +'<td style="text-align:center;white-space:nowrap">'
+          +'<button class="btn bd btn-sm" data-id="'+v.id+'" onclick="editVendorCo(this.dataset.id)" style="margin-right:4px">수정</button>'
+          +'<button class="btn bdr2c btn-sm" data-id="'+v.id+'" onclick="delVendorCo(this.dataset.id)">삭제</button>'
+        +'</td></tr>';
     });
+    body+='</tbody></table></div>';
   }
 
   document.getElementById('page-vendors-co').innerHTML=
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
     +'<div style="font-size:16px;font-weight:700;color:var(--ink)">협력업체</div>'
     +'<span class="chip ca">'+vs.length+'개</span>'
-    +'<button class="btn bd btn-sm" onclick="expandAllCo()" style="font-size:10.5px">전체 펼치기</button>'
-    +'<button class="btn bd btn-sm" onclick="collapseAllCo()" style="font-size:10.5px">전체 접기</button>'
-    +'<input class="fi" style="max-width:200px;margin-left:auto" placeholder="검색..." value="'+h(window._coSearch||'')+'" oninput="window._coSearch=this.value;renderVendorsCo()">'
-    +'<button class="btn bd btn-sm" onclick="clearAllVendors()" style="font-size:10.5px;color:var(--r);border-color:var(--r)">전체 삭제</button>'
+    +'<input class="fi" style="max-width:220px;margin-left:auto" placeholder="회사명/담당자/서비스 검색..." value="'+h(window._coSearch||'')+'" oninput="window._coSearch=this.value;renderVendorsCo()">'
+    +'<button class="btn bd btn-sm" onclick="openCoBulkUpload()">📥 일괄 업로드</button>'
+    +'<button class="btn bd btn-sm" onclick="exportCoXLSX()">📊 엑셀 내보내기</button>'
+    +'<button class="btn bd btn-sm" onclick="clearAllVendors()" style="color:var(--r);border-color:var(--r)">전체 삭제</button>'
     +'<button class="btn bp btn-sm" onclick="newVendorCo()">+ 업체 추가</button>'
     +'</div>'
     +body;
+}
+
+// ── 서비스 항목 태그 입력 ──
+var _coSvcTags=[];
+function coSvcKeydown(e){
+  if(e.key==='Enter'||e.key===','){
+    e.preventDefault();
+    var val=e.target.value.trim().replace(/,$/,'');
+    if(val&&!_coSvcTags.includes(val)){_coSvcTags.push(val);_renderCoSvcTags();}
+    e.target.value='';
+  }
+}
+function _renderCoSvcTags(){
+  var wrap=document.getElementById('co-svc-tags');
+  if(!wrap) return;
+  Array.from(wrap.children).forEach(function(c){if(c.id!=='co-svc-input')c.remove();});
+  var inp=document.getElementById('co-svc-input');
+  _coSvcTags.forEach(function(t){
+    var tag=document.createElement('span');
+    tag.style.cssText='display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:var(--abg);border:1px solid var(--abl);color:var(--a);font-size:11.5px;font-weight:600';
+    tag.innerHTML=h(t)+'<span onclick="coSvcRemove(\''+h(t)+'\')" style="cursor:pointer;font-size:11px;margin-left:2px">✕</span>';
+    wrap.insertBefore(tag,inp);
+  });
+}
+function coSvcRemove(t){_coSvcTags=_coSvcTags.filter(function(x){return x!==t;});_renderCoSvcTags();}
+
+function newVendorCo(){
+  window._editCoId=null; _coSvcTags=[];
+  document.getElementById('mo-co-t').textContent='협력업체 등록';
+  ['co-name','co-brn','co-addr','co-tel','co-mgr','co-mobile','co-email'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var note=document.getElementById('co-note');if(note)note.value='';
+  var inp=document.getElementById('co-svc-input');if(inp)inp.value='';
+  _renderCoSvcTags();
+  var delBtn=document.getElementById('btn-del-co');if(delBtn)delBtn.style.display='none';
+  openM('mo-co');
+}
+function editVendorCo(id){
+  var v=(DB.vendors||[]).find(function(x){return x.id===id;});
+  if(!v) return;
+  window._editCoId=id;
+  _coSvcTags=Array.isArray(v.services)?[...v.services]:(v.categories||[]);
+  document.getElementById('mo-co-t').textContent='협력업체 수정 — '+v.name;
+  var s=function(eid,val){var el=document.getElementById(eid);if(el)el.value=val||'';};
+  s('co-name',v.name);s('co-brn',v.brn);s('co-addr',v.addr);
+  s('co-tel',v.tel);s('co-mgr',v.manager);s('co-mobile',v.mobile);
+  s('co-email',v.email);s('co-note',v.note);
+  _renderCoSvcTags();
+  var delBtn=document.getElementById('btn-del-co');if(delBtn)delBtn.style.display='';
+  openM('mo-co');
+}
+function saveVendorCo(){
+  var name=document.getElementById('co-name').value.trim();
+  if(!name){toast('회사명 필수','err');return;}
+  var inp=document.getElementById('co-svc-input');
+  if(inp&&inp.value.trim()&&!_coSvcTags.includes(inp.value.trim())){_coSvcTags.push(inp.value.trim());inp.value='';}
+  if(!DB.vendors) DB.vendors=[];
+  var data={
+    name,brn:document.getElementById('co-brn').value.trim(),
+    addr:document.getElementById('co-addr').value.trim(),
+    tel:document.getElementById('co-tel').value.trim(),
+    manager:document.getElementById('co-mgr').value.trim(),
+    mobile:document.getElementById('co-mobile').value.trim(),
+    email:document.getElementById('co-email').value.trim(),
+    services:[..._coSvcTags],
+    note:document.getElementById('co-note').value.trim(),
+    updatedAt:now()
+  };
+  if(window._editCoId){
+    var i=DB.vendors.findIndex(function(x){return x.id===window._editCoId;});
+    if(i>=0) DB.vendors[i]={...DB.vendors[i],...data};
+  } else {
+    DB.vendors.push({id:uid(),createdAt:now(),...data});
+  }
+  saveDB();closeM('mo-co');renderVendorsCo();
+  toast(window._editCoId?'수정 완료':'등록 완료','ok');
+}
+
+// ── 일괄 업로드 ──
+function openCoBulkUpload(){
+  var m=document.getElementById('mo-co-bulk');
+  if(!m){m=document.createElement('div');m.id='mo-co-bulk';m.className='mo';m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+  m.innerHTML='<div class="mb xl" style="max-width:740px">'
+    +'<div class="mo-t">📥 협력업체 일괄 업로드</div>'
+    +'<div class="alert al-i" style="margin-bottom:14px;font-size:12px"><div>'
+    +'<strong>Excel 형식</strong> — 1행: 헤더, 2행~: 데이터<br>'
+    +'컬럼 순서: <code style="background:var(--sur2);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:11px">회사명 / 사업자등록번호 / 주소 / 대표연락처 / 담당자 / 담당자휴대폰 / 이메일 / 서비스항목(쉼표구분) / 비고</code>'
+    +'<button class="btn bd btn-sm" style="margin-left:10px" onclick="downloadCoTemplate()">⬇ 템플릿 다운로드</button>'
+    +'</div></div>'
+    +'<div id="co-xl-dropzone" style="border:2px dashed var(--bdr2);border-radius:var(--rc);padding:40px;text-align:center;cursor:pointer;background:var(--sur2)"'
+    +' onclick="document.getElementById(\'co-xl-file\').click()"'
+    +' ondragover="event.preventDefault();this.style.borderColor=\'var(--a)\';this.style.background=\'var(--abg)\'"'
+    +' ondragleave="this.style.borderColor=\'var(--bdr2)\';this.style.background=\'var(--sur2)\'"'
+    +' ondrop="event.preventDefault();this.style.borderColor=\'var(--bdr2)\';this.style.background=\'var(--sur2)\';handleCoXLDrop(event)">'
+    +'<div style="font-size:32px;margin-bottom:8px">📊</div>'
+    +'<div style="font-size:13px;font-weight:600;color:var(--ink2)">Excel 파일을 드래그하거나 클릭</div>'
+    +'<div style="font-size:11px;color:var(--ink3);margin-top:4px">.xlsx, .xls 지원</div>'
+    +'</div>'
+    +'<input type="file" id="co-xl-file" accept=".xlsx,.xls" style="display:none" onchange="handleCoXLFile(this)">'
+    +'<div id="co-xl-preview" style="margin-top:12px;max-height:260px;overflow-y:auto"></div>'
+    +'<div class="mo-f">'
+    +'<button class="btn bd" style="flex:1" onclick="document.getElementById(\'mo-co-bulk\').classList.remove(\'open\')">취소</button>'
+    +'<button class="btn bp" style="flex:2;display:none" id="btn-co-bulk-save" onclick="saveCoXLBulk()">✓ 등록</button>'
+    +'</div></div>';
+  m.classList.add('open');
+}
+function downloadCoTemplate(){
+  var ws_data=[['회사명','사업자등록번호','주소','대표연락처','담당자','담당자휴대폰','이메일','서비스항목(쉼표구분)','비고'],
+    ['예: 블루밍미디어','000-00-00000','서울시 강남구','02-0000-0000','홍길동','010-0000-0000','hong@co.kr','버스대절,차량렌트','VIP 전담']];
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ws_data),'협력업체');
+  XLSX.writeFile(wb,'협력업체_템플릿.xlsx');
+}
+var _coXLData=[];
+function handleCoXLDrop(e){var f=e.dataTransfer.files[0];if(f)processCoXL(f);}
+function handleCoXLFile(inp){if(inp.files[0])processCoXL(inp.files[0]);}
+function processCoXL(file){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:'binary'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      if(rows.length<2){toast('데이터가 없습니다','err');return;}
+      _coXLData=rows.slice(1).filter(function(r){return r[0];}).map(function(r){
+        return {id:uid(),createdAt:now(),updatedAt:now(),
+          name:String(r[0]||'').trim(),brn:String(r[1]||'').trim(),
+          addr:String(r[2]||'').trim(),tel:String(r[3]||'').trim(),
+          manager:String(r[4]||'').trim(),mobile:String(r[5]||'').trim(),
+          email:String(r[6]||'').trim(),
+          services:String(r[7]||'').split(',').map(function(s){return s.trim();}).filter(Boolean),
+          note:String(r[8]||'').trim()};
+      });
+      var prev=document.getElementById('co-xl-preview');
+      var saveBtn=document.getElementById('btn-co-bulk-save');
+      if(prev){
+        prev.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:8px">'+_coXLData.length+'개 업체 파싱 완료</div>'
+          +'<div class="tw"><table><thead><tr><th>회사명</th><th>사업자번호</th><th>담당자</th><th>연락처</th><th>서비스항목</th></tr></thead><tbody>'
+          +_coXLData.map(function(v){
+            return '<tr><td style="font-weight:600">'+h(v.name)+'</td><td>'+h(v.brn)+'</td><td>'+h(v.manager)+'</td><td>'+h(v.tel||v.mobile)+'</td>'
+              +'<td>'+v.services.map(function(s){return '<span class="chip ca" style="font-size:9.5px;margin:1px">'+h(s)+'</span>';}).join('')+'</td></tr>';
+          }).join('')
+          +'</tbody></table></div>';
+      }
+      if(saveBtn) saveBtn.style.display='';
+    }catch(err){toast('파일 파싱 실패: '+err.message,'err');}
+  };
+  reader.readAsBinaryString(file);
+}
+function saveCoXLBulk(){
+  if(!_coXLData.length){toast('데이터 없음','err');return;}
+  if(!DB.vendors) DB.vendors=[];
+  var added=0,updated=0;
+  _coXLData.forEach(function(v){
+    var ei=DB.vendors.findIndex(function(x){return x.name===v.name;});
+    if(ei>=0){DB.vendors[ei]={...DB.vendors[ei],...v};updated++;}
+    else{DB.vendors.push(v);added++;}
+  });
+  saveDB();
+  document.getElementById('mo-co-bulk').classList.remove('open');
+  renderVendorsCo();
+  toast('✓ 등록 '+added+'건, 수정 '+updated+'건 완료','ok');
+  _coXLData=[];
+}
+function exportCoXLSX(){
+  var rows=[['회사명','사업자등록번호','주소','대표연락처','담당자','담당자휴대폰','이메일','서비스항목','비고']];
+  (DB.vendors||[]).forEach(function(v){
+    rows.push([v.name||'',v.brn||'',v.addr||'',v.tel||'',v.manager||'',v.mobile||'',v.email||'',(v.services||[]).join(', '),v.note||'']);
+  });
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'협력업체');
+  XLSX.writeFile(wb,'협력업체_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('엑셀 내보내기 완료','ok');
 }
 
 // ── 서비스 항목 CRUD
@@ -2851,107 +2974,7 @@ function delSvcItem(id){
   saveDB(); renderVendors(); toast('삭제됨','');
 }
 
-// ── 협력업체 CRUD
-function fillCoModal(selectedCat, selectedSvcs){
-  // 주 카테고리 select
-  var catEl=document.getElementById('co-cat');
-  if(catEl){
-    catEl.innerHTML=SVC_GROUPS.map(function(g){
-      var icon=(SVC_CATS.find(function(c){return c.group===g;})||{}).icon||'📌';
-      return '<option value="'+h(g)+'"'+(g===selectedCat?' selected':'')+'>'+icon+' '+g+'</option>';
-    }).join('');
-  }
-  // 제공 서비스 멀티 체크박스 (SVC_CATS 전체, 그룹별)
-  var picker=document.getElementById('co-svc-picker');
-  if(!picker) return;
-  var svcs=Array.isArray(selectedSvcs)?selectedSvcs:[];
-  var html='';
-  SVC_GROUPS.forEach(function(g){
-    var cats=SVC_CATS.filter(function(c){return c.group===g;});
-    if(!cats.length) return;
-    html+='<div style="margin-bottom:8px">'
-      +'<div style="font-size:9.5px;font-weight:700;color:var(--ink4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px">'+g+'</div>'
-      +'<div style="display:flex;flex-wrap:wrap;gap:4px">';
-    cats.forEach(function(c){
-      var checked=svcs.indexOf(c.key)>=0;
-      html+='<label style="display:flex;align-items:center;gap:3px;padding:3px 8px;border-radius:999px;border:1px solid '+(checked?'var(--a)':'var(--bdr)')+';background:'+(checked?'var(--abg)':'var(--sur)')+';cursor:pointer;font-size:11px;font-weight:'+(checked?'700':'400')+';color:'+(checked?'var(--a)':'var(--ink3)')+';transition:all .12s" onclick="coSvcToggle(this,\''+c.key+'\')">'
-        +'<input type="checkbox" id="cosc-'+c.key+'" value="'+c.key+'"'+(checked?' checked':'')
-        +' style="display:none">'
-        +c.icon+' '+c.label
-        +'</label>';
-    });
-    html+='</div></div>';
-  });
-  picker.innerHTML=html;
-}
-function coSvcToggle(lbl, key){
-  var cb=document.getElementById('cosc-'+key);
-  if(!cb) return;
-  cb.checked=!cb.checked;
-  var on=cb.checked;
-  lbl.style.borderColor=on?'var(--a)':'var(--bdr)';
-  lbl.style.background=on?'var(--abg)':'var(--sur)';
-  lbl.style.color=on?'var(--a)':'var(--ink3)';
-  lbl.style.fontWeight=on?'700':'400';
-}
-function getCoSelectedSvcs(){
-  var svcs=[];
-  (document.querySelectorAll('#co-svc-picker input[type=checkbox]')||[]).forEach(function(cb){if(cb.checked) svcs.push(cb.value);});
-  return svcs;
-}
-function newVendorCo(){
-  window._editCoId=null;
-  document.getElementById('mo-co-t').textContent='협력업체 등록';
-  ['co-name','co-mgr','co-tel','co-email','co-note'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
-  var delBtn=document.getElementById('btn-del-co');if(delBtn)delBtn.style.display='none';
-  fillCoModal(SVC_GROUPS[0],[]);
-  openM('mo-co');
-}
-function editVendorCo(id){
-  var v=(DB.vendors||[]).find(function(x){return x.id===id;});
-  if(!v) return;
-  window._editCoId=id;
-  document.getElementById('mo-co-t').textContent='협력업체 수정 — '+v.name;
-  document.getElementById('co-name').value=v.name||'';
-  document.getElementById('co-mgr').value=v.manager||'';
-  document.getElementById('co-tel').value=v.tel||'';
-  document.getElementById('co-email').value=v.email||'';
-  document.getElementById('co-note').value=v.note||'';
-  var delBtn=document.getElementById('btn-del-co');if(delBtn)delBtn.style.display='';
-  // 주 카테고리: v.category 또는 v.categories[0]의 그룹
-  var primaryCat=v.categoryGroup||SVC_GROUPS[0];
-  fillCoModal(primaryCat, v.categories||[]);
-  openM('mo-co');
-}
-function saveVendorCo(){
-  var name=document.getElementById('co-name').value.trim();
-  if(!name){toast('업체명 필수','err');return;}
-  if(!DB.vendors) DB.vendors=[];
-  var cats=getCoSelectedSvcs();
-  var catEl=document.getElementById('co-cat');
-  var catGroup=catEl?catEl.value:SVC_GROUPS[0];
-  // category 필드: 주 카테고리 그룹에서 첫 번째 svc key (그룹핑용)
-  var primaryKey=(SVC_CATS.find(function(c){return c.group===catGroup&&cats.indexOf(c.key)>=0;})||SVC_CATS.find(function(c){return c.group===catGroup;})||{key:'misc'}).key;
-  var data={
-    name:name,
-    categoryGroup:catGroup,
-    category:primaryKey,
-    categories:cats,
-    note:document.getElementById('co-note').value.trim(),
-    manager:document.getElementById('co-mgr').value.trim(),
-    tel:document.getElementById('co-tel').value.trim(),
-    email:document.getElementById('co-email').value.trim()
-  };
-  if(window._editCoId){
-    var i=DB.vendors.findIndex(function(x){return x.id===window._editCoId;});
-    if(i>=0) DB.vendors[i]={...DB.vendors[i],...data};
-  } else {
-    DB.vendors.push({id:uid(),...data});
-  }
-  saveDB(); closeM('mo-co'); renderVendorsCo();
-  DB._vendorsCleared=false;
-  toast(window._editCoId?'수정 완료':'등록 완료','ok');
-}
+// ── 협력업체 CRUD (새 필드 버전 위에 정의됨)
 async function clearAllVendors(){
   if(!confirm('협력업체를 전체 삭제할까요?\n(로컬 + Supabase 동시 삭제)')) return;
   toast('삭제 중...','ok');
@@ -3133,16 +3156,16 @@ function _renderTeamChips(members){
   const cur=document.getElementById('team-assign-current');
   if(!list||!CUR) return;
   const all=members||window._teamMembers||[];
-  const supabaseMembers=window._supabaseMembers||all; // Supabase에서 온 팀원
+  const supabaseMembers=window._supabaseMembers||[];
   if(!all.length){
     list.innerHTML='<span style="font-size:11px;color:var(--ink4)">팀원이 없습니다 — 시스템 설정 &gt; 팀원 관리에서 추가하세요</span>';
   } else {
     list.innerHTML=all.map(function(m){
       const assigned=(CUR.assignedTo||[]).includes(m);
-      const isManual=!supabaseMembers.includes(m); // Supabase에 없는 수동 추가 팀원
-      return '<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;border:1px solid '+(assigned?'var(--a)':'var(--bdr)')+';background:'+(assigned?'var(--abg)':'var(--sur)')+';font-size:12px;font-weight:'+(assigned?700:400)+';color:'+(assigned?'var(--a)':'var(--ink3)')+';cursor:pointer;">'
-        +'<span onclick="toggleAssigned(\''+h(m)+'\')">'+(assigned?'✓ ':'')+h(m)+'</span>'
-        +(isManual?'<span onclick="removeAssignedMember(\''+h(m)+'\')" title="제거" style="font-size:10px;color:var(--r);margin-left:2px;font-weight:700;padding:0 2px;">✕</span>':'')
+      const isManual=supabaseMembers.length>0&&!supabaseMembers.includes(m);
+      return '<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;border:1px solid '+(assigned?'var(--a)':'var(--bdr)')+';background:'+(assigned?'var(--abg)':'var(--sur)')+';font-size:12px;font-weight:'+(assigned?700:400)+';color:'+(assigned?'var(--a)':'var(--ink3)')+';">'
+        +'<span onclick="toggleAssigned(\''+h(m)+'\')" style="cursor:pointer">'+(assigned?'✓ ':'')+h(m)+'</span>'
+        +(isManual?'<span onclick="removeAssignedMember(\''+h(m)+'\')" style="cursor:pointer;color:var(--r);font-size:10px;font-weight:700;padding:0 2px" title="제거">✕</span>':'')
         +'</span>';
     }).join('');
   }
@@ -3161,7 +3184,6 @@ async function reloadTeamAssign(){
   }
   if(!members.length) members=team();
   window._supabaseMembers=[...members];
-  // 이미 배정된 수동 추가 팀원도 목록에 포함
   const manual=(CUR&&CUR.assignedTo||[]).filter(m=>!members.includes(m));
   const all=[...members,...manual];
   window._teamMembers=all;
