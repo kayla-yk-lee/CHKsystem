@@ -522,7 +522,6 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
 
     <span class="sb-lbl">📋 PCO · DMC 프로젝트</span>
     <div class="nav" data-nav="projects" onclick="navTo('projects',this)"><span class="nav-ic"></span>전체 프로젝트<span class="nc" id="nc-all">0</span></div>
-    <div class="nav" data-nav="pipeline" onclick="navTo('pipeline',this)"><span class="nav-ic">⇢</span>파이프라인</div>
     <div id="nav-new-proj" class="nav" data-nav="proj-create" onclick="navTo('proj-create',this)"><span class="nav-ic" style="color:var(--a);font-weight:700">📥</span>프로젝트 생성<span class="nc" id="nc-rfp" style="background:var(--rbg);color:var(--r);display:none">0</span></div>
     <div class="nav" data-nav="calendar" onclick="navTo('calendar',this)"><span class="nav-ic"></span>캘린더</div>
     <div class="nav" data-nav="vendors" onclick="navTo('vendors',this)"><span class="nav-ic"></span>서비스 항목</div>
@@ -659,6 +658,8 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
       <div class="fg">
         <label class="fl">기간</label>
         <select class="fi" id="np-nights">
+          <option value="0">반나절</option>
+          <option value="0.5">1일 (당일)</option>
           <option value="1">1박2일</option>
           <option value="2">2박3일</option><option value="3" selected>3박4일</option>
           <option value="4">4박5일</option><option value="5">5박6일</option>
@@ -797,6 +798,9 @@ LG Electronics SEA Team"></textarea>
       <div class="fg"><label class="fl">인원</label><input class="fi" type="number" id="rp-pax"></div>
       <div class="fg"><label class="fl">기간</label>
         <select class="fi" id="rp-nights">
+          <option value="0">반나절</option>
+          <option value="0.5">1일 (당일)</option>
+          <option value="1">1박2일</option>
           <option value="2">2박3일</option><option value="3" selected>3박4일</option>
           <option value="4">4박5일</option><option value="5">5박6일</option>
           <option value="6">6박7일</option><option value="7">7박8일</option>
@@ -1343,7 +1347,7 @@ const PIPE=['bidding','awarded','operating','settling','done'];
 // CLG 전역 참조
 
 /* ── HELPERS (DB 초기화 전 필수) ── */
-const nightsLabel=n=>n+'박'+(n+1)+'일';
+const nightsLabel=n=>n===0?'반나절':n===0.5?'1일(당일)':n+'박'+(n+1)+'일';
 const uid=()=>'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const now=()=>new Date().toISOString();
 const dday=s=>{if(!s)return 999;const d=new Date(s),t=new Date();t.setHours(0,0,0,0);return Math.ceil((d-t)/86400e3);};
@@ -1451,7 +1455,7 @@ async function persist(p){
       country:p.country||'',
       origin_city:p.origin||'',
       arrival_date:p.eventDate||null,
-      duration:nights+'박'+(nights+1)+'일',
+      duration:nightsLabel(nights),
       pax:p.pax||0,
       theme:p.theme||'',
       notes:p.notes||'',
@@ -1626,7 +1630,7 @@ async function syncUp(){
         contact_name:p.clientName||'', email:p.clientEmail||'',
         phone:p.clientPhone||'', country:p.country||'',
         origin_city:p.origin||'', arrival_date:p.eventDate||null,
-        duration:nights+'박'+(nights+1)+'일', pax:p.pax||0,
+        duration:nightsLabel(nights), pax:p.pax||0,
         theme:p.theme||'', notes:p.notes||'',
         fx_rate:p.exchangeRate||1380, mgmt_pct:p.feePercent||10,
         tax_pct:p.taxPercent||0, tax_on:false,
@@ -1760,7 +1764,7 @@ async function syncDown(){
     // ② 앱 데이터 구조로 재조립
     const projects=(projRows||[]).map(function(p){
       const durationStr=p.duration||'3박4일';
-      const nights=parseInt(durationStr.split('박')[0])||3;
+      const nights=(()=>{const s=durationStr;if(s==='반나절')return 0;if(s==='1일(당일)'||s==='1일')return 0.5;return parseInt(s.split('박')[0])||3;})();
 
       // 일정 재조립
       const myDays=(dayRows||[]).filter(d=>d.project_id===p.id).sort((a,b)=>a.day_index-b.day_index);
@@ -3242,7 +3246,9 @@ function renderProjInfo(){
       <div class="fr3">
         <div class="fg"><label class="fl">행사일 ★</label><input class="fi" type="date" value="${CUR.eventDate||''}" onchange="upC('eventDate',this.value)"></div>
         <div class="fg"><label class="fl">인원 (Pax) ★</label><input class="fi" type="number" value="${CUR.pax||''}" oninput="upC('pax',parseInt(this.value)||0)" placeholder="85"></div>
-        <div class="fg"><label class="fl">기간</label><select class="fi" onchange="upC('nights',parseInt(this.value))">${[1,2,3,4,5,6,7].map(n=>`<option value="${n}"${CUR.nights===n?' selected':''}>${n}박${n+1}일</option>`).join('')}</select></div>
+        <div class="fg"><label class="fl">기간</label><select class="fi" onchange="upC('nights',parseFloat(this.value))">
+  ${[[0,'반나절'],[0.5,'1일 (당일)'],[1,'1박2일'],[2,'2박3일'],[3,'3박4일'],[4,'4박5일'],[5,'5박6일'],[6,'6박7일'],[7,'7박8일']].map(([n,l])=>`<option value="${n}"${CUR.nights===n?' selected':''}>${l}</option>`).join('')}
+</select></div>
       </div>
       <div class="fr3">
         <div class="fg"><label class="fl">출발 국가/도시</label><input class="fi" value="${h(CUR.origin||'')}" oninput="upC('origin',this.value)" placeholder="싱가포르"></div>
@@ -6163,8 +6169,9 @@ function myProjects(){
 }
 
 function renderProjects(){
+  const view=window._projView||'list';
   const tm=team();
-  let projs=[...myProjects()]; // 권한 기반 필터링
+  let projs=[...myProjects()];
 
   // 검색 필터
   if(_projFilter){
@@ -6178,6 +6185,36 @@ function renderProjects(){
   if(_projSort==='date')  projs.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   if(_projSort==='sales') projs.sort((a,b)=>(b.salesTotalKRW||0)-(a.salesTotalKRW||0));
 
+  // ── 탭 공통 헤더 ──
+  const header=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+      <div style="font-size:16px;font-weight:700;color:var(--ink)">전체 프로젝트</div>
+      <span class="chip ca">${DB.projects.length}개</span>
+      <input class="fi" style="max-width:220px;margin-left:auto" placeholder="🔍 검색 (고객사·담당자·출발지)"
+        value="${h(_projFilter)}" oninput="_projFilter=this.value;renderProjects()">
+      <button class="btn bp btn-sm" onclick="quickNewProj()">+ 새 프로젝트</button>
+    </div>
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--bdr);margin-bottom:16px">
+      <button onclick="window._projView='list';renderProjects()" class="btn" style="padding:8px 18px;font-size:12.5px;border-bottom:2px solid ${view==='list'?'var(--a)':'transparent'};color:${view==='list'?'var(--a)':'var(--ink3)'};background:transparent;margin-bottom:-2px;font-weight:${view==='list'?'700':'400'}">📋 목록</button>
+      <button onclick="window._projView='pipe';renderProjects()" class="btn" style="padding:8px 18px;font-size:12.5px;border-bottom:2px solid ${view==='pipe'?'var(--a)':'transparent'};color:${view==='pipe'?'var(--a)':'var(--ink3)'};background:transparent;margin-bottom:-2px;font-weight:${view==='pipe'?'700':'400'}">⇢ 파이프라인</button>
+    </div>`;
+
+  if(view==='pipe'){
+    // ── 파이프라인 뷰 ──
+    const grp={};STATUSES.forEach(s=>grp[s.k]=[]);
+    projs.forEach(p=>{if(grp[p.status])grp[p.status].push(p);});
+    const pipeHTML=`<div class="pipeline">${STATUSES.map(st=>`<div class="pcol">
+      <div class="pcol-h">${st.l} <span class="chip ${st.c}" style="font-size:9.5px;padding:1px 6px">${(grp[st.k]||[]).length}</span></div>
+      ${(grp[st.k]||[]).map(p=>`<div class="pcard" onclick="selProj('${p.id}')">
+        <div class="pcard-n">${h(p.nameKO)}</div>
+        <div class="pcard-m">D-${dday(p.eventDate)} · ${p.pax}명 · ${h(p.salesperson)}</div>
+      </div>`).join('')||'<div style="font-size:11px;color:var(--ink4);padding:4px 0">없음</div>'}
+    </div>`).join('')}</div>`;
+    document.getElementById('page-projects').innerHTML=header+pipeHTML;
+    return;
+  }
+
+  // ── 목록 뷰 ──
   const rows=projs.map(p=>{
     const dd=dday(p.eventDate), st=sts(p.status);
     return`<tr>
@@ -6207,30 +6244,20 @@ function renderProjects(){
     </tr>`;
   }).join('');
 
-  document.getElementById('page-projects').innerHTML=`
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
-      <div style="font-size:16px;font-weight:700;color:var(--ink)">전체 프로젝트</div>
-      <span class="chip ca">${DB.projects.length}개</span>
-      <input class="fi" style="max-width:220px;margin-left:auto" placeholder="🔍 검색 (고객사·담당자·출발지)"
-        value="${h(_projFilter)}" oninput="_projFilter=this.value;renderProjects()">
-      <button class="btn bp btn-sm" onclick="quickNewProj()">+ 새 프로젝트</button>
-    </div>
-
-    <!-- 정렬 탭 -->
+  document.getElementById('page-projects').innerHTML=header+`
     <div class="frow" style="margin-bottom:14px">
       <button class="f-pill ${_projSort==='dday'?'on':''}"  onclick="_projSort='dday';renderProjects()">D-day순</button>
       <button class="f-pill ${_projSort==='name'?'on':''}"  onclick="_projSort='name';renderProjects()">가나다순</button>
       <button class="f-pill ${_projSort==='date'?'on':''}"  onclick="_projSort='date';renderProjects()">등록순</button>
       <button class="f-pill ${_projSort==='sales'?'on':''}" onclick="_projSort='sales';renderProjects()">금액순</button>
     </div>
-
     <div class="tw"><table>
       <thead><tr>
         <th>고객사명 / 프로젝트명</th><th>고객사 담당자</th><th>행사일</th><th class="r">인원</th>
         <th>출발지</th><th>CHK 담당</th><th>상태</th><th>D-day</th>
         <th class="r">판매가</th><th>삭제</th>
       </tr></thead>
-      <tbody>${rows||`<tr><td colspan="11" style="text-align:center;color:var(--ink4);padding:24px">프로젝트가 없습니다.</td></tr>`}</tbody>
+      <tbody>${rows||`<tr><td colspan="10" style="text-align:center;color:var(--ink4);padding:24px">프로젝트가 없습니다.</td></tr>`}</tbody>
     </table></div>
   `;
 }
