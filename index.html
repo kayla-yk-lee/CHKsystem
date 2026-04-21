@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Channel K DMC — MICE 통합관리</title>
+<title>Channel K MICE — 사내 인트라넷</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -466,7 +466,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
 <div id="topbar">
   <div class="brand" style="color:#fff;font-weight:800">Channel K</div>
   <div class="tb-div"></div>
-  <span class="brand-sub">프로젝트 통합관리</span>
+  <span class="brand-sub">사내 인트라넷</span>
   <div class="tb-r">
     <div class="sync-bd s-ok" id="sync-bd"><div class="sync-dot"></div><span id="sync-txt">저장됨</span></div>
     <div class="ic-btn" onclick="openM('mo-urg')" title="긴급알림" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.25);color:#fff">🔔<div class="ndot" id="ndot"></div></div>
@@ -492,8 +492,8 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
 <div id="login-screen" style="display:none;position:fixed;inset:0;background:#1E40AF;z-index:9999;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:16px;padding:48px 40px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)">
     <div style="font-size:32px;margin-bottom:8px">✈️</div>
-    <div style="font-size:22px;font-weight:800;color:#1E40AF;margin-bottom:4px">Channel K DMC</div>
-    <div style="font-size:12px;color:#64748B;margin-bottom:32px;letter-spacing:.05em">MICE 통합관리 시스템</div>
+    <div style="font-size:22px;font-weight:800;color:#1E40AF;margin-bottom:4px">Channel K MICE</div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:32px;letter-spacing:.05em">사내 인트라넷 포털</div>
     <button id="google-login-btn" onclick="signInWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px 20px;border:2px solid #E2E8F0;border-radius:10px;background:#fff;cursor:pointer;font-size:14px;font-weight:600;color:#334155">
       <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       Google 계정으로 로그인
@@ -517,8 +517,10 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
 <div id="body">
   <!-- SIDEBAR -->
   <div id="sidebar">
-    <span class="sb-lbl">메뉴</span>
+    <span class="sb-lbl">홈</span>
     <div class="nav on" data-nav="dashboard" onclick="navTo('dashboard',this)"><span class="nav-ic">◻</span>대시보드</div>
+
+    <span class="sb-lbl">📋 PCO · DMC 프로젝트</span>
     <div class="nav" data-nav="projects" onclick="navTo('projects',this)"><span class="nav-ic"></span>전체 프로젝트<span class="nc" id="nc-all">0</span></div>
     <div class="nav" data-nav="pipeline" onclick="navTo('pipeline',this)"><span class="nav-ic">⇢</span>파이프라인</div>
     <div id="nav-new-proj" class="nav" data-nav="proj-create" onclick="navTo('proj-create',this)"><span class="nav-ic" style="color:var(--a);font-weight:700">📥</span>프로젝트 생성<span class="nc" id="nc-rfp" style="background:var(--rbg);color:var(--r);display:none">0</span></div>
@@ -526,6 +528,12 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
     <div class="nav" data-nav="vendors" onclick="navTo('vendors',this)"><span class="nav-ic"></span>서비스 항목</div>
     <div class="nav" data-nav="vendors-co" onclick="navTo('vendors-co',this)"><span class="nav-ic"></span>협력업체</div>
     <div class="nav" data-nav="themes" onclick="navTo('themes',this)"><span class="nav-ic"></span>테마 관리</div>
+
+    <span class="sb-lbl">🏢 사내 인트라넷</span>
+    <div class="nav" data-nav="notice" onclick="navTo('notice',this)"><span class="nav-ic">📢</span>공지사항<span class="nc" id="nc-notice" style="display:none">0</span></div>
+    <div class="nav" data-nav="archive" onclick="navTo('archive',this)"><span class="nav-ic">📁</span>자료실</div>
+    <div class="nav" data-nav="people" onclick="navTo('people',this)"><span class="nav-ic">👥</span>인사·팀원</div>
+    <div class="nav" data-nav="teamcal" onclick="navTo('teamcal',this)"><span class="nav-ic">🗓</span>팀 캘린더</div>
     <div class="nav" data-nav="internal" onclick="navTo('internal',this)"><span class="nav-ic">🏢</span>사내 프로젝트<span class="nc" id="nc-int">0</span></div>
     <span class="sb-lbl">진행 프로젝트</span>
     <div id="sb-projs"></div>
@@ -594,6 +602,10 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
       <div class="page" id="page-report"></div>
       <div class="page" id="page-internal"></div>
       <div class="page" id="page-freelancers"></div>
+      <div class="page" id="page-notice"></div>
+      <div class="page" id="page-archive"></div>
+      <div class="page" id="page-people"></div>
+      <div class="page" id="page-teamcal"></div>
       <div class="page" id="page-rfp-inbox"></div>
       <div class="page" id="page-proj-create"></div>
       <div class="page" id="page-rfp-inbox"></div>
@@ -1517,6 +1529,9 @@ function buildSample(){
     notices:[],
     internalBudgets:[],
     freelancers:[],
+    archives:[],
+    people:[],
+    teamEvents:[],
   };
 }
 
@@ -1964,7 +1979,7 @@ function navTo(page,el){
   document.getElementById('ph').style.display='none';
   document.getElementById('tabbar').style.display='none';
   CUR=null; showPage(page);
-  const fn={dashboard:renderDash,pipeline:renderPipeline,vendors:renderVendors,'vendors-co':renderVendorsCo,calendar:renderCalendar,themes:renderThemes,'new-proj':renderNewProj,stat:renderStatPage,projects:renderProjects,'rfp-parse':renderRFPParsePage,internal:renderInternal,'rfp-inbox':renderRFPInbox,'proj-create':renderProjCreate,freelancers:renderFreelancers};
+  const fn={dashboard:renderDash,pipeline:renderPipeline,vendors:renderVendors,'vendors-co':renderVendorsCo,calendar:renderCalendar,themes:renderThemes,'new-proj':renderNewProj,stat:renderStatPage,projects:renderProjects,'rfp-parse':renderRFPParsePage,internal:renderInternal,'rfp-inbox':renderRFPInbox,'proj-create':renderProjCreate,freelancers:renderFreelancers,notice:renderNotice,archive:renderArchive,people:renderPeople,teamcal:renderTeamCal};
   if(fn[page])fn[page]();
 }
 
@@ -2313,6 +2328,33 @@ function renderDash(){
     </div>`).join('');
 
   document.getElementById('page-dashboard').innerHTML=`
+    <!-- 인트라넷 포털 헤더 -->
+    <div style="background:linear-gradient(135deg,#1E3A5F 0%,#1E40AF 100%);border-radius:var(--rc);padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.6);text-transform:uppercase;margin-bottom:4px">Channel K MICE</div>
+        <div style="font-size:20px;font-weight:800;color:#fff">사내 인트라넷 포털</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:2px">${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'})}</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap">
+        <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px 16px;text-align:center;cursor:pointer;min-width:80px" onclick="navTo('proj-create')">
+          <div style="font-size:18px">📥</div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,.85);font-weight:600;margin-top:2px">프로젝트 생성</div>
+        </div>
+        <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px 16px;text-align:center;cursor:pointer;min-width:80px" onclick="navTo('notice')">
+          <div style="font-size:18px">📢</div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,.85);font-weight:600;margin-top:2px">공지사항</div>
+        </div>
+        <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px 16px;text-align:center;cursor:pointer;min-width:80px" onclick="navTo('archive')">
+          <div style="font-size:18px">📁</div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,.85);font-weight:600;margin-top:2px">자료실</div>
+        </div>
+        <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px 16px;text-align:center;cursor:pointer;min-width:80px" onclick="navTo('people')">
+          <div style="font-size:18px">👥</div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,.85);font-weight:600;margin-top:2px">인사·팀원</div>
+        </div>
+      </div>
+    </div>
+
     <div class="stat-grid">
       <div class="sc sa" onclick="navStat('all')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='var(--shm)'" onmouseout="this.style.boxShadow='var(--sh)'">
         <div class="sv">${DB.projects.length}</div><div class="sl">전체 프로젝트</div>
@@ -2329,6 +2371,39 @@ function renderDash(){
       <div class="sc sg" onclick="navStat('done')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='var(--shm)'" onmouseout="this.style.boxShadow='var(--sh)'">
         <div class="sv">${DB.projects.filter(p=>p.status==='done').length}</div><div class="sl">완료</div>
         <div style="font-size:9.5px;color:var(--g);margin-top:4px;font-weight:600">보기 →</div>
+      </div>
+    </div>
+
+    <!-- 최근 공지사항 + 빠른 링크 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:700;color:var(--ink)">📢 최근 공지</div>
+          <span onclick="navTo('notice')" style="font-size:10.5px;color:var(--a);cursor:pointer;font-weight:600">전체 →</span>
+        </div>
+        ${(DB.notices||[]).length
+          ?[...(DB.notices||[])].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,4).map(n=>`
+            <div onclick="navTo('notice')" style="padding:7px 0;border-bottom:1px solid var(--bdr);cursor:pointer;display:flex;align-items:center;gap:8px">
+              ${n.pinned?'<span style="font-size:9px;color:var(--a);font-weight:700">📌</span>':''}
+              <span style="font-size:12px;color:var(--ink2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(n.title||'')}</span>
+              <span style="font-size:10px;color:var(--ink4);white-space:nowrap">${n.createdAt?new Date(n.createdAt).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'}):''}</span>
+            </div>`).join('')
+          :'<div style="font-size:12px;color:var(--ink4);padding:12px 0;text-align:center">공지사항이 없습니다</div>'}
+      </div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:10px">🔗 빠른 메뉴</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${[
+            {icon:'📊',label:'CHK 프로젝트',nav:'projects'},
+            {icon:'⇢',label:'파이프라인',nav:'pipeline'},
+            {icon:'📁',label:'자료실',nav:'archive'},
+            {icon:'👥',label:'인사·팀원',nav:'people'},
+            {icon:'🗓',label:'팀 캘린더',nav:'teamcal'},
+            {icon:'🏢',label:'사내 프로젝트',nav:'internal'},
+          ].map(m=>`<div onclick="navTo('${m.nav}')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--bdr);border-radius:var(--ra);cursor:pointer;transition:background .12s;font-size:12.5px;font-weight:600;color:var(--ink2)" onmouseover="this.style.background='var(--sur2)'" onmouseout="this.style.background='transparent'">
+            <span style="font-size:14px">${m.icon}</span>${m.label}
+          </div>`).join('')}
+        </div>
       </div>
     </div>
 
@@ -9261,6 +9336,533 @@ function exportFlXLSX(){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'인력');
   XLSX.writeFile(wb,'가이드통역인력_'+new Date().toISOString().slice(0,10)+'.xlsx');
   toast('엑셀 내보내기 완료','ok');
+}
+
+/* ═══════════════════════════════════════════
+   📢 공지사항
+   ═══════════════════════════════════════════ */
+function renderNotice(){
+  if(!DB.notices) DB.notices=[];
+  const notices=DB.notices;
+  const pg=document.getElementById('page-notice');
+  if(!pg) return;
+
+  const pinned=notices.filter(n=>n.pinned).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const normal=notices.filter(n=>!n.pinned).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const all=[...pinned,...normal];
+
+  const cats=['전체','전사공지','PCO','DMC','인사','기타'];
+  const curCat=window._noticeCat||'전체';
+
+  const filtered=curCat==='전체'?all:all.filter(n=>n.cat===curCat);
+
+  pg.innerHTML=`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <div style="font-size:17px;font-weight:800;color:var(--ink)">📢 공지사항</div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">
+      ${cats.map(c=>`<button class="btn btn-sm ${curCat===c?'bp':'bd'}" onclick="window._noticeCat='${c}';renderNotice()">${c}</button>`).join('')}
+    </div>
+    ${canCreate()?`<button class="btn bp btn-sm" style="margin-left:auto" onclick="openNoticeModal()">+ 공지 작성</button>`:''}
+  </div>
+  ${filtered.length?filtered.map(n=>`
+    <div class="card" style="margin-bottom:10px;border-left:3px solid ${n.pinned?'var(--a)':'var(--bdr)'}">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
+            ${n.pinned?'<span style="font-size:10px;font-weight:700;color:var(--a);background:var(--abg);padding:1px 7px;border-radius:99px;border:1px solid var(--abl)">📌 고정</span>':''}
+            <span style="font-size:10px;font-weight:700;color:var(--ink4);background:var(--sur2);padding:1px 7px;border-radius:99px">${h(n.cat||'전사공지')}</span>
+            <span style="font-size:13px;font-weight:700;color:var(--ink)">${h(n.title||'')}</span>
+          </div>
+          <div style="font-size:12.5px;color:var(--ink2);white-space:pre-wrap;line-height:1.6">${h(n.body||'')}</div>
+          <div style="font-size:11px;color:var(--ink4);margin-top:8px">${h(n.author||'')} · ${n.createdAt?new Date(n.createdAt).toLocaleDateString('ko-KR'):''}</div>
+        </div>
+        ${canDelete()?`<div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn bd btn-sm" data-id="${n.id}" onclick="editNotice(this.dataset.id)">수정</button>
+          <button class="btn bdr2c btn-sm" data-id="${n.id}" onclick="delNotice(this.dataset.id)">삭제</button>
+        </div>`:''}
+      </div>
+    </div>`).join('')
+  :`<div class="alert al-i">공지사항이 없습니다.</div>`}`;
+
+  // 배지 업데이트
+  const badge=document.getElementById('nc-notice');
+  if(badge){const cnt=notices.filter(n=>!n._read).length;badge.textContent=cnt;badge.style.display=cnt?'':'none';}
+}
+
+function openNoticeModal(id){
+  const n=id?(DB.notices||[]).find(x=>x.id===id):null;
+  let m=document.getElementById('mo-notice');
+  if(!m){m=document.createElement('div');m.id='mo-notice';m.className='mo';m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+  m.innerHTML=`<div class="mb" style="max-width:600px">
+    <div class="mo-t">${id?'공지 수정':'공지 작성'}</div>
+    <div class="fg"><label class="fl">제목 ★</label><input class="fi" id="nt-title" value="${h(n?.title||'')}" placeholder="공지 제목"></div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">카테고리</label>
+        <select class="fi" id="nt-cat">
+          ${['전사공지','PCO','DMC','인사','기타'].map(c=>`<option${(n?.cat||'전사공지')===c?' selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg"><label class="fl">상단 고정</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 0;cursor:pointer">
+          <input type="checkbox" id="nt-pin" ${n?.pinned?'checked':''}> 📌 고정
+        </label>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">내용</label><textarea class="fi" id="nt-body" rows="6" placeholder="공지 내용을 입력하세요">${h(n?.body||'')}</textarea></div>
+    <div class="mo-f">
+      <button class="btn bd" style="flex:1" onclick="document.getElementById('mo-notice').classList.remove('open')">취소</button>
+      <button class="btn bp" style="flex:2" onclick="saveNotice('${id||''}')">저장</button>
+    </div>
+  </div>`;
+  m.classList.add('open');
+}
+
+function saveNotice(id){
+  const title=document.getElementById('nt-title').value.trim();
+  if(!title){toast('제목 필수','err');return;}
+  if(!DB.notices) DB.notices=[];
+  const obj={
+    id:id||uid(), title,
+    cat:document.getElementById('nt-cat').value,
+    body:document.getElementById('nt-body').value.trim(),
+    pinned:document.getElementById('nt-pin').checked,
+    author:CFG.myname||'',
+    createdAt:id?(DB.notices.find(x=>x.id===id)?.createdAt||now()):now(),
+    updatedAt:now()
+  };
+  if(id){const i=DB.notices.findIndex(x=>x.id===id);if(i>=0)DB.notices[i]=obj;}
+  else DB.notices.push(obj);
+  saveDB();
+  document.getElementById('mo-notice').classList.remove('open');
+  renderNotice();
+  toast(id?'수정 완료':'공지 등록 완료','ok');
+}
+
+function editNotice(id){openNoticeModal(id);}
+
+function delNotice(id){
+  if(!confirm('이 공지를 삭제할까요?')) return;
+  DB.notices=(DB.notices||[]).filter(x=>x.id!==id);
+  saveDB(); renderNotice();
+  toast('삭제됨','ok');
+}
+
+/* ═══════════════════════════════════════════
+   📁 자료실
+   ═══════════════════════════════════════════ */
+function renderArchive(){
+  if(!DB.archives) DB.archives=[];
+  const pg=document.getElementById('page-archive');
+  if(!pg) return;
+
+  const cats=['전체','제안서 템플릿','계약서 양식','회사소개서','운영 매뉴얼','사진·미디어','기타'];
+  const cur=window._archiveCat||'전체';
+  const search=(window._archiveSearch||'').toLowerCase();
+  let items=DB.archives;
+  if(cur!=='전체') items=items.filter(a=>a.cat===cur);
+  if(search) items=items.filter(a=>(a.title||'').toLowerCase().includes(search)||(a.desc||'').toLowerCase().includes(search));
+  items=[...items].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+
+  pg.innerHTML=`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="font-size:17px;font-weight:800;color:var(--ink)">📁 자료실</div>
+    <input class="fi" style="max-width:200px;margin-left:auto" placeholder="검색..." value="${h(window._archiveSearch||'')}" oninput="window._archiveSearch=this.value;renderArchive()">
+    ${canCreate()?`<button class="btn bp btn-sm" onclick="openArchiveModal()">+ 자료 등록</button>`:''}
+  </div>
+  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px">
+    ${cats.map(c=>`<button class="btn btn-sm ${cur===c?'bp':'bd'}" onclick="window._archiveCat='${c}';renderArchive()">${c}</button>`).join('')}
+  </div>
+  <div class="alert al-i" style="margin-bottom:12px;font-size:11.5px">
+    💡 파일은 Google Drive / Dropbox 링크로 등록합니다. 직접 업로드는 추후 지원 예정.
+  </div>
+  ${items.length?`<div class="tw"><table><thead><tr>
+    <th>카테고리</th><th>제목</th><th>설명</th><th>등록자</th><th>등록일</th><th style="text-align:center">링크</th>
+    ${canDelete()?'<th style="text-align:center">관리</th>':''}
+  </tr></thead><tbody>
+  ${items.map(a=>`<tr>
+    <td><span class="chip ca" style="font-size:9.5px">${h(a.cat||'기타')}</span></td>
+    <td style="font-weight:700">${h(a.title||'')}</td>
+    <td style="font-size:11.5px;color:var(--ink3)">${h(a.desc||'')}</td>
+    <td style="font-size:11.5px">${h(a.author||'')}</td>
+    <td style="font-size:11.5px;color:var(--ink3)">${a.createdAt?new Date(a.createdAt).toLocaleDateString('ko-KR'):''}</td>
+    <td style="text-align:center">${a.url?`<a href="${h(a.url)}" target="_blank" class="btn bd btn-sm" style="font-size:11px">열기 🔗</a>`:'—'}</td>
+    ${canDelete()?`<td style="text-align:center;white-space:nowrap">
+      <button class="btn bd btn-sm" data-id="${a.id}" onclick="editArchive(this.dataset.id)" style="margin-right:4px">수정</button>
+      <button class="btn bdr2c btn-sm" data-id="${a.id}" onclick="delArchive(this.dataset.id)">삭제</button>
+    </td>`:''}
+  </tr>`).join('')}
+  </tbody></table></div>`:`<div class="alert al-i">등록된 자료가 없습니다.</div>`}`;
+}
+
+function openArchiveModal(id){
+  const a=id?(DB.archives||[]).find(x=>x.id===id):null;
+  let m=document.getElementById('mo-archive');
+  if(!m){m=document.createElement('div');m.id='mo-archive';m.className='mo';m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+  m.innerHTML=`<div class="mb" style="max-width:560px">
+    <div class="mo-t">${id?'자료 수정':'자료 등록'}</div>
+    <div class="fg"><label class="fl">제목 ★</label><input class="fi" id="ar-title" value="${h(a?.title||'')}" placeholder="자료명"></div>
+    <div class="fg"><label class="fl">카테고리</label>
+      <select class="fi" id="ar-cat">
+        ${['제안서 템플릿','계약서 양식','회사소개서','운영 매뉴얼','사진·미디어','기타'].map(c=>`<option${(a?.cat||'기타')===c?' selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Google Drive / Dropbox 링크</label><input class="fi" id="ar-url" value="${h(a?.url||'')}" placeholder="https://drive.google.com/..."></div>
+    <div class="fg"><label class="fl">설명</label><textarea class="fi" id="ar-desc" rows="3" placeholder="자료에 대한 간단한 설명">${h(a?.desc||'')}</textarea></div>
+    <div class="mo-f">
+      <button class="btn bd" style="flex:1" onclick="document.getElementById('mo-archive').classList.remove('open')">취소</button>
+      <button class="btn bp" style="flex:2" onclick="saveArchive('${id||''}')">저장</button>
+    </div>
+  </div>`;
+  m.classList.add('open');
+}
+
+function saveArchive(id){
+  const title=document.getElementById('ar-title').value.trim();
+  if(!title){toast('제목 필수','err');return;}
+  if(!DB.archives) DB.archives=[];
+  const obj={
+    id:id||uid(), title,
+    cat:document.getElementById('ar-cat').value,
+    url:document.getElementById('ar-url').value.trim(),
+    desc:document.getElementById('ar-desc').value.trim(),
+    author:CFG.myname||'',
+    createdAt:id?(DB.archives.find(x=>x.id===id)?.createdAt||now()):now(),
+  };
+  if(id){const i=DB.archives.findIndex(x=>x.id===id);if(i>=0)DB.archives[i]=obj;}
+  else DB.archives.push(obj);
+  saveDB();
+  document.getElementById('mo-archive').classList.remove('open');
+  renderArchive();
+  toast(id?'수정 완료':'등록 완료','ok');
+}
+
+function editArchive(id){openArchiveModal(id);}
+
+function delArchive(id){
+  if(!confirm('삭제할까요?')) return;
+  DB.archives=(DB.archives||[]).filter(x=>x.id!==id);
+  saveDB(); renderArchive();
+  toast('삭제됨','ok');
+}
+
+/* ═══════════════════════════════════════════
+   👥 인사·팀원
+   ═══════════════════════════════════════════ */
+function renderPeople(){
+  const pg=document.getElementById('page-people');
+  if(!pg) return;
+  if(!DB.people) DB.people=[];
+
+  const search=(window._peopleSearch||'').toLowerCase();
+  let members=DB.people.length?DB.people:[];
+
+  // Supabase allowed_users에서 자동 로드한 경우 병합
+  if(window._supabaseAllUsers&&window._supabaseAllUsers.length){
+    const sbEmails=window._supabaseAllUsers.map(u=>u.email);
+    // DB.people에 없는 팀원은 기본 카드로 추가
+    window._supabaseAllUsers.forEach(u=>{
+      if(!members.find(m=>m.email===u.email)){
+        members.push({id:uid(),name:u.name||u.email.split('@')[0],email:u.email,role:u.role,dept:'',position:'',tel:'',note:'',createdAt:now()});
+      }
+    });
+  }
+
+  if(search) members=members.filter(m=>(m.name||'').toLowerCase().includes(search)||(m.position||'').toLowerCase().includes(search)||(m.dept||'').toLowerCase().includes(search));
+
+  const depts=['전체',...new Set(members.map(m=>m.dept||'').filter(Boolean))];
+  const curDept=window._peopleDept||'전체';
+  const shown=curDept==='전체'?members:members.filter(m=>m.dept===curDept);
+
+  pg.innerHTML=`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="font-size:17px;font-weight:800;color:var(--ink)">👥 인사·팀원</div>
+    <span class="chip ca">${members.length}명</span>
+    <input class="fi" style="max-width:200px;margin-left:auto" placeholder="이름/직책 검색..." value="${h(window._peopleSearch||'')}" oninput="window._peopleSearch=this.value;renderPeople()">
+    <button class="btn bd btn-sm" onclick="loadPeopleFromSupabase()">🔄 팀원 새로고침</button>
+    ${canCreate()?`<button class="btn bp btn-sm" onclick="openPeopleModal()">+ 팀원 추가</button>`:''}
+  </div>
+  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px">
+    ${depts.map(d=>`<button class="btn btn-sm ${curDept===d?'bp':'bd'}" onclick="window._peopleDept='${d}';renderPeople()">${d}</button>`).join('')}
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
+    ${shown.length?shown.map(m=>`
+    <div class="card" style="padding:16px;text-align:center;position:relative">
+      <div style="width:56px;height:56px;border-radius:50%;background:var(--abg);border:2px solid var(--abl);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--a);margin:0 auto 10px">${(m.name||'?').charAt(0)}</div>
+      <div style="font-size:14px;font-weight:700;color:var(--ink)">${h(m.name||'')}</div>
+      <div style="font-size:11.5px;color:var(--ink3);margin:2px 0">${h(m.position||'')}${m.dept?' · '+h(m.dept):''}</div>
+      ${m.tel?`<div style="font-size:11.5px;color:var(--a);margin:4px 0">📞 ${h(m.tel)}</div>`:''}
+      ${m.email?`<div style="font-size:11px;color:var(--ink3)">${h(m.email)}</div>`:''}
+      <div style="margin-top:6px">
+        <span class="chip ${m.role==='dev'?'cg':m.role==='admin'?'cb':m.role==='manager'?'ca':m.role==='staff'?'cv':'cn'}" style="font-size:9.5px">${m.role||'—'}</span>
+      </div>
+      ${m.note?`<div style="font-size:11px;color:var(--ink4);margin-top:6px;font-style:italic">${h(m.note)}</div>`:''}
+      ${canEdit()?`<div style="position:absolute;top:10px;right:10px;display:flex;gap:4px">
+        <button class="btn bd" style="padding:2px 7px;font-size:10px" data-id="${m.id}" onclick="openPeopleModal(this.dataset.id)">수정</button>
+      </div>`:''}
+    </div>`).join(''):`<div class="alert al-i" style="grid-column:1/-1">팀원이 없습니다. 팀원 새로고침을 눌러주세요.</div>`}
+  </div>`;
+}
+
+async function loadPeopleFromSupabase(){
+  if(!SB){toast('Supabase 미연결','err');return;}
+  try{
+    const {data}=await SB.from('allowed_users').select('name,email,role').not('role','is',null);
+    window._supabaseAllUsers=data||[];
+    if(!DB.people) DB.people=[];
+    (data||[]).forEach(u=>{
+      const exists=DB.people.find(m=>m.email===u.email);
+      if(!exists) DB.people.push({id:uid(),name:u.name||u.email.split('@')[0],email:u.email,role:u.role,dept:'',position:'',tel:'',note:'',createdAt:now()});
+      else{ exists.name=u.name||exists.name; exists.role=u.role; }
+    });
+    saveDB(); renderPeople();
+    toast(`✓ ${(data||[]).length}명 로드 완료`,'ok');
+  }catch(e){toast('로드 실패: '+e.message,'err');}
+}
+
+function openPeopleModal(id){
+  const m=id?(DB.people||[]).find(x=>x.id===id):null;
+  let modal=document.getElementById('mo-people');
+  if(!modal){modal=document.createElement('div');modal.id='mo-people';modal.className='mo';modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open');});document.body.appendChild(modal);}
+  modal.innerHTML=`<div class="mb" style="max-width:500px">
+    <div class="mo-t">${id?'팀원 수정':'팀원 추가'}</div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">이름 ★</label><input class="fi" id="pe-name" value="${h(m?.name||'')}" placeholder="홍길동"></div>
+      <div class="fg"><label class="fl">이메일</label><input class="fi" id="pe-email" value="${h(m?.email||'')}" placeholder="hong@channelk.kr"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">부서</label>
+        <select class="fi" id="pe-dept">
+          ${['','PCO','DMC','경영지원','마케팅','기타'].map(d=>`<option value="${d}"${(m?.dept||'')=== d?' selected':''}>${d||'— 없음 —'}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg"><label class="fl">직책</label><input class="fi" id="pe-pos" value="${h(m?.position||'')}" placeholder="Senior Manager"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">연락처</label><input class="fi" id="pe-tel" value="${h(m?.tel||'')}" placeholder="010-0000-0000"></div>
+      <div class="fg"><label class="fl">권한</label>
+        <select class="fi" id="pe-role">
+          ${['dev','admin','manager','staff','viewer'].map(r=>`<option${(m?.role||'manager')===r?' selected':''}>${r}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">메모</label><input class="fi" id="pe-note" value="${h(m?.note||'')}" placeholder="담당 업무, 특이사항 등"></div>
+    <div class="mo-f">
+      <button class="btn bd" style="flex:1" onclick="document.getElementById('mo-people').classList.remove('open')">취소</button>
+      <button class="btn bp" style="flex:2" onclick="savePeople('${id||''}')">저장</button>
+    </div>
+  </div>`;
+  modal.classList.add('open');
+}
+
+function savePeople(id){
+  const name=document.getElementById('pe-name').value.trim();
+  if(!name){toast('이름 필수','err');return;}
+  if(!DB.people) DB.people=[];
+  const obj={
+    id:id||uid(), name,
+    email:document.getElementById('pe-email').value.trim(),
+    dept:document.getElementById('pe-dept').value,
+    position:document.getElementById('pe-pos').value.trim(),
+    tel:document.getElementById('pe-tel').value.trim(),
+    role:document.getElementById('pe-role').value,
+    note:document.getElementById('pe-note').value.trim(),
+    createdAt:id?(DB.people.find(x=>x.id===id)?.createdAt||now()):now(),
+  };
+  if(id){const i=DB.people.findIndex(x=>x.id===id);if(i>=0)DB.people[i]=obj;}
+  else DB.people.push(obj);
+  saveDB();
+  document.getElementById('mo-people').classList.remove('open');
+  renderPeople();
+  toast(id?'수정 완료':'추가 완료','ok');
+}
+
+/* ═══════════════════════════════════════════
+   🗓 팀 캘린더 (전사 공유 일정)
+   ═══════════════════════════════════════════ */
+function renderTeamCal(){
+  const pg=document.getElementById('page-teamcal');
+  if(!pg) return;
+  if(!DB.teamEvents) DB.teamEvents=[];
+
+  const now2=new Date();
+  const yr=window._tcYear||now2.getFullYear();
+  const mo=window._tcMonth!==undefined?window._tcMonth:now2.getMonth();
+  const todayStr=now2.toISOString().slice(0,10);
+  const MN=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const DOW=['일','월','화','수','목','금','토'];
+
+  // 이벤트 맵 (날짜별)
+  const evMap={};
+  DB.teamEvents.forEach(e=>{
+    const d=e.date||'';
+    if(!evMap[d]) evMap[d]=[];
+    evMap[d].push(e);
+  });
+  // 프로젝트 행사일도 표시
+  (DB.projects||[]).forEach(p=>{
+    if(p.eventDate){
+      if(!evMap[p.eventDate]) evMap[p.eventDate]=[];
+      evMap[p.eventDate].push({id:p.id,title:p.nameKO,type:'project',color:'#1E40AF'});
+    }
+  });
+
+  // 달력 셀 생성
+  const days=new Date(yr,mo+1,0).getDate();
+  const startDow=new Date(yr,mo,1).getDay();
+  let cells='';
+  for(let i=0;i<startDow;i++) cells+=`<div style="border:1px solid var(--bdr);min-height:80px;background:var(--sur2);opacity:.4"></div>`;
+  for(let d=1;d<=days;d++){
+    const ds=`${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isT=ds===todayStr;
+    const evs=evMap[ds]||[];
+    cells+=`<div style="border:1px solid var(--bdr);min-height:80px;padding:4px;background:${isT?'var(--abg)':'var(--sur)'};cursor:pointer;transition:background .1s" onclick="openTeamCalDay('${ds}')" onmouseover="this.style.background='var(--sur2)'" onmouseout="this.style.background='${isT?'var(--abg)':'var(--sur)'}'">
+      <div style="font-size:11.5px;font-weight:${isT?'700':'400'};color:${isT?'var(--a)':'var(--ink3)'};margin-bottom:3px">${d}</div>
+      ${evs.slice(0,3).map(e=>`<div style="font-size:9.5px;font-weight:600;padding:1px 5px;border-radius:3px;margin-bottom:2px;background:${e.type==='project'?'#DBEAFE':e.color||'var(--gbg)'};color:${e.type==='project'?'#1E40AF':e.textColor||'var(--g)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${h(e.title||'')}">${h(e.title||'').slice(0,10)}</div>`).join('')}
+      ${evs.length>3?`<div style="font-size:9px;color:var(--ink4)">+${evs.length-3}개</div>`:''}
+    </div>`;
+  }
+
+  // 이번달 이벤트 목록
+  const monthEvs=DB.teamEvents.filter(e=>(e.date||'').startsWith(`${yr}-${String(mo+1).padStart(2,'0')}`))
+    .sort((a,b)=>a.date>b.date?1:-1);
+
+  pg.innerHTML=`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <div style="font-size:17px;font-weight:800;color:var(--ink)">🗓 팀 캘린더</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+      <button class="btn bd btn-sm" onclick="tcPrev()">◀</button>
+      <span style="font-size:14px;font-weight:700;color:var(--ink);min-width:80px;text-align:center">${yr}년 ${MN[mo]}</span>
+      <button class="btn bd btn-sm" onclick="tcNext()">▶</button>
+      <button class="btn bd btn-sm" onclick="window._tcYear=${now2.getFullYear()};window._tcMonth=${now2.getMonth()};renderTeamCal()">오늘</button>
+    </div>
+    ${canCreate()?`<button class="btn bp btn-sm" onclick="openTeamEventModal()">+ 일정 추가</button>`:''}
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start">
+    <div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:0;margin-bottom:0">
+        ${DOW.map((d,i)=>`<div style="text-align:center;font-size:11px;font-weight:700;color:${i===0?'var(--r)':i===6?'#1E40AF':'var(--ink3)'};padding:6px 0;background:var(--sur2);border:1px solid var(--bdr)">${d}</div>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:0">${cells}</div>
+    </div>
+
+    <div>
+      <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:10px">${MN[mo]} 일정</div>
+      ${monthEvs.length?monthEvs.map(e=>`
+        <div class="card" style="padding:10px;margin-bottom:8px;border-left:3px solid ${e.color||'var(--g)'}">
+          <div style="display:flex;align-items:flex-start;gap:8px">
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--ink4);margin-bottom:2px">${e.date||''} ${e.time||''}</div>
+              <div style="font-size:13px;font-weight:700;color:var(--ink)">${h(e.title||'')}</div>
+              ${e.desc?`<div style="font-size:11.5px;color:var(--ink3);margin-top:3px">${h(e.desc)}</div>`:''}
+              ${e.author?`<div style="font-size:10.5px;color:var(--ink4);margin-top:4px">${h(e.author)}</div>`:''}
+            </div>
+            ${canDelete()?`<div style="display:flex;gap:3px;flex-shrink:0">
+              <button class="btn bd" style="padding:2px 6px;font-size:10px" data-id="${e.id}" onclick="openTeamEventModal(this.dataset.id)">수정</button>
+              <button class="btn bdr2c" style="padding:2px 6px;font-size:10px" data-id="${e.id}" onclick="delTeamEvent(this.dataset.id)">삭제</button>
+            </div>`:''}
+          </div>
+        </div>`).join('')
+      :`<div style="font-size:12px;color:var(--ink4);padding:16px 0;text-align:center">이번 달 일정이 없습니다</div>`}
+
+      <div style="font-size:13px;font-weight:700;color:var(--ink);margin:16px 0 10px">범례</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;border-radius:2px;background:#DBEAFE;flex-shrink:0"></div><span style="font-size:11.5px;color:var(--ink3)">프로젝트 행사일</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;border-radius:2px;background:var(--gbg);flex-shrink:0"></div><span style="font-size:11.5px;color:var(--ink3)">팀 일정</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function tcPrev(){
+  let yr=window._tcYear||new Date().getFullYear();
+  let mo=window._tcMonth!==undefined?window._tcMonth:new Date().getMonth();
+  mo--; if(mo<0){mo=11;yr--;}
+  window._tcYear=yr; window._tcMonth=mo; renderTeamCal();
+}
+function tcNext(){
+  let yr=window._tcYear||new Date().getFullYear();
+  let mo=window._tcMonth!==undefined?window._tcMonth:new Date().getMonth();
+  mo++; if(mo>11){mo=0;yr++;}
+  window._tcYear=yr; window._tcMonth=mo; renderTeamCal();
+}
+
+function openTeamCalDay(ds){
+  // 날짜 클릭 시 일정 추가 모달
+  openTeamEventModal(null, ds);
+}
+
+function openTeamEventModal(id, preDate){
+  const e=id?(DB.teamEvents||[]).find(x=>x.id===id):null;
+  const COLORS=[
+    {label:'초록',val:'#059669',text:'#ECFDF5'},
+    {label:'파랑',val:'#1E40AF',text:'#DBEAFE'},
+    {label:'주황',val:'#D97706',text:'#FFFBEB'},
+    {label:'빨강',val:'#DC2626',text:'#FEF2F2'},
+    {label:'보라',val:'#7C3AED',text:'#F5F3FF'},
+  ];
+  let m=document.getElementById('mo-teamev');
+  if(!m){m=document.createElement('div');m.id='mo-teamev';m.className='mo';m.addEventListener('click',ev=>{if(ev.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+  m.innerHTML=`<div class="mb" style="max-width:500px">
+    <div class="mo-t">${id?'일정 수정':'일정 추가'}</div>
+    <div class="fg"><label class="fl">제목 ★</label><input class="fi" id="te-title" value="${h(e?.title||'')}" placeholder="팀 회의, 외부 미팅, 행사 등"></div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">날짜 ★</label><input class="fi" type="date" id="te-date" value="${e?.date||preDate||''}"></div>
+      <div class="fg"><label class="fl">시간</label><input class="fi" type="time" id="te-time" value="${e?.time||''}"></div>
+    </div>
+    <div class="fg"><label class="fl">색상</label>
+      <div style="display:flex;gap:8px;margin-top:4px" id="te-color-wrap">
+        ${COLORS.map(c=>`<div onclick="selectTeColor('${c.val}')" data-color="${c.val}" style="width:28px;height:28px;border-radius:50%;background:${c.val};cursor:pointer;border:3px solid ${(e?.color||'#059669')===c.val?'var(--ink)':'transparent'};transition:border .1s" title="${c.label}"></div>`).join('')}
+      </div>
+    </div>
+    <div class="fg"><label class="fl">설명</label><textarea class="fi" id="te-desc" rows="3" placeholder="일정 내용, 장소, 참석자 등">${h(e?.desc||'')}</textarea></div>
+    <div class="mo-f">
+      <button class="btn bd" style="flex:1" onclick="document.getElementById('mo-teamev').classList.remove('open')">취소</button>
+      ${id?`<button class="btn bdr2c btn-sm" onclick="delTeamEvent('${id}')">삭제</button>`:''}
+      <button class="btn bp" style="flex:2" onclick="saveTeamEvent('${id||''}')">저장</button>
+    </div>
+  </div>`;
+  window._teColor=e?.color||'#059669';
+  m.classList.add('open');
+}
+
+function selectTeColor(val){
+  window._teColor=val;
+  document.querySelectorAll('#te-color-wrap div').forEach(d=>{
+    d.style.border=d.dataset.color===val?'3px solid var(--ink)':'3px solid transparent';
+  });
+}
+
+function saveTeamEvent(id){
+  const title=document.getElementById('te-title').value.trim();
+  if(!title){toast('제목 필수','err');return;}
+  const date=document.getElementById('te-date').value;
+  if(!date){toast('날짜 필수','err');return;}
+  if(!DB.teamEvents) DB.teamEvents=[];
+  const obj={
+    id:id||uid(), title, date,
+    time:document.getElementById('te-time').value,
+    desc:document.getElementById('te-desc').value.trim(),
+    color:window._teColor||'#059669',
+    author:CFG.myname||'',
+    createdAt:id?(DB.teamEvents.find(x=>x.id===id)?.createdAt||now()):now(),
+  };
+  if(id){const i=DB.teamEvents.findIndex(x=>x.id===id);if(i>=0)DB.teamEvents[i]=obj;}
+  else DB.teamEvents.push(obj);
+  saveDB();
+  document.getElementById('mo-teamev').classList.remove('open');
+  renderTeamCal();
+  toast(id?'수정 완료':'일정 추가 완료','ok');
+}
+
+function delTeamEvent(id){
+  if(!confirm('삭제할까요?')) return;
+  DB.teamEvents=(DB.teamEvents||[]).filter(x=>x.id!==id);
+  saveDB();
+  const m=document.getElementById('mo-teamev');
+  if(m) m.classList.remove('open');
+  renderTeamCal();
+  toast('삭제됨','ok');
 }
 
 function renderInternal(){
