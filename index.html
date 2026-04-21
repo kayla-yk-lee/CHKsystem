@@ -528,13 +528,17 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
     <div class="nav" data-nav="vendors" onclick="navTo('vendors',this)"><span class="nav-ic"></span>서비스 항목</div>
     <div class="nav" data-nav="vendors-co" onclick="navTo('vendors-co',this)"><span class="nav-ic"></span>협력업체</div>
     <div class="nav" data-nav="themes" onclick="navTo('themes',this)"><span class="nav-ic"></span>테마 관리</div>
+    <div class="nav" data-nav="internal" onclick="navTo('internal',this)"><span class="nav-ic">🏢</span>사내 프로젝트<span class="nc" id="nc-int">0</span></div>
+    <div class="nav" data-nav="vendor-payments" onclick="navTo('vendor-payments',this)"><span class="nav-ic">💰</span>업체 대금 관리</div>
+    <div class="nav" data-nav="finance" onclick="navTo('finance',this)"><span class="nav-ic">📊</span>경리·재무</div>
 
     <span class="sb-lbl">🏢 사내 인트라넷</span>
     <div class="nav" data-nav="notice" onclick="navTo('notice',this)"><span class="nav-ic">📢</span>공지사항<span class="nc" id="nc-notice" style="display:none">0</span></div>
     <div class="nav" data-nav="archive" onclick="navTo('archive',this)"><span class="nav-ic">📁</span>자료실</div>
     <div class="nav" data-nav="people" onclick="navTo('people',this)"><span class="nav-ic">👥</span>인사·팀원</div>
+    <div class="nav" data-nav="certificate" onclick="navTo('certificate',this)"><span class="nav-ic">📋</span>증명서 관리<span class="nc" id="nc-cert" style="display:none">0</span></div>
+    <div class="nav" data-nav="leave" onclick="navTo('leave',this)"><span class="nav-ic">🌴</span>휴가 관리<span class="nc" id="nc-leave" style="display:none">0</span></div>
     <div class="nav" data-nav="teamcal" onclick="navTo('teamcal',this)"><span class="nav-ic">🗓</span>팀 캘린더</div>
-    <div class="nav" data-nav="internal" onclick="navTo('internal',this)"><span class="nav-ic">🏢</span>사내 프로젝트<span class="nc" id="nc-int">0</span></div>
     <span class="sb-lbl">진행 프로젝트</span>
     <div id="sb-projs"></div>
     <div class="sb-foot">
@@ -606,6 +610,10 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
       <div class="page" id="page-archive"></div>
       <div class="page" id="page-people"></div>
       <div class="page" id="page-teamcal"></div>
+      <div class="page" id="page-vendor-payments"></div>
+      <div class="page" id="page-finance"></div>
+      <div class="page" id="page-certificate"></div>
+      <div class="page" id="page-leave"></div>
       <div class="page" id="page-rfp-inbox"></div>
       <div class="page" id="page-proj-create"></div>
       <div class="page" id="page-rfp-inbox"></div>
@@ -1532,6 +1540,8 @@ function buildSample(){
     archives:[],
     people:[],
     teamEvents:[],
+    certificates:[],
+    leaves:[],
   };
 }
 
@@ -1979,7 +1989,7 @@ function navTo(page,el){
   document.getElementById('ph').style.display='none';
   document.getElementById('tabbar').style.display='none';
   CUR=null; showPage(page);
-  const fn={dashboard:renderDash,pipeline:renderPipeline,vendors:renderVendors,'vendors-co':renderVendorsCo,calendar:renderCalendar,themes:renderThemes,'new-proj':renderNewProj,stat:renderStatPage,projects:renderProjects,'rfp-parse':renderRFPParsePage,internal:renderInternal,'rfp-inbox':renderRFPInbox,'proj-create':renderProjCreate,freelancers:renderFreelancers,notice:renderNotice,archive:renderArchive,people:renderPeople,teamcal:renderTeamCal};
+  const fn={dashboard:renderDash,pipeline:renderPipeline,vendors:renderVendors,'vendors-co':renderVendorsCo,calendar:renderCalendar,themes:renderThemes,'new-proj':renderNewProj,stat:renderStatPage,projects:renderProjects,'rfp-parse':renderRFPParsePage,internal:renderInternal,'rfp-inbox':renderRFPInbox,'proj-create':renderProjCreate,freelancers:renderFreelancers,notice:renderNotice,archive:renderArchive,people:renderPeople,teamcal:renderTeamCal,'vendor-payments':renderVendorPayments,finance:renderFinance,certificate:renderCertificate,leave:renderLeave};
   if(fn[page])fn[page]();
 }
 
@@ -2396,10 +2406,10 @@ function renderDash(){
           ${[
             {icon:'📊',label:'CHK 프로젝트',nav:'projects'},
             {icon:'⇢',label:'파이프라인',nav:'pipeline'},
-            {icon:'📁',label:'자료실',nav:'archive'},
-            {icon:'👥',label:'인사·팀원',nav:'people'},
-            {icon:'🗓',label:'팀 캘린더',nav:'teamcal'},
-            {icon:'🏢',label:'사내 프로젝트',nav:'internal'},
+            {icon:'💰',label:'업체 대금',nav:'vendor-payments'},
+            {icon:'📊',label:'경리·재무',nav:'finance'},
+            {icon:'📋',label:'증명서 관리',nav:'certificate'},
+            {icon:'🌴',label:'휴가 관리',nav:'leave'},
           ].map(m=>`<div onclick="navTo('${m.nav}')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--bdr);border-radius:var(--ra);cursor:pointer;transition:background .12s;font-size:12.5px;font-weight:600;color:var(--ink2)" onmouseover="this.style.background='var(--sur2)'" onmouseout="this.style.background='transparent'">
             <span style="font-size:14px">${m.icon}</span>${m.label}
           </div>`).join('')}
@@ -9863,6 +9873,579 @@ function delTeamEvent(id){
   if(m) m.classList.remove('open');
   renderTeamCal();
   toast('삭제됨','ok');
+}
+
+/* ═══════════════════════════════════════════
+   💰 업체 대금 관리 (전체 미지급 현황)
+   ═══════════════════════════════════════════ */
+function renderVendorPayments(){
+  const pg=document.getElementById('page-vendor-payments');
+  if(!pg) return;
+
+  // 전체 프로젝트에서 vendorSettles 집계
+  const all=[];
+  (DB.projects||[]).forEach(p=>{
+    (p.vendorSettles||[]).forEach(v=>{
+      all.push({...v, projId:p.id, projName:p.nameKO||'', projStatus:p.status||''});
+    });
+  });
+
+  const unpaid=all.filter(v=>!v.paid);
+  const paid=all.filter(v=>v.paid);
+  const totalUnpaid=unpaid.reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
+  const totalPaid=paid.reduce((s,v)=>s+(parseFloat(v.amount)||0),0);
+
+  const filter=window._vpFilter||'unpaid';
+  const shown=filter==='all'?all:filter==='unpaid'?unpaid:paid;
+  shown.sort((a,b)=>(a.projName||'').localeCompare(b.projName||''));
+
+  pg.innerHTML=`
+  <div style="font-size:17px;font-weight:800;color:var(--ink);margin-bottom:16px">💰 업체 대금 관리</div>
+
+  <div class="stat-grid" style="margin-bottom:20px">
+    <div class="sc sr" style="cursor:default">
+      <div class="sv">${fmt(totalUnpaid)}</div>
+      <div class="sl">미지급 합계</div>
+      <div class="ss">${unpaid.length}건</div>
+    </div>
+    <div class="sc sg" style="cursor:default">
+      <div class="sv">${fmt(totalPaid)}</div>
+      <div class="sl">지급 완료</div>
+      <div class="ss">${paid.length}건</div>
+    </div>
+    <div class="sc sa" style="cursor:default">
+      <div class="sv">${fmt(totalUnpaid+totalPaid)}</div>
+      <div class="sl">전체 대금</div>
+      <div class="ss">${all.length}건</div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="display:flex;gap:4px">
+      <button class="btn btn-sm ${filter==='unpaid'?'bp':'bd'}" onclick="window._vpFilter='unpaid';renderVendorPayments()">미지급 (${unpaid.length})</button>
+      <button class="btn btn-sm ${filter==='paid'?'bp':'bd'}" onclick="window._vpFilter='paid';renderVendorPayments()">지급완료 (${paid.length})</button>
+      <button class="btn btn-sm ${filter==='all'?'bp':'bd'}" onclick="window._vpFilter='all';renderVendorPayments()">전체 (${all.length})</button>
+    </div>
+    <span style="font-size:11px;color:var(--ink4);margin-left:4px">※ 프로젝트별 협력업체 정산 탭과 연동</span>
+  </div>
+
+  ${shown.length?`<div class="tw" style="overflow-x:auto"><table><thead><tr>
+    <th>프로젝트</th><th>상태</th><th>업체명</th><th>카테고리</th><th>계산서 번호</th><th style="text-align:right">금액</th><th>메모</th><th style="text-align:center">지급상태</th><th style="text-align:center">이동</th>
+  </tr></thead><tbody>
+  ${shown.map(v=>`<tr>
+    <td style="font-weight:600;white-space:nowrap">${h(v.projName)}</td>
+    <td><span class="chip ${(STATUSES||[]).find(s=>s.k===v.projStatus)?.c||'cn'}" style="font-size:9.5px">${(STATUSES||[]).find(s=>s.k===v.projStatus)?.l||v.projStatus}</span></td>
+    <td>${h(v.vendorName||'')}</td>
+    <td style="font-size:11.5px;color:var(--ink3)">${h(v.category||'')}</td>
+    <td style="font-size:11.5px;color:var(--ink3)">${h(v.invoiceNo||'')}</td>
+    <td style="text-align:right;font-weight:700;color:${v.paid?'var(--g)':'var(--r)'}">${fmt(parseFloat(v.amount)||0)}</td>
+    <td style="font-size:11.5px;color:var(--ink3)">${h(v.note||'')}</td>
+    <td style="text-align:center">
+      <span class="chip ${v.paid?'cg':'cr'}" style="font-size:9.5px">${v.paid?'✓ 지급완료':'미지급'}</span>
+    </td>
+    <td style="text-align:center">
+      <button class="btn bd btn-sm" style="font-size:10px" data-pid="${v.projId}" onclick="selProj(this.dataset.pid);setTimeout(()=>goTab('vendor-settle'),300)">정산탭</button>
+    </td>
+  </tr>`).join('')}
+  </tbody></table></div>`
+  :`<div class="alert al-o">${filter==='unpaid'?'미지급 대금이 없습니다. 모두 지급 완료!':'해당 상태의 대금이 없습니다.'}</div>`}`;
+}
+
+/* ═══════════════════════════════════════════
+   📊 경리·재무
+   ═══════════════════════════════════════════ */
+function renderFinance(){
+  const pg=document.getElementById('page-finance');
+  if(!pg) return;
+
+  const projs=DB.projects||[];
+  const year=window._finYear||(new Date().getFullYear());
+
+  // 연도별 집계
+  const yearProjs=projs.filter(p=>{
+    const d=p.eventDate||p.createdAt||'';
+    return d.startsWith(String(year));
+  });
+
+  let totalSell=0,totalCost=0,totalPaid=0,totalUnpaid=0;
+  yearProjs.forEach(p=>{
+    const sell=(p.quoteItems||[]).reduce((s,i)=>s+(parseFloat(i.sellKRW)||0)*(parseFloat(i.qty)||1),0);
+    const cost=(p.quoteItems||[]).reduce((s,i)=>s+(parseFloat(i.costKRW)||0)*(parseFloat(i.qty)||1),0);
+    totalSell+=sell; totalCost+=cost;
+    (p.vendorSettles||[]).forEach(v=>{
+      const a=parseFloat(v.amount)||0;
+      if(v.paid) totalPaid+=a; else totalUnpaid+=a;
+    });
+  });
+  const profit=totalSell-totalCost;
+  const margin=totalSell>0?Math.round(profit/totalSell*100):0;
+
+  // 사내 예산 집계
+  const intBudgets=DB.internalBudgets||[];
+  const intTotal=intBudgets.reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
+
+  // 월별 매출 집계
+  const monthly={};
+  for(let m=1;m<=12;m++) monthly[m]={sell:0,cost:0};
+  yearProjs.forEach(p=>{
+    const d=p.eventDate||'';
+    const mo=parseInt((d.split('-')[1])||0);
+    if(mo>=1&&mo<=12){
+      const sell=(p.quoteItems||[]).reduce((s,i)=>s+(parseFloat(i.sellKRW)||0)*(parseFloat(i.qty)||1),0);
+      const cost=(p.quoteItems||[]).reduce((s,i)=>s+(parseFloat(i.costKRW)||0)*(parseFloat(i.qty)||1),0);
+      monthly[mo].sell+=sell; monthly[mo].cost+=cost;
+    }
+  });
+
+  const maxBar=Math.max(...Object.values(monthly).map(m=>m.sell),1);
+  const MN=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+
+  const barChart=`<div style="display:flex;align-items:flex-end;gap:4px;height:120px;padding:8px 0;border-bottom:1px solid var(--bdr)">
+    ${MN.map((mn,i)=>{
+      const mo=i+1;
+      const sh=Math.round((monthly[mo].sell/maxBar)*100);
+      const ch=Math.round((monthly[mo].cost/maxBar)*100);
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div style="width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100px;gap:1px">
+          <div style="width:60%;height:${sh}px;background:var(--a);border-radius:2px 2px 0 0;min-height:${sh?2:0}px" title="매출: ${fmt(monthly[mo].sell)}"></div>
+          <div style="width:60%;height:${ch}px;background:var(--gbg);border:1px solid var(--gbl);border-radius:0;min-height:${ch?2:0}px" title="원가: ${fmt(monthly[mo].cost)}"></div>
+        </div>
+        <div style="font-size:9px;color:var(--ink4)">${mn}</div>
+      </div>`;
+    }).join('')}
+  </div>
+  <div style="display:flex;gap:12px;margin-top:6px;font-size:11px">
+    <span><span style="display:inline-block;width:10px;height:10px;background:var(--a);border-radius:2px;margin-right:4px"></span>매출</span>
+    <span><span style="display:inline-block;width:10px;height:10px;background:var(--gbg);border:1px solid var(--gbl);border-radius:2px;margin-right:4px"></span>원가</span>
+  </div>`;
+
+  // 카테고리별 원가 분석
+  const catCost={};
+  yearProjs.forEach(p=>{
+    (p.quoteItems||[]).forEach(i=>{
+      const cat=i.category||'기타';
+      catCost[cat]=(catCost[cat]||0)+(parseFloat(i.costKRW)||0)*(parseFloat(i.qty)||1);
+    });
+  });
+  const catRows=Object.entries(catCost).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxCat=Math.max(...catRows.map(c=>c[1]),1);
+
+  pg.innerHTML=`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <div style="font-size:17px;font-weight:800;color:var(--ink)">📊 경리·재무</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+      <button class="btn bd btn-sm" onclick="window._finYear=${year-1};renderFinance()">◀</button>
+      <span style="font-size:14px;font-weight:700;min-width:60px;text-align:center">${year}년</span>
+      <button class="btn bd btn-sm" onclick="window._finYear=${year+1};renderFinance()">▶</button>
+    </div>
+  </div>
+
+  <div class="stat-grid" style="margin-bottom:20px">
+    <div class="sc sa" style="cursor:default"><div class="sv">${fmt(totalSell)}</div><div class="sl">총 매출</div><div class="ss">${yearProjs.length}개 프로젝트</div></div>
+    <div class="sc ${profit>=0?'sg':'sr'}" style="cursor:default"><div class="sv">${fmt(profit)}</div><div class="sl">수익</div><div class="ss">마진 ${margin}%</div></div>
+    <div class="sc sam" style="cursor:default"><div class="sv">${fmt(totalCost)}</div><div class="sl">총 원가</div><div class="ss">프로젝트 비용</div></div>
+    <div class="sc sr" style="cursor:default"><div class="sv">${fmt(totalUnpaid)}</div><div class="sl">미지급 대금</div><div class="ss" onclick="navTo('vendor-payments')" style="cursor:pointer;color:var(--r)">확인 →</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">월별 매출·원가</div>
+      ${barChart}
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">카테고리별 원가</div>
+      ${catRows.length?catRows.map(([cat,amt])=>`
+        <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:2px">
+            <span style="color:var(--ink2)">${h(cat)}</span>
+            <span style="font-weight:600;color:var(--ink)">${fmt(amt)}</span>
+          </div>
+          <div style="height:6px;background:var(--sur2);border-radius:3px">
+            <div style="height:6px;background:var(--a);border-radius:3px;width:${Math.round(amt/maxCat*100)}%"></div>
+          </div>
+        </div>`).join('')
+      :'<div style="font-size:12px;color:var(--ink4)">데이터 없음</div>'}
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700">사내 예산 현황</div>
+      <span onclick="navTo('internal')" style="font-size:11px;color:var(--a);cursor:pointer;font-weight:600">사내 프로젝트 →</span>
+    </div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      ${['교통비','식비','숙박비','비품/소모품','인건비/외주','홍보/마케팅','SW/구독료','기타'].map(cat=>{
+        const amt=intBudgets.filter(b=>b.category===cat).reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
+        return amt?`<div style="text-align:center;min-width:80px">
+          <div style="font-size:13px;font-weight:700;color:var(--ink)">${fmt(amt)}</div>
+          <div style="font-size:10.5px;color:var(--ink4)">${cat}</div>
+        </div>`:''}).join('')||'<div style="font-size:12px;color:var(--ink4)">사내 지출 내역이 없습니다</div>'}
+      <div style="text-align:center;min-width:80px;border-left:2px solid var(--bdr);padding-left:16px">
+        <div style="font-size:13px;font-weight:700;color:var(--a)">${fmt(intTotal)}</div>
+        <div style="font-size:10.5px;color:var(--ink4)">사내 합계</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════
+   📋 증명서 관리
+   ═══════════════════════════════════════════ */
+const CERT_TYPES=['재직증명서','경력증명서','급여확인서','퇴직증명서','기타'];
+
+function renderCertificate(){
+  const pg=document.getElementById('page-certificate');
+  if(!pg) return;
+  if(!DB.certificates) DB.certificates=[];
+
+  const role=CFG.role||'viewer';
+  const isAdmin=['dev','admin','manager'].includes(role);
+  const myEmail=CFG.myemail||'';
+
+  // 일반 직원: 본인 신청만 / 관리자: 전체
+  const certs=isAdmin?[...DB.certificates]:[...DB.certificates].filter(c=>c.email===myEmail);
+  certs.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+
+  const pending=certs.filter(c=>c.status==='pending');
+  const badge=document.getElementById('nc-cert');
+  if(badge&&isAdmin){badge.textContent=pending.length;badge.style.display=pending.length?'':'none';}
+
+  const tabs=isAdmin?['전체','대기중','승인완료','반려']:['내 신청'];
+  const curTab=window._certTab||'전체';
+  const shown=curTab==='전체'?certs:curTab==='내 신청'?certs:
+    curTab==='대기중'?certs.filter(c=>c.status==='pending'):
+    curTab==='승인완료'?certs.filter(c=>c.status==='approved'):
+    certs.filter(c=>c.status==='rejected');
+
+  const statusCfg={
+    pending:  {label:'대기중',   cls:'cam'},
+    approved: {label:'승인완료', cls:'cg'},
+    rejected: {label:'반려',     cls:'cr'},
+  };
+
+  pg.innerHTML=`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="font-size:17px;font-weight:800;color:var(--ink)">📋 증명서 관리</div>
+    ${isAdmin&&pending.length?`<span class="chip cr" style="font-size:10px">승인 대기 ${pending.length}건</span>`:''}
+    <button class="btn bp btn-sm" style="margin-left:auto" onclick="openCertModal()">+ 증명서 신청</button>
+  </div>
+
+  <div style="display:flex;gap:4px;margin-bottom:16px">
+    ${tabs.map(t=>`<button class="btn btn-sm ${curTab===t?'bp':'bd'}" onclick="window._certTab='${t}';renderCertificate()">${t}</button>`).join('')}
+  </div>
+
+  ${shown.length?shown.map(c=>{
+    const sc=statusCfg[c.status]||statusCfg.pending;
+    return `<div class="card" style="margin-bottom:10px;border-left:3px solid ${c.status==='approved'?'var(--g)':c.status==='rejected'?'var(--r)':'var(--am)'}">
+      <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+            <span class="chip ${sc.cls}" style="font-size:9.5px">${sc.label}</span>
+            <span style="font-size:13px;font-weight:700;color:var(--ink)">${h(c.type||'')}</span>
+            <span style="font-size:11px;color:var(--ink3)">${h(c.name||'')} · ${h(c.dept||'')} · ${h(c.position||'')}</span>
+          </div>
+          <div style="font-size:11.5px;color:var(--ink3)">제출처: ${h(c.purpose||'—')}</div>
+          ${c.note?`<div style="font-size:11.5px;color:var(--ink3);margin-top:2px">메모: ${h(c.note)}</div>`:''}
+          ${c.rejectReason?`<div style="font-size:11.5px;color:var(--r);margin-top:4px;font-weight:600">반려 사유: ${h(c.rejectReason)}</div>`:''}
+          <div style="font-size:10.5px;color:var(--ink4);margin-top:6px">신청일: ${c.createdAt?new Date(c.createdAt).toLocaleDateString('ko-KR'):''} · 신청자: ${h(c.email||'')}</div>
+        </div>
+        ${isAdmin&&c.status==='pending'?`
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn bp btn-sm" data-id="${c.id}" onclick="approveCert(this.dataset.id)">✓ 승인</button>
+          <button class="btn bdr2c btn-sm" data-id="${c.id}" onclick="rejectCert(this.dataset.id)">반려</button>
+        </div>`:''}
+      </div>
+    </div>`;}).join('')
+  :`<div class="alert al-i">신청 내역이 없습니다.</div>`}`;
+}
+
+function openCertModal(){
+  const member=DB.people.find(m=>m.email===CFG.myemail)||{};
+  let mo=document.getElementById('mo-cert');
+  if(!mo){mo=document.createElement('div');mo.id='mo-cert';mo.className='mo';mo.addEventListener('click',e=>{if(e.target===mo)mo.classList.remove('open');});document.body.appendChild(mo);}
+  mo.innerHTML=`<div class="mb" style="max-width:500px">
+    <div class="mo-t">증명서 신청</div>
+    <div class="fg"><label class="fl">증명서 종류 ★</label>
+      <select class="fi" id="ct-type">
+        ${CERT_TYPES.map(t=>`<option>${t}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">성명</label><input class="fi" id="ct-name" value="${h(member.name||CFG.myname||'')}" placeholder="홍길동"></div>
+      <div class="fg"><label class="fl">부서</label><input class="fi" id="ct-dept" value="${h(member.dept||'')}" placeholder="PCO팀"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">직책</label><input class="fi" id="ct-pos" value="${h(member.position||'')}" placeholder="Senior Manager"></div>
+      <div class="fg"><label class="fl">필요 부수</label><input class="fi" type="number" id="ct-copies" value="1" min="1" max="10"></div>
+    </div>
+    <div class="fg"><label class="fl">제출처 (제출 기관명)</label><input class="fi" id="ct-purpose" placeholder="예: 국민은행 대출용, 비자 신청용"></div>
+    <div class="fg"><label class="fl">요청사항</label><textarea class="fi" id="ct-note" rows="2" placeholder="영문 발급, 특이사항 등"></textarea></div>
+    <div class="mo-f">
+      <button class="btn bd" style="flex:1" onclick="document.getElementById('mo-cert').classList.remove('open')">취소</button>
+      <button class="btn bp" style="flex:2" onclick="saveCert()">신청</button>
+    </div>
+  </div>`;
+  mo.classList.add('open');
+}
+
+function saveCert(){
+  if(!DB.certificates) DB.certificates=[];
+  const obj={
+    id:uid(),
+    type:document.getElementById('ct-type').value,
+    name:document.getElementById('ct-name').value.trim(),
+    dept:document.getElementById('ct-dept').value.trim(),
+    position:document.getElementById('ct-pos').value.trim(),
+    copies:parseInt(document.getElementById('ct-copies').value)||1,
+    purpose:document.getElementById('ct-purpose').value.trim(),
+    note:document.getElementById('ct-note').value.trim(),
+    email:CFG.myemail||'',
+    status:'pending',
+    createdAt:now(),
+  };
+  DB.certificates.push(obj);
+  saveDB();
+  document.getElementById('mo-cert').classList.remove('open');
+  renderCertificate();
+  // 관리자 배지 업데이트
+  const badge=document.getElementById('nc-cert');
+  const pending=(DB.certificates||[]).filter(c=>c.status==='pending').length;
+  if(badge){badge.textContent=pending;badge.style.display=pending?'':'none';}
+  toast('증명서 신청 완료 — 관리자 승인 후 발급됩니다','ok');
+}
+
+function approveCert(id){
+  const c=(DB.certificates||[]).find(x=>x.id===id);
+  if(!c) return;
+  c.status='approved'; c.approvedAt=now(); c.approvedBy=CFG.myname||'';
+  saveDB(); renderCertificate();
+  toast('✓ 승인 완료','ok');
+}
+
+function rejectCert(id){
+  const reason=prompt('반려 사유를 입력하세요:','');
+  if(reason===null) return;
+  const c=(DB.certificates||[]).find(x=>x.id===id);
+  if(!c) return;
+  c.status='rejected'; c.rejectReason=reason||'사유 없음'; c.rejectedAt=now();
+  saveDB(); renderCertificate();
+  toast('반려 처리됨','ok');
+}
+
+/* ═══════════════════════════════════════════
+   🌴 휴가 관리
+   ═══════════════════════════════════════════ */
+const LEAVE_TYPES=[
+  {key:'annual',    label:'연차',   color:'#059669', days:1},
+  {key:'half_am',   label:'오전반차',color:'#0891B2', days:0.5},
+  {key:'half_pm',   label:'오후반차',color:'#0891B2', days:0.5},
+  {key:'sick',      label:'병가',   color:'#DC2626', days:1},
+  {key:'official',  label:'공가',   color:'#7C3AED', days:1},
+  {key:'compensatory',label:'대휴', color:'#D97706', days:1},
+  {key:'special',   label:'특별휴가',color:'#DB2777',days:1},
+];
+
+function renderLeave(){
+  const pg=document.getElementById('page-leave');
+  if(!pg) return;
+  if(!DB.leaves) DB.leaves=[];
+
+  const role=CFG.role||'viewer';
+  const isAdmin=['dev','admin','manager'].includes(role);
+  const myEmail=CFG.myemail||'';
+  const year=window._leaveYear||(new Date().getFullYear());
+
+  const allLeaves=DB.leaves.filter(l=>l.date&&l.date.startsWith(String(year)));
+  const myLeaves=allLeaves.filter(l=>l.email===myEmail);
+  const shown=isAdmin?(window._leaveView==='my'?myLeaves:allLeaves):myLeaves;
+  const pending=allLeaves.filter(l=>l.status==='pending'&&(isAdmin||l.email===myEmail));
+
+  // 잔여 연차 계산 (기본 15일)
+  const annualTotal=15;
+  const annualUsed=myLeaves.filter(l=>l.type==='annual'&&l.status==='approved').reduce((s,l)=>s+(l.days||1),0);
+  const annualLeft=annualTotal-annualUsed;
+
+  const badge=document.getElementById('nc-leave');
+  if(badge&&isAdmin){const p=DB.leaves.filter(l=>l.status==='pending').length;badge.textContent=p;badge.style.display=p?'':'none';}
+
+  const curFilter=window._leaveFilter||'all';
+  const filtered=curFilter==='all'?shown:curFilter==='pending'?shown.filter(l=>l.status==='pending'):curFilter==='approved'?shown.filter(l=>l.status==='approved'):shown.filter(l=>l.status==='rejected');
+  filtered.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+
+  pg.innerHTML=`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="font-size:17px;font-weight:800;color:var(--ink)">🌴 휴가 관리</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+      <button class="btn bd btn-sm" onclick="window._leaveYear=${year-1};renderLeave()">◀</button>
+      <span style="font-size:13px;font-weight:700;min-width:50px;text-align:center">${year}년</span>
+      <button class="btn bd btn-sm" onclick="window._leaveYear=${year+1};renderLeave()">▶</button>
+    </div>
+    <button class="btn bp btn-sm" onclick="openLeaveModal()">+ 휴가 신청</button>
+  </div>
+
+  <!-- 내 연차 현황 -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+    <div class="card" style="text-align:center;padding:14px">
+      <div style="font-size:22px;font-weight:800;color:var(--g)">${annualLeft}</div>
+      <div style="font-size:11px;color:var(--ink3)">잔여 연차</div>
+    </div>
+    <div class="card" style="text-align:center;padding:14px">
+      <div style="font-size:22px;font-weight:800;color:var(--ink)">${annualTotal}</div>
+      <div style="font-size:11px;color:var(--ink3)">총 연차</div>
+    </div>
+    <div class="card" style="text-align:center;padding:14px">
+      <div style="font-size:22px;font-weight:800;color:var(--a)">${annualUsed}</div>
+      <div style="font-size:11px;color:var(--ink3)">사용 연차</div>
+    </div>
+    <div class="card" style="text-align:center;padding:14px">
+      <div style="font-size:22px;font-weight:800;color:${pending.length?'var(--r)':'var(--ink4)'}">${pending.length}</div>
+      <div style="font-size:11px;color:var(--ink3)">승인 대기</div>
+    </div>
+  </div>
+
+  <!-- 필터 -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    ${isAdmin?`<div style="display:flex;gap:4px">
+      <button class="btn btn-sm ${(window._leaveView||'all')==='all'?'bp':'bd'}" onclick="window._leaveView='all';renderLeave()">전체 직원</button>
+      <button class="btn btn-sm ${window._leaveView==='my'?'bp':'bd'}" onclick="window._leaveView='my';renderLeave()">내 휴가만</button>
+    </div>`:''}
+    <div style="display:flex;gap:4px">
+      ${['all','pending','approved','rejected'].map(f=>`<button class="btn btn-sm ${curFilter===f?'bp':'bd'}" onclick="window._leaveFilter='${f}';renderLeave()">${f==='all'?'전체':f==='pending'?'대기':f==='approved'?'승인':'반려'}</button>`).join('')}
+    </div>
+  </div>
+
+  <!-- 목록 -->
+  ${filtered.length?`<div class="tw"><table><thead><tr>
+    <th>신청일</th><th>직원</th><th>휴가 종류</th><th>날짜</th><th>일수</th><th>사유</th><th style="text-align:center">상태</th>
+    ${isAdmin?'<th style="text-align:center">처리</th>':''}
+  </tr></thead><tbody>
+  ${filtered.map(l=>{
+    const lt=LEAVE_TYPES.find(t=>t.key===l.type)||LEAVE_TYPES[0];
+    const sc={pending:{label:'대기',cls:'cam'},approved:{label:'승인',cls:'cg'},rejected:{label:'반려',cls:'cr'}};
+    const s=sc[l.status]||sc.pending;
+    return `<tr>
+      <td style="font-size:11px;color:var(--ink3);white-space:nowrap">${l.createdAt?new Date(l.createdAt).toLocaleDateString('ko-KR'):''}</td>
+      <td style="font-size:12px">${h(l.name||l.email||'')}</td>
+      <td><span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;background:${lt.color}22;color:${lt.color}">${lt.label}</span></td>
+      <td style="font-size:12px;white-space:nowrap">${h(l.date||'')}${l.dateTo&&l.dateTo!==l.date?' ~ '+h(l.dateTo):''}</td>
+      <td style="text-align:center;font-weight:700">${l.days||lt.days}</td>
+      <td style="font-size:11.5px;color:var(--ink3)">${h(l.reason||'')}</td>
+      <td style="text-align:center"><span class="chip ${s.cls}" style="font-size:9.5px">${s.label}</span></td>
+      ${isAdmin?`<td style="text-align:center;white-space:nowrap">
+        ${l.status==='pending'?`
+          <button class="btn bp btn-sm" style="margin-right:3px" data-id="${l.id}" onclick="approveLeave(this.dataset.id)">승인</button>
+          <button class="btn bdr2c btn-sm" data-id="${l.id}" onclick="rejectLeave(this.dataset.id)">반려</button>
+        `:`<span style="font-size:11px;color:var(--ink4)">${l.processedBy||'—'}</span>`}
+      </td>`:''}
+    </tr>`;}).join('')}
+  </tbody></table></div>`
+  :`<div class="alert al-i">휴가 신청 내역이 없습니다.</div>`}`;
+}
+
+function openLeaveModal(id){
+  const l=id?(DB.leaves||[]).find(x=>x.id===id):null;
+  const member=DB.people.find(m=>m.email===CFG.myemail)||{};
+  let mo=document.getElementById('mo-leave');
+  if(!mo){mo=document.createElement('div');mo.id='mo-leave';mo.className='mo';mo.addEventListener('click',e=>{if(e.target===mo)mo.classList.remove('open');});document.body.appendChild(mo);}
+  mo.innerHTML=`<div class="mb" style="max-width:500px">
+    <div class="mo-t">휴가 신청</div>
+    <div class="fg"><label class="fl">휴가 종류 ★</label>
+      <select class="fi" id="lv-type" onchange="updateLeaveDays()">
+        ${LEAVE_TYPES.map(t=>`<option value="${t.key}" ${(l?.type||'annual')===t.key?'selected':''}>${t.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">시작일 ★</label><input class="fi" type="date" id="lv-date" value="${l?.date||''}" onchange="updateLeaveDays()"></div>
+      <div class="fg"><label class="fl">종료일</label><input class="fi" type="date" id="lv-dateto" value="${l?.dateTo||''}" onchange="updateLeaveDays()"></div>
+    </div>
+    <div class="fg"><label class="fl">일수</label>
+      <input class="fi" type="number" id="lv-days" value="${l?.days||1}" min="0.5" step="0.5" style="max-width:100px">
+      <span style="font-size:11px;color:var(--ink4);margin-left:8px">반차=0.5일</span>
+    </div>
+    <div class="fg"><label class="fl">사유</label><input class="fi" id="lv-reason" value="${h(l?.reason||'')}" placeholder="개인 사유, 병원 방문 등"></div>
+    <div class="mo-f">
+      <button class="btn bd" style="flex:1" onclick="document.getElementById('mo-leave').classList.remove('open')">취소</button>
+      <button class="btn bp" style="flex:2" onclick="saveLeave('${id||''}')">신청</button>
+    </div>
+  </div>`;
+  mo.classList.add('open');
+}
+
+function updateLeaveDays(){
+  const type=document.getElementById('lv-type')?.value;
+  const lt=LEAVE_TYPES.find(t=>t.key===type)||LEAVE_TYPES[0];
+  const d1=document.getElementById('lv-date')?.value;
+  const d2=document.getElementById('lv-dateto')?.value;
+  const el=document.getElementById('lv-days');
+  if(!el) return;
+  if(d1&&d2&&d2>=d1){
+    const diff=Math.round((new Date(d2)-new Date(d1))/(1000*60*60*24))+1;
+    el.value=diff;
+  } else {
+    el.value=lt.days;
+  }
+}
+
+function saveLeave(id){
+  const date=document.getElementById('lv-date')?.value;
+  if(!date){toast('시작일 필수','err');return;}
+  if(!DB.leaves) DB.leaves=[];
+  const lt=LEAVE_TYPES.find(t=>t.key===document.getElementById('lv-type').value)||LEAVE_TYPES[0];
+  const member=DB.people.find(m=>m.email===CFG.myemail)||{};
+  const obj={
+    id:id||uid(),
+    type:lt.key,
+    date, dateTo:document.getElementById('lv-dateto').value||date,
+    days:parseFloat(document.getElementById('lv-days').value)||lt.days,
+    reason:document.getElementById('lv-reason').value.trim(),
+    email:CFG.myemail||'',
+    name:member.name||CFG.myname||'',
+    dept:member.dept||'',
+    status:'pending',
+    createdAt:id?(DB.leaves.find(x=>x.id===id)?.createdAt||now()):now(),
+  };
+  if(id){const i=DB.leaves.findIndex(x=>x.id===id);if(i>=0)DB.leaves[i]=obj;}
+  else DB.leaves.push(obj);
+  saveDB();
+  document.getElementById('mo-leave').classList.remove('open');
+  renderLeave();
+  // 배지 업데이트
+  const badge=document.getElementById('nc-leave');
+  const pending=(DB.leaves||[]).filter(l=>l.status==='pending').length;
+  if(badge){badge.textContent=pending;badge.style.display=pending?'':'none';}
+  toast('휴가 신청 완료 — 관리자 승인을 기다립니다','ok');
+}
+
+function approveLeave(id){
+  const l=(DB.leaves||[]).find(x=>x.id===id);
+  if(!l) return;
+  l.status='approved'; l.processedAt=now(); l.processedBy=CFG.myname||'';
+  // 팀 캘린더에 자동 등록
+  if(!DB.teamEvents) DB.teamEvents=[];
+  const lt=LEAVE_TYPES.find(t=>t.key===l.type)||LEAVE_TYPES[0];
+  const exists=DB.teamEvents.find(e=>e.leaveId===id);
+  if(!exists){
+    DB.teamEvents.push({
+      id:uid(), leaveId:id,
+      title:`[${lt.label}] ${l.name||l.email}`,
+      date:l.date, time:'',
+      desc:`${lt.label} (${l.days}일) — ${l.reason||''}`,
+      color:lt.color, author:CFG.myname||'',
+      createdAt:now(),
+    });
+  }
+  saveDB(); renderLeave();
+  toast('✓ 승인 완료 — 팀 캘린더에 자동 등록됨','ok');
+}
+
+function rejectLeave(id){
+  const reason=prompt('반려 사유:','');
+  if(reason===null) return;
+  const l=(DB.leaves||[]).find(x=>x.id===id);
+  if(!l) return;
+  l.status='rejected'; l.rejectReason=reason; l.processedAt=now(); l.processedBy=CFG.myname||'';
+  saveDB(); renderLeave();
+  toast('반려 처리됨','ok');
 }
 
 function renderInternal(){
