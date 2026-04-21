@@ -1374,7 +1374,19 @@ const fmt=n=>{if(n==null)return'—';return'₩'+Math.round(Math.abs(n)).toLocal
 const fUSD=(n,r=1380)=>'$'+Math.round(Math.abs(n)/r).toLocaleString('en-US');
 const sts=k=>STATUSES.find(s=>s.k===k)||STATUSES[0];
 const h=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-function team(){var _t=CFG&&CFG.team;return Array.isArray(_t)?_t:(_t||'').split(',').map(function(s){return s.trim();}).filter(Boolean);}
+function team(){
+  // 1순위: 로그인 후 Supabase에서 로드된 임직원 목록
+  if(window._orgMembers&&window._orgMembers.length) return window._orgMembers.map(m=>m.name||m.email.split('@')[0]).filter(Boolean);
+  // 2순위: DB.people (인사·팀원 페이지에 저장된 정보)
+  if(DB.people&&DB.people.length) return DB.people.map(m=>m.name).filter(Boolean);
+  // 3순위: CFG.team (기존 수동 입력 fallback)
+  var _t=CFG&&CFG.team;
+  var arr=Array.isArray(_t)?_t:(_t||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+  // 최소한 현재 로그인한 유저는 항상 포함
+  var me=CFG&&CFG.myname;
+  if(me&&!arr.includes(me)) arr=[me].concat(arr);
+  return arr.length?arr:[me||'담당자 미설정'];
+}
 function setSS(t,m){const e=document.getElementById('sync-bd');if(!e)return;e.className='sync-bd '+({ok:'s-ok',sv:'s-sv',er:'s-er',of:'s-of'}[t]||'s-ok');document.getElementById('sync-txt').textContent=m;}
 
 /* ── DB 초기화 ── */
@@ -6232,6 +6244,11 @@ function renderProjects(){
   // ── 목록 뷰 ──
   const rows=projs.map(p=>{
     const dd=dday(p.eventDate), st=sts(p.status);
+    // 담당자 옵션 — 현재 salesperson이 목록에 없어도 항상 포함
+    const tmList=[...tm];
+    if(p.salesperson&&!tmList.includes(p.salesperson)) tmList.unshift(p.salesperson);
+    if(!tmList.length) tmList.push(CFG.myname||'담당자');
+    const tmOpts=tmList.map(m=>'<option'+(p.salesperson===m?' selected':'')+'>'+h(m)+'</option>').join('');
     return`<tr>
       <td onclick="selProj('${p.id}')" style="cursor:pointer;min-width:180px">
         <div style="font-weight:700;color:var(--ink);font-size:13px">${h(p.nameKO)}</div>
@@ -6246,8 +6263,8 @@ function renderProjects(){
       <td class="num">${p.pax||0}명</td>
       <td style="font-size:11.5px;color:var(--ink3)">${h(p.origin||'—')}</td>
       <td>
-        <select class="fi" style="padding:3px 6px;font-size:11.5px;width:90px" onchange="assignProj('${p.id}',this.value)">
-          ${tm.map(m=>`<option${p.salesperson===m?' selected':''}>${h(m)}</option>`).join('')}
+        <select class="fi" style="padding:3px 6px;font-size:11.5px;width:110px" onchange="assignProj('${p.id}',this.value)">
+          ${tmOpts}
         </select>
       </td>
       <td><span class="chip ${st.c}" style="font-size:10px">${st.l}</span></td>
@@ -9207,17 +9224,15 @@ async function handleLoggedIn(user){
   const email = user.email||'';
   const metaName = user.user_metadata?.name || user.user_metadata?.full_name || email.split('@')[0];
 
-  // Supabase에서 실제 role 조회
+  // 1. 로그인 유저 role 조회
   let role = CFG.role || 'manager';
   if(SB){
     try{
       const {data} = await SB.from('allowed_users').select('name,role').eq('email',email).single();
       if(data){
         role = data.role || 'manager';
-        // 이름도 DB에 저장된 걸 우선 사용
         if(data.name) CFG.myname = data.name;
       } else {
-        // 처음 로그인 — DB에 등록
         await SB.from('allowed_users').upsert({
           email:email, name:metaName, role:'manager',
           created_at:new Date().toISOString()
@@ -9226,11 +9241,14 @@ async function handleLoggedIn(user){
     }catch(e){ console.warn('role load:',e); }
   }
 
-  // CFG 업데이트 — 항상 실제 로그인 이름으로 갱신
+  // CFG 업데이트
   CFG.myname = CFG.myname && CFG.myname !== 'User' ? CFG.myname : metaName;
   CFG.myemail = email;
   CFG.role = role;
   localStorage.setItem('ck-cfg-v1', JSON.stringify(CFG));
+
+  // 2. 전체 임직원 목록 Supabase에서 로드 → 전 앱 담당자 select 자동 갱신
+  await loadOrgMembers();
 
   // UI 업데이트
   const nmEl=document.getElementById('top-nm');
@@ -9239,6 +9257,47 @@ async function handleLoggedIn(user){
   if(avEl) avEl.textContent=CFG.myname.charAt(0);
 
   startApp();
+}
+
+// 전체 임직원 목록 로드 (로그인 시 자동, 인사·팀원 페이지에서 수동 갱신 가능)
+async function loadOrgMembers(){
+  if(!SB) return;
+  try{
+    const {data} = await SB.from('allowed_users')
+      .select('email,name,role')
+      .not('role','is',null)
+      .order('name');
+    if(!data||!data.length) return;
+
+    window._orgMembers = data; // 전역 캐시
+
+    // DB.people에 없는 멤버 자동 추가/업데이트
+    if(!DB.people) DB.people=[];
+    data.forEach(u=>{
+      const existing = DB.people.find(m=>m.email===u.email);
+      if(existing){
+        // 이름·권한 최신화
+        existing.name = u.name||existing.name;
+        existing.role = u.role||existing.role;
+      } else {
+        DB.people.push({
+          id:uid(),
+          name:u.name||u.email.split('@')[0],
+          email:u.email,
+          role:u.role||'staff',
+          dept:'', position:'', tel:'', note:'',
+          createdAt:now()
+        });
+      }
+    });
+    saveDB();
+    console.log('✓ 임직원 '+data.length+'명 로드');
+    // 프로젝트 목록이 열려있으면 담당자 select 갱신
+    const projPage=document.getElementById('page-projects');
+    if(projPage&&projPage.classList.contains('on')) renderProjects();
+  }catch(e){
+    console.warn('loadOrgMembers:',e);
+  }
 }
 
 async function requestApproval(user){
@@ -9683,69 +9742,69 @@ function renderPeople(){
   if(!DB.people) DB.people=[];
 
   const search=(window._peopleSearch||'').toLowerCase();
-  let members=DB.people.length?DB.people:[];
+  const curDept=window._peopleDept||'전체';
+  const roleColors={dev:'cg',admin:'cb',manager:'ca',staff:'cv',viewer:'cn'};
+  const roleLabels={dev:'개발자',admin:'관리자',manager:'담당자',staff:'스태프',viewer:'뷰어'};
 
-  // Supabase allowed_users에서 자동 로드한 경우 병합
-  if(window._supabaseAllUsers&&window._supabaseAllUsers.length){
-    const sbEmails=window._supabaseAllUsers.map(u=>u.email);
-    // DB.people에 없는 팀원은 기본 카드로 추가
-    window._supabaseAllUsers.forEach(u=>{
-      if(!members.find(m=>m.email===u.email)){
-        members.push({id:uid(),name:u.name||u.email.split('@')[0],email:u.email,role:u.role,dept:'',position:'',tel:'',note:'',createdAt:now()});
-      }
-    });
-  }
+  // 내 프로필
+  const me=DB.people.find(m=>m.email===CFG.myemail)||{
+    name:CFG.myname||'나', email:CFG.myemail||'', role:CFG.role||'', dept:'', position:'', tel:'', id:''
+  };
 
+  let members=[...DB.people];
   if(search) members=members.filter(m=>(m.name||'').toLowerCase().includes(search)||(m.position||'').toLowerCase().includes(search)||(m.dept||'').toLowerCase().includes(search));
 
   const depts=['전체',...new Set(members.map(m=>m.dept||'').filter(Boolean))];
-  const curDept=window._peopleDept||'전체';
   const shown=curDept==='전체'?members:members.filter(m=>m.dept===curDept);
+
+  function memberCard(m, isMe=false){
+    return `<div class="card" style="padding:16px;text-align:center;position:relative;${isMe?'border:2px solid var(--a);':''}">
+      ${isMe?'<div style="position:absolute;top:8px;right:8px;font-size:9.5px;font-weight:700;color:var(--a);background:var(--abg);padding:1px 7px;border-radius:99px">나</div>':''}
+      <div style="width:52px;height:52px;border-radius:50%;background:${isMe?'var(--a)':'var(--abg)'};border:2px solid ${isMe?'var(--a)':'var(--abl)'};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:${isMe?'#fff':'var(--a)'};margin:0 auto 10px">${(m.name||'?').charAt(0)}</div>
+      <div style="font-size:14px;font-weight:700;color:var(--ink)">${h(m.name||'')}</div>
+      <div style="font-size:11.5px;color:var(--ink3);margin:2px 0">${h(m.position||'')}${m.dept?' · '+h(m.dept):''}</div>
+      ${m.tel?`<div style="font-size:11.5px;color:var(--a);margin:4px 0">📞 ${h(m.tel)}</div>`:''}
+      ${m.email?`<div style="font-size:11px;color:var(--ink3)">${h(m.email)}</div>`:''}
+      <div style="margin-top:6px"><span class="chip ${roleColors[m.role]||'cn'}" style="font-size:9.5px">${roleLabels[m.role]||m.role||'—'}</span></div>
+      ${m.note?`<div style="font-size:11px;color:var(--ink4);margin-top:6px;font-style:italic">${h(m.note)}</div>`:''}
+      ${canEdit()&&m.id?`<div style="position:absolute;top:10px;left:10px">
+        <button class="btn bd" style="padding:2px 7px;font-size:10px" data-id="${m.id}" onclick="openPeopleModal(this.dataset.id)">수정</button>
+      </div>`:''}
+    </div>`;
+  }
 
   pg.innerHTML=`
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
     <div style="font-size:17px;font-weight:800;color:var(--ink)">👥 인사·팀원</div>
     <span class="chip ca">${members.length}명</span>
     <input class="fi" style="max-width:200px;margin-left:auto" placeholder="이름/직책 검색..." value="${h(window._peopleSearch||'')}" oninput="window._peopleSearch=this.value;renderPeople()">
-    <button class="btn bd btn-sm" onclick="loadPeopleFromSupabase()">🔄 팀원 새로고침</button>
+    <button class="btn bd btn-sm" onclick="loadPeopleFromSupabase()">🔄 동기화</button>
     ${canCreate()?`<button class="btn bp btn-sm" onclick="openPeopleModal()">+ 팀원 추가</button>`:''}
   </div>
-  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px">
+
+  <div style="margin-bottom:16px">
+    <div style="font-size:11.5px;font-weight:700;color:var(--ink3);margin-bottom:8px;letter-spacing:.05em">내 프로필</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+      ${memberCard(me, true)}
+    </div>
+  </div>
+
+  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">
     ${depts.map(d=>`<button class="btn btn-sm ${curDept===d?'bp':'bd'}" onclick="window._peopleDept='${d}';renderPeople()">${d}</button>`).join('')}
   </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
-    ${shown.length?shown.map(m=>`
-    <div class="card" style="padding:16px;text-align:center;position:relative">
-      <div style="width:56px;height:56px;border-radius:50%;background:var(--abg);border:2px solid var(--abl);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--a);margin:0 auto 10px">${(m.name||'?').charAt(0)}</div>
-      <div style="font-size:14px;font-weight:700;color:var(--ink)">${h(m.name||'')}</div>
-      <div style="font-size:11.5px;color:var(--ink3);margin:2px 0">${h(m.position||'')}${m.dept?' · '+h(m.dept):''}</div>
-      ${m.tel?`<div style="font-size:11.5px;color:var(--a);margin:4px 0">📞 ${h(m.tel)}</div>`:''}
-      ${m.email?`<div style="font-size:11px;color:var(--ink3)">${h(m.email)}</div>`:''}
-      <div style="margin-top:6px">
-        <span class="chip ${m.role==='dev'?'cg':m.role==='admin'?'cb':m.role==='manager'?'ca':m.role==='staff'?'cv':'cn'}" style="font-size:9.5px">${m.role||'—'}</span>
-      </div>
-      ${m.note?`<div style="font-size:11px;color:var(--ink4);margin-top:6px;font-style:italic">${h(m.note)}</div>`:''}
-      ${canEdit()?`<div style="position:absolute;top:10px;right:10px;display:flex;gap:4px">
-        <button class="btn bd" style="padding:2px 7px;font-size:10px" data-id="${m.id}" onclick="openPeopleModal(this.dataset.id)">수정</button>
-      </div>`:''}
-    </div>`).join(''):`<div class="alert al-i" style="grid-column:1/-1">팀원이 없습니다. 팀원 새로고침을 눌러주세요.</div>`}
+  <div style="font-size:11.5px;font-weight:700;color:var(--ink3);margin-bottom:8px;letter-spacing:.05em">전체 임직원</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+    ${shown.length
+      ? shown.map(m=>memberCard(m, m.email===CFG.myemail)).join('')
+      : `<div class="alert al-i" style="grid-column:1/-1">팀원이 없습니다. 동기화를 눌러주세요.</div>`}
   </div>`;
 }
-
 async function loadPeopleFromSupabase(){
   if(!SB){toast('Supabase 미연결','err');return;}
-  try{
-    const {data}=await SB.from('allowed_users').select('name,email,role').not('role','is',null);
-    window._supabaseAllUsers=data||[];
-    if(!DB.people) DB.people=[];
-    (data||[]).forEach(u=>{
-      const exists=DB.people.find(m=>m.email===u.email);
-      if(!exists) DB.people.push({id:uid(),name:u.name||u.email.split('@')[0],email:u.email,role:u.role,dept:'',position:'',tel:'',note:'',createdAt:now()});
-      else{ exists.name=u.name||exists.name; exists.role=u.role; }
-    });
-    saveDB(); renderPeople();
-    toast(`✓ ${(data||[]).length}명 로드 완료`,'ok');
-  }catch(e){toast('로드 실패: '+e.message,'err');}
+  await loadOrgMembers();
+  renderPeople();
+  const cnt=(window._orgMembers||[]).length;
+  toast(`✓ ${cnt}명 임직원 정보 동기화 완료`,'ok');
 }
 
 function openPeopleModal(id){
