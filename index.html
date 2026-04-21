@@ -1347,7 +1347,25 @@ const PIPE=['bidding','awarded','operating','settling','done'];
 // CLG 전역 참조
 
 /* ── HELPERS (DB 초기화 전 필수) ── */
-const nightsLabel=n=>n===0?'반나절':n===0.5?'1일(당일)':n+'박'+(n+1)+'일';
+const nightsLabel=n=>n===0?'당일 (0박1일)':n===0.5?'1일 (당일)':n+'박'+(n+1)+'일';
+
+function calcNights(prefix){
+  const d1=document.getElementById(prefix+'-date')?.value;
+  const d2=document.getElementById(prefix+'-enddate')?.value;
+  const disp=document.getElementById(prefix+'-nights-disp');
+  const hidden=document.getElementById(prefix+'-nights-val');
+  const hiddenNights=document.getElementById(prefix+'-nights'); // RFP용
+  if(!d1||!d2){if(disp)disp.value='';return 0;}
+  if(d2<d1){if(disp){disp.value='⚠ 종료일이 시작일보다 빠릅니다';disp.style.color='var(--r)';}return 0;}
+  const nights=Math.round((new Date(d2)-new Date(d1))/86400000);
+  if(disp){disp.value=nightsLabel(nights);disp.style.color='var(--g)';}
+  if(hidden) hidden.value=nights;
+  if(hiddenNights) hiddenNights.value=nights; // RFP 폼
+  // projinfo 연동
+  if(prefix==='pi') upC('nights',nights);
+  if(typeof npPrev==='function') npPrev();
+  return nights;
+}
 const uid=()=>'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const now=()=>new Date().toISOString();
 const dday=s=>{if(!s)return 999;const d=new Date(s),t=new Date();t.setHours(0,0,0,0);return Math.ceil((d-t)/86400e3);};
@@ -2013,7 +2031,7 @@ function selProj(id){
   document.getElementById('ph-chips').innerHTML=`
     <span class="chip ${st.c}">${st.l}</span>
     <span class="chip ${dd<=3?'cr':dd<=7?'cam':dd<=30?'ca':'cb'}">D-${dd}</span>
-    <span class="chip cn">${CUR.pax}명 / ${CUR.nights}박${CUR.nights+1}일</span>
+    <span class="chip cn">${CUR.pax}명 / ${nightsLabel(CUR.nights||0)}</span>
     <span class="chip cn">${h(CUR.origin||'—')}</span>
     <span class="chip cn">CHK ${h(CUR.salesperson)}</span>`;
   const tb=document.getElementById('tabbar'); tb.style.display='flex';
@@ -2137,10 +2155,7 @@ function npPrev(){
 
 
 function quickNewProj(){
-  // 폼으로만 이동 - DB 저장 안 함
-  document.querySelectorAll('.nav[data-nav]').forEach(n=>n.classList.remove('on'));
-  showPage('new-proj');
-  renderNewProj();
+  navTo('proj-create');
 }
 /* ── THEME MANAGEMENT PAGE ── */
 let _themeRegion='all';
@@ -3244,21 +3259,20 @@ function renderProjInfo(){
         <div class="fg"><label class="fl">고객사 담당자 이메일</label><input class="fi" value="${h(CUR.clientEmail||'')}" oninput="upC('clientEmail',this.value)" placeholder="john.kim@company.com"></div>
       </div>
       <div class="fr3">
-        <div class="fg"><label class="fl">행사일 ★</label><input class="fi" type="date" value="${CUR.eventDate||''}" onchange="upC('eventDate',this.value)"></div>
-        <div class="fg"><label class="fl">인원 (Pax) ★</label><input class="fi" type="number" value="${CUR.pax||''}" oninput="upC('pax',parseInt(this.value)||0)" placeholder="85"></div>
-        <div class="fg"><label class="fl">기간</label><select class="fi" onchange="upC('nights',parseFloat(this.value))">
-  ${[[0,'반나절'],[0.5,'1일 (당일)'],[1,'1박2일'],[2,'2박3일'],[3,'3박4일'],[4,'4박5일'],[5,'5박6일'],[6,'6박7일'],[7,'7박8일']].map(([n,l])=>`<option value="${n}"${CUR.nights===n?' selected':''}>${l}</option>`).join('')}
-</select></div>
+        <div class="fg"><label class="fl">시작일 (도착일) ★</label><input class="fi" type="date" value="${CUR.eventDate||''}" onchange="upC('eventDate',this.value);calcNights('pi')"></div>
+        <div class="fg"><label class="fl">종료일 (출발일) ★</label><input class="fi" type="date" id="pi-enddate" value="${CUR.eventEndDate||''}" onchange="upC('eventEndDate',this.value);calcNights('pi')"></div>
+        <div class="fg"><label class="fl">기간 (자동 계산)</label><input class="fi" id="pi-nights-disp" readonly value="${CUR.nights!==undefined?nightsLabel(CUR.nights):''}" style="background:var(--sur2);font-weight:700;color:var(--g)" placeholder="날짜 입력 후 자동 계산"><input type="hidden" id="pi-date" value="${CUR.eventDate||''}"><input type="hidden" id="pi-nights-val" value="${CUR.nights||0}"></div>
       </div>
       <div class="fr3">
+        <div class="fg"><label class="fl">인원 (Pax) ★</label><input class="fi" type="number" value="${CUR.pax||''}" oninput="upC('pax',parseInt(this.value)||0)" placeholder="85"></div>
         <div class="fg"><label class="fl">출발 국가/도시</label><input class="fi" value="${h(CUR.origin||'')}" oninput="upC('origin',this.value)" placeholder="싱가포르"></div>
         <div class="fg"><label class="fl">제안서 요청일</label><input class="fi" type="date" value="${CUR.reqDate||''}" onchange="upC('reqDate',this.value)"></div>
-        <div class="fg"><label class="fl">CHK 담당자</label><select class="fi" onchange="upC('salesperson',this.value)">${tm.map(m=>`<option${CUR.salesperson===m?' selected':''}>${h(m)}</option>`).join('')}</select></div>
       </div>
       <div class="fr2">
+        <div class="fg"><label class="fl">CHK 담당자</label><select class="fi" onchange="upC('salesperson',this.value)">${tm.map(m=>`<option${CUR.salesperson===m?' selected':''}>${h(m)}</option>`).join('')}</select></div>
         <div class="fg"><label class="fl">문의 경로</label><select class="fi" onchange="upC('inquiryRoute',this.value);renderInquiryDetail(this.value)"><option value="">선택</option><option value="email" ${CUR.inquiryRoute==='email'?'selected':''}>이메일</option><option value="call" ${CUR.inquiryRoute==='call'?'selected':''}>전화</option><option value="referral" ${CUR.inquiryRoute==='referral'?'selected':''}>소개</option><option value="web" ${CUR.inquiryRoute==='web'?'selected':''}>웹사이트</option><option value="sns" ${CUR.inquiryRoute==='sns'?'selected':''}>SNS</option><option value="repeat" ${CUR.inquiryRoute==='repeat'?'selected':''}>재계약</option><option value="other" ${CUR.inquiryRoute==='other'?'selected':''}>기타</option></select></div>
-        <div class="fg"><label class="fl">행사명 / 테마 / 슬로건</label><input class="fi" value="${h(CUR.theme||'')}" oninput="upC('theme',this.value)" placeholder="K-Culture & Heritage Tour 2026"></div>
       </div>
+      <div class="fg"><label class="fl">행사명 / 테마 / 슬로건</label><input class="fi" value="${h(CUR.theme||'')}" oninput="upC('theme',this.value)" placeholder="K-Culture & Heritage Tour 2026"></div>
       <div id="inquiry-detail-box">${renderInquiryDetailHTML(CUR.inquiryRoute||'',CUR)}</div>
       <div class="fg"><label class="fl">특이사항 / 요청사항</label><textarea class="fi" rows="3" oninput="upC('notes',this.value)" placeholder="VIP 10명 포함, 채식 식단, 이동 최소화 등">${h(CUR.notes||'')}</textarea></div>
     </div>
@@ -4586,7 +4600,7 @@ function renderInvoice(){
     +'<div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--ink3);text-transform:uppercase;margin-bottom:6px">'+(L==='ko'?'청구 대상':'BILL TO')+'</div>'
     +'<div style="font-size:15px;font-weight:700;color:var(--ink)">'+(L==='ko'?h(CUR.nameKO):h(CUR.nameEN||CUR.nameKO||''))+'</div>'
     +(CUR.clientName?'<div style="font-size:12px;color:var(--ink2);margin-top:2px">Attn: '+h(CUR.clientName)+(CUR.clientEmail?' &lt;'+h(CUR.clientEmail)+'&gt;':'')+'</div>':'')
-    +'<div style="font-size:12px;color:var(--ink3);margin-top:3px">'+h(CUR.eventDate||'—')+' · '+(L==='ko'?CUR.pax+'명 · '+CUR.nights+'박'+(CUR.nights+1)+'일':CUR.pax+' pax · '+CUR.nights+'N'+(CUR.nights+1)+'D')+'</div>'
+    +'<div style="font-size:12px;color:var(--ink3);margin-top:3px">'+h(CUR.eventDate||'—')+' · '+(L==='ko'?CUR.pax+'명 · '+nightsLabel(CUR.nights||0):CUR.pax+' pax · '+nightsLabel(CUR.nights||0))+'</div>'
     +'</div>'
     +'<table class="q-tbl" style="margin-bottom:24px">'+thead+'<tbody>'+itemRows+'</tbody>'+tfoot+'</table>'
     +pmHTML+cancelHTML+noteHTML
@@ -4761,7 +4775,7 @@ function buildClientContractHTML(isEN){
   var em=(document.getElementById('ct-c-email')||{value:CUR.clientEmail||CUR.commEmail||'—'}).value;
   var extra=(document.getElementById('ct-c-extra')||{value:''}).value;
   var pax=CUR.pax||'—', arrDate=CUR.eventDate||'—', nights=CUR.nights||3;
-  var dur=isEN?(nights+' Nights / '+(nights+1)+' Days'):(nights+'박'+(nights+1)+'일');
+  var dur=isEN?(nights+' Nights / '+(nights+1)+' Days'):(nightsLabel(nights));
   var today=new Date().toLocaleDateString(isEN?'en-US':'ko-KR',{year:'numeric',month:'long',day:'numeric'});
   var contractNo='CK-'+(CUR.id?CUR.id.slice(1,5):'0001').toUpperCase()+'-CT-C';
   var deptDate='—';
@@ -6135,7 +6149,7 @@ function renderReport(){
   document.getElementById('page-report').innerHTML=`
     <div class="alert ${comp<60?'al-w':comp<90?'al-i':'al-o'}" style="margin-bottom:16px">정산 완료도: <strong>${comp}%</strong> — ${comp<60?'실비 입력이 필요합니다':comp<90?'거의 완료되었습니다':'정산 준비 완료!'}</div>
     <div class="rg">
-      <div class="rc"><h3>프로젝트 기본 정보</h3>${[['고객사',CUR.nameKO],['행사일',CUR.eventDate||'—'],['인원',CUR.pax+'명'],['기간',CUR.nights+'박'+(CUR.nights+1)+'일'],['출발지',CUR.origin||'—'],['담당',CUR.salesperson],['상태',sts(CUR.status).l]].map(([k,v])=>`<div class="kv"><span class="kk">${k}</span><span class="kv2">${h(String(v))}</span></div>`).join('')}</div>
+      <div class="rc"><h3>프로젝트 기본 정보</h3>${[['고객사',CUR.nameKO],['행사일',CUR.eventDate||'—'],['인원',CUR.pax+'명'],['기간',nightsLabel(CUR.nights||0)],['출발지',CUR.origin||'—'],['담당',CUR.salesperson],['상태',sts(CUR.status).l]].map(([k,v])=>`<div class="kv"><span class="kk">${k}</span><span class="kv2">${h(String(v))}</span></div>`).join('')}</div>
       <div class="rc"><h3>손익 요약</h3>${[['판매가',fmt(CUR.salesTotalKRW)],['견적 원가',fmt(se)],['견적 마진',fmt(mg)+` (${CUR.salesTotalKRW?(mg/CUR.salesTotalKRW*100).toFixed(1):0}%)`],['실비 합계',filled.length===items.length?fmt(sa):filled.length+'/'+items.length+'개 입력'],['가이드 정산',fmt(gt)],['실제 마진',rm!=null?fmt(rm):'실비 완료 후 확정']].map(([k,v])=>`<div class="kv"><span class="kk">${k}</span><span class="kv2">${h(String(v))}</span></div>`).join('')}</div>
       <div class="rc"><h3>운영 현황</h3>${[['체크리스트',`${cd}/${cl.length}개`],['완료율',`${cl.length?Math.round(cd/cl.length*100):0}%`],['업무 완료',`${td}/${tasks.length}개`],['발주 확인',`${items.filter(i=>i.confirmed).length}/${items.length}개`]].map(([k,v])=>`<div class="kv"><span class="kk">${k}</span><span class="kv2">${v}</span></div>`).join('')}</div>
       <div class="rc"><h3>정산 완료 현황</h3>${[['실비 입력',`${filled.length}/${items.length}개`],['가이드 이체',`${gs.filter(g=>g.paid).length}/${gs.length}명`],['세금계산서',`${gs.filter(g=>g.taxInvoice).length}/${gs.length}건`]].map(([k,v])=>`<div class="kv"><span class="kk">${k}</span><span class="kv2">${v}</span></div>`).join('')}
@@ -6779,8 +6793,13 @@ async function parseRFPwithAI(){
     document.getElementById('rp-nameEN').value=parsed.nameEN||'';
     document.getElementById('rp-date').value=parsed.date||'';
     document.getElementById('rp-pax').value=parsed.pax||'';
-    const sel=document.getElementById('rp-nights');
-    if(sel&&parsed.nights) sel.value=String(parsed.nights);
+    // 종료일 자동 계산 (nights가 있으면)
+    if(parsed.date&&parsed.nights){
+      const endDt=new Date(parsed.date);endDt.setDate(endDt.getDate()+parsed.nights);
+      const endStr=endDt.toISOString().slice(0,10);
+      if(document.getElementById('rp-enddate')) document.getElementById('rp-enddate').value=endStr;
+      calcNights('rp');
+    }
     document.getElementById('rp-origin').value=parsed.origin||'';
     document.getElementById('rp-budget').value=parsed.budgetKRW||'';
     document.getElementById('rp-theme').value=parsed.theme||'';
@@ -6941,25 +6960,25 @@ function createProjFromRFP(){
   const nameKO=nameKOraw||nameENraw||'새 프로젝트';
   const nameEN=nameENraw||nameKOraw||'';
   const date=document.getElementById('rp-date').value;
+  const endDate=document.getElementById('rp-enddate')?.value||'';
+  const nights=endDate&&endDate>=date?Math.round((new Date(endDate)-new Date(date))/86400000):(parseInt(document.getElementById('rp-nights')?.value)||3);
   const pax=parseInt(document.getElementById('rp-pax').value)||0;
-  const nights=parseInt(document.getElementById('rp-nights').value)||3;
   const origin=document.getElementById('rp-origin').value.trim();
   const budget=parseInt(document.getElementById('rp-budget').value)||0;
   const theme=document.getElementById('rp-theme').value.trim();
   const clientName=document.getElementById('rp-clientName')?.value.trim()||'';
   const clientEmail=document.getElementById('rp-clientEmail')?.value.trim()||'';
-  // 고객사명이 비어있고 테마/행사명이 있으면 참고
   if(!nameKOraw&&theme) document.getElementById('rp-nameKO')&&(document.getElementById('rp-nameKO').value=theme.split('/')[0].trim());
   const notes=document.getElementById('rp-notes').value.trim();
   const deadline=document.getElementById('rp-deadline').value;
 
   const p={
-    id:uid(), nameKO, nameEN, eventDate:date, pax, nights, origin,
+    id:uid(), nameKO, nameEN, eventDate:date, eventEndDate:endDate, pax, nights, origin,
     salesperson:document.getElementById('rp-sales')?.value||tm[0]||CFG.myname||'', reqDate:deadline, status:'bid',
     salesTotalKRW:budget, exchangeRate:CFG.rate||1380,
     feePercent:CFG.fee||10, taxPercent:CFG.tax||0,
     theme, notes, clientName, clientEmail,
-    rfpRaw:raw,        // ← RFP 원문 보관
+    rfpRaw:raw,
     rfpDate:now(),
     schedule:[], quoteItems:[], tasks:[], checklist:makeCL(date), guides:[],
     createdAt:now(), updatedAt:now(),
@@ -7156,19 +7175,16 @@ Reply deadline: April 20, 2026"></textarea>
             <div class="fg"><label class="fl">고객사 담당자 이메일</label><input class="fi" id="rp-clientEmail" placeholder="john.kim@company.com"></div>
           </div>
           <div class="fr3">
-            <div class="fg"><label class="fl">행사일 ★</label><input class="fi" type="date" id="rp-date"></div>
-            <div class="fg"><label class="fl">인원 (Pax)</label><input class="fi" type="number" id="rp-pax" placeholder="85"></div>
-            <div class="fg"><label class="fl">기간</label>
-              <select class="fi" id="rp-nights">
-                <option value="1">1박2일</option><option value="2">2박3일</option>
-                <option value="3" selected>3박4일</option><option value="4">4박5일</option>
-                <option value="5">5박6일</option><option value="6">6박7일</option>
-                <option value="7">7박8일</option>
-              </select>
+            <div class="fg"><label class="fl">시작일 (도착일) ★</label><input class="fi" type="date" id="rp-date" onchange="calcNights('rp')"></div>
+            <div class="fg"><label class="fl">종료일 (출발일)</label><input class="fi" type="date" id="rp-enddate" onchange="calcNights('rp')"></div>
+            <div class="fg"><label class="fl">기간 (자동 계산)</label>
+              <input class="fi" id="rp-nights-disp" readonly placeholder="날짜 선택 후 자동 계산" style="background:var(--sur2);font-weight:700;color:var(--g)">
+              <input type="hidden" id="rp-nights-val" value="3">
+              <input type="hidden" id="rp-nights" value="3">
             </div>
           </div>
           <div class="fr2">
-            <div class="fg"><label class="fl">출발 국가/도시</label><input class="fi" id="rp-origin" placeholder="싱가포르, Hong Kong..."></div>
+            <div class="fg"><label class="fl">인원 (Pax)</label><input class="fi" type="number" id="rp-pax" placeholder="85"></div>
             <div class="fg"><label class="fl">예산 (KRW 환산)</label><input class="fi" type="number" id="rp-budget" placeholder="69,000,000"></div>
           </div>
           <div class="fr2">
@@ -11318,7 +11334,6 @@ Budget: approx. USD 50,000"></textarea>
 // ── 탭 3: 직접 입력 ──
 function pcRenderManual(cont){
   const tm=team();
-  const today=new Date().toISOString().slice(0,10);
   cont.innerHTML=`
   <div class="card">
     <div class="card-t">✏️ 프로젝트 직접 등록</div>
@@ -11327,34 +11342,35 @@ function pcRenderManual(cont){
       <div class="fg"><label class="fl">Company Name (EN)</label><input class="fi" id="np-en" placeholder="LG Electronics SEA Team"></div>
     </div>
     <div class="fr3">
-      <div class="fg"><label class="fl">행사일 ★</label><input class="fi" type="date" id="np-date" oninput="npPrev()">
+      <div class="fg">
+        <label class="fl">시작일 (도착일) ★</label>
+        <input class="fi" type="date" id="np-date" onchange="calcNights('np');npPrev()">
         <div id="np-dday" style="font-size:10px;color:var(--am);margin-top:4px;font-family:var(--fm)"></div>
       </div>
-      <div class="fg"><label class="fl">인원 (Pax) ★</label><input class="fi" type="number" id="np-pax" placeholder="85"></div>
-      <div class="fg"><label class="fl">기간</label>
-        <select class="fi" id="np-nights">
-          <option value="1">1박2일</option><option value="2">2박3일</option>
-          <option value="3" selected>3박4일</option><option value="4">4박5일</option>
-          <option value="5">5박6일</option><option value="6">6박7일</option>
-          <option value="7">7박8일</option>
-        </select>
+      <div class="fg">
+        <label class="fl">종료일 (출발일) ★</label>
+        <input class="fi" type="date" id="np-enddate" onchange="calcNights('np');npPrev()">
+      </div>
+      <div class="fg">
+        <label class="fl">기간 (자동 계산)</label>
+        <input class="fi" id="np-nights-disp" readonly placeholder="날짜 입력 후 자동 계산" style="background:var(--sur2);font-weight:700;color:var(--g)">
+        <input type="hidden" id="np-nights-val" value="3">
       </div>
     </div>
     <div class="fr2">
+      <div class="fg"><label class="fl">인원 (Pax) ★</label><input class="fi" type="number" id="np-pax" placeholder="85"></div>
       <div class="fg"><label class="fl">출발 국가/도시</label><input class="fi" id="np-origin" placeholder="싱가포르, Dubai..."></div>
+    </div>
+    <div class="fr3">
       <div class="fg"><label class="fl">담당자</label>
         <select class="fi" id="np-sales">${tm.map(m=>'<option>'+h(m)+'</option>').join('')}</select>
       </div>
-    </div>
-    <div class="fr3">
       <div class="fg"><label class="fl">매출 총액 (KRW)</label><input class="fi" type="number" id="np-revenue" placeholder="48000000"></div>
-      <div class="fg"><label class="fl">환율</label><input class="fi" type="number" id="np-rate" value="${CFG.rate||1380}"></div>
       <div class="fg"><label class="fl">수수료 %</label><input class="fi" type="number" id="np-fee" value="${CFG.fee||10}"></div>
     </div>
     <div class="fg"><label class="fl">테마 / 슬로건</label><input class="fi" id="np-theme" placeholder="K-Culture & Heritage Tour 2026"></div>
     <div class="fg"><label class="fl">특이사항</label><textarea class="fi" id="np-notes" rows="2" placeholder="VIP 10명 포함, 채식 식단 필요 등"></textarea></div>
 
-    <!-- 미리보기 -->
     <div id="np-prev" style="background:var(--sur2);border:1px solid var(--bdr);border-radius:var(--ra);padding:10px 14px;font-size:12px;color:var(--ink3);margin-bottom:14px;display:none">
       <strong style="color:var(--ink)" id="np-prev-name"></strong>
       <span id="np-prev-dday" style="margin-left:8px;font-family:var(--fm)"></span>
@@ -11369,21 +11385,26 @@ function pcRenderManual(cont){
 function pcCreateManual(){
   const ko=document.getElementById('np-ko')?.value.trim();
   const date=document.getElementById('np-date')?.value;
+  const endDate=document.getElementById('np-enddate')?.value;
   const pax=parseInt(document.getElementById('np-pax')?.value)||0;
   if(!ko){toast('고객사명을 입력해주세요','err');return;}
-  if(!date){toast('행사일을 입력해주세요','err');return;}
+  if(!date){toast('시작일을 입력해주세요','err');return;}
+  if(!endDate){toast('종료일을 입력해주세요','err');return;}
   if(!pax){toast('인원을 입력해주세요','err');return;}
+  if(endDate<date){toast('종료일이 시작일보다 빠릅니다','err');return;}
+  const nights=Math.round((new Date(endDate)-new Date(date))/86400000);
   const p={
     id:uid(),
     nameKO:ko,
     nameEN:document.getElementById('np-en')?.value.trim()||'',
     eventDate:date,
+    eventEndDate:endDate,
     pax,
-    nights:parseInt(document.getElementById('np-nights')?.value)||3,
+    nights,
     origin:document.getElementById('np-origin')?.value.trim()||'',
     salesperson:document.getElementById('np-sales')?.value||CFG.myname||'',
     salesTotalKRW:parseFloat(document.getElementById('np-revenue')?.value)||0,
-    exchangeRate:parseFloat(document.getElementById('np-rate')?.value)||1380,
+    exchangeRate:parseFloat(CFG.rate)||1380,
     feePercent:parseFloat(document.getElementById('np-fee')?.value)||10,
     taxPercent:0,
     theme:document.getElementById('np-theme')?.value.trim()||'',
@@ -11400,7 +11421,7 @@ function pcCreateManual(){
   renderSidebar();
   selProj(p.id);
   goTab('projinfo');
-  toast('✓ 프로젝트 생성 완료! 체크리스트 자동 생성됨','ok');
+  toast('✓ 프로젝트 생성 완료 ('+nightsLabel(nights)+') — 체크리스트 자동 생성됨','ok');
 }
 
 /* ───────────────────────────────────────────────── */
