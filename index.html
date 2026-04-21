@@ -526,7 +526,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
     <div class="nav" data-nav="calendar" onclick="navTo('calendar',this)"><span class="nav-ic"></span>캘린더</div>
     <div class="nav" data-nav="vendors" onclick="navTo('vendors',this)"><span class="nav-ic"></span>서비스 항목</div>
     <div class="nav" data-nav="vendors-co" onclick="navTo('vendors-co',this)"><span class="nav-ic"></span>협력업체</div>
-    <div class="nav" data-nav="internal" onclick="navTo('internal',this)"><span class="nav-ic">🏢</span>사내 프로젝트<span class="nc" id="nc-int">0</span></div>
+    <div class="nav" data-nav="teamtasks" onclick="navTo('teamtasks',this)"><span class="nav-ic">✅</span>팀 업무관리<span class="nc" id="nc-tasks" style="display:none">0</span></div>
     <div class="nav" data-nav="vendor-payments" onclick="navTo('vendor-payments',this)"><span class="nav-ic">💰</span>업체 대금 관리</div>
     <div class="nav" data-nav="finance" onclick="navTo('finance',this)"><span class="nav-ic">📊</span>경리·재무</div>
 
@@ -603,6 +603,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
       <div class="page" id="page-labor-settle"></div>
       <div class="page" id="page-report"></div>
       <div class="page" id="page-internal"></div>
+      <div class="page" id="page-teamtasks"></div>
       <div class="page" id="page-freelancers"></div>
       <div class="page" id="page-notice"></div>
       <div class="page" id="page-archive"></div>
@@ -2010,7 +2011,7 @@ function navTo(page,el){
   document.getElementById('ph').style.display='none';
   document.getElementById('tabbar').style.display='none';
   CUR=null; showPage(page);
-  const fn={dashboard:renderDash,pipeline:renderPipeline,vendors:renderVendors,'vendors-co':renderVendorsCo,calendar:renderCalendar,themes:renderThemes,'new-proj':renderNewProj,stat:renderStatPage,projects:renderProjects,'rfp-parse':renderRFPParsePage,internal:renderInternal,'rfp-inbox':renderRFPInbox,'proj-create':renderProjCreate,freelancers:renderFreelancers,notice:renderNotice,archive:renderArchive,people:renderPeople,teamcal:renderTeamCal,'vendor-payments':renderVendorPayments,finance:renderFinance,certificate:renderCertificate,leave:renderLeave};
+  const fn={dashboard:renderDash,pipeline:renderPipeline,vendors:renderVendors,'vendors-co':renderVendorsCo,calendar:renderCalendar,themes:renderThemes,'new-proj':renderNewProj,stat:renderStatPage,projects:renderProjects,'rfp-parse':renderRFPParsePage,internal:renderInternal,'rfp-inbox':renderRFPInbox,'proj-create':renderProjCreate,freelancers:renderFreelancers,notice:renderNotice,archive:renderArchive,people:renderPeople,teamcal:renderTeamCal,'vendor-payments':renderVendorPayments,finance:renderFinance,certificate:renderCertificate,leave:renderLeave,teamtasks:renderTeamTasks};
   if(fn[page])fn[page]();
 }
 
@@ -2423,7 +2424,7 @@ function renderDash(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           ${[
             {icon:'📊',label:'CHK 프로젝트',nav:'projects'},
-            {icon:'⇢',label:'파이프라인',nav:'pipeline'},
+            {icon:'✅',label:'팀 업무관리',nav:'teamtasks'},
             {icon:'💰',label:'업체 대금',nav:'vendor-payments'},
             {icon:'📊',label:'경리·재무',nav:'finance'},
             {icon:'📋',label:'증명서 관리',nav:'certificate'},
@@ -10566,6 +10567,94 @@ function rejectLeave(id){
   toast('반려 처리됨','ok');
 }
 
+/* ═══════════════════════════════════════════
+   ✅ 팀 업무관리 (독립 페이지)
+   ═══════════════════════════════════════════ */
+function renderTeamTasks(){
+  const pg=document.getElementById('page-teamtasks');
+  if(!pg) return;
+  if(!DB.internalTasks) DB.internalTasks=[];
+
+  const tasks=DB.internalTasks;
+  const total=tasks.length;
+  const todoCount=tasks.filter(t=>t.status==='todo').length;
+  const doingCount=tasks.filter(t=>t.status==='doing').length;
+  const doneCount=tasks.filter(t=>t.status==='done').length;
+  const overdueCount=tasks.filter(t=>t.dueDate&&t.status!=='done'&&new Date(t.dueDate)<new Date()).length;
+
+  // 배지 업데이트
+  const badge=document.getElementById('nc-tasks');
+  if(badge){badge.textContent=todoCount+doingCount;badge.style.display=(todoCount+doingCount)?'':'none';}
+
+  const byStatus={todo:[],doing:[],done:[]};
+  tasks.forEach(t=>(byStatus[t.status]||byStatus['todo']).push(t));
+
+  const priColor={high:'var(--r)',mid:'var(--am)',low:'var(--g)'};
+  const priLabel={high:'🔴 긴급',mid:'🟡 보통',low:'🟢 낮음'};
+
+  function taskCard(t){
+    const proj=t.projectId?(DB.projects||[]).find(p=>p.id===t.projectId):null;
+    const overdue=t.dueDate&&t.status!=='done'&&new Date(t.dueDate)<new Date();
+    return `<div class="kbc" onclick="openIntTask('${t.id}');window._ttCallback=renderTeamTasks">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap">
+        <span style="font-size:10px;font-weight:700;color:${priColor[t.priority]||'var(--ink4)'}">●</span>
+        <span style="font-size:10px;font-weight:700;color:${priColor[t.priority]||'var(--ink4)'};">${priLabel[t.priority]||''}</span>
+        ${proj?`<span class="chip ca" style="font-size:9.5px;padding:1px 6px">${h(proj.nameKO)}</span>`:''}
+      </div>
+      <div class="kbc-t">${h(t.title)}</div>
+      <div class="kbc-f">
+        <span style="font-size:10px;color:var(--ink3)">👤 ${h(t.assignee||'미지정')}</span>
+        <span style="font-size:10px;color:${overdue?'var(--r)':'var(--ink4)'};margin-left:auto">📅 ${t.dueDate||'기한없음'}</span>
+      </div>
+      ${t.memo?`<div style="font-size:10.5px;color:var(--ink3);margin-top:5px;border-top:1px solid var(--bdr);padding-top:4px">${h(t.memo)}</div>`:''}
+    </div>`;
+  }
+
+  pg.innerHTML=`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <div style="font-size:17px;font-weight:800;color:var(--ink)">✅ 팀 업무관리</div>
+    ${overdueCount?`<span class="chip cr" style="font-size:10px">⚠ 기한초과 ${overdueCount}건</span>`:''}
+    <button class="btn bp btn-sm" style="margin-left:auto" onclick="openIntTask(null);window._ttCallback=renderTeamTasks">+ 업무 추가</button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
+    <div class="card" style="text-align:center;padding:12px;cursor:pointer" onclick="">
+      <div style="font-size:22px;font-weight:800;color:var(--ink)">${total}</div>
+      <div style="font-size:11px;color:var(--ink4)">전체 업무</div>
+    </div>
+    <div class="card" style="text-align:center;padding:12px">
+      <div style="font-size:22px;font-weight:800;color:var(--a)">${todoCount}</div>
+      <div style="font-size:11px;color:var(--ink4)">할 일</div>
+    </div>
+    <div class="card" style="text-align:center;padding:12px">
+      <div style="font-size:22px;font-weight:800;color:var(--am)">${doingCount}</div>
+      <div style="font-size:11px;color:var(--ink4)">진행 중</div>
+    </div>
+    <div class="card" style="text-align:center;padding:12px">
+      <div style="font-size:22px;font-weight:800;color:var(--g)">${doneCount}</div>
+      <div style="font-size:11px;color:var(--ink4)">완료</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+    <div class="kb">
+      <div class="kb-h"><span style="font-size:13px">📥</span><span class="kb-t">할 일</span><span class="kb-c">${byStatus.todo.length}</span></div>
+      ${byStatus.todo.map(taskCard).join('')}
+      ${!byStatus.todo.length?'<div style="text-align:center;padding:20px;font-size:12px;color:var(--ink4)">없음</div>':''}
+    </div>
+    <div class="kb">
+      <div class="kb-h"><span style="font-size:13px">⚡</span><span class="kb-t">진행 중</span><span class="kb-c">${byStatus.doing.length}</span></div>
+      ${byStatus.doing.map(taskCard).join('')}
+      ${!byStatus.doing.length?'<div style="text-align:center;padding:20px;font-size:12px;color:var(--ink4)">없음</div>':''}
+    </div>
+    <div class="kb">
+      <div class="kb-h"><span style="font-size:13px">✅</span><span class="kb-t">완료</span><span class="kb-c">${byStatus.done.length}</span></div>
+      ${byStatus.done.map(taskCard).join('')}
+      ${!byStatus.done.length?'<div style="text-align:center;padding:20px;font-size:12px;color:var(--ink4)">없음</div>':''}
+    </div>
+  </div>`;
+}
+
 function renderInternal(){
   if(!DB.internalTasks) DB.internalTasks=[];
   if(!DB.internalMeetings) DB.internalMeetings=[];
@@ -10874,7 +10963,9 @@ function saveIntTask(id){
   else DB.internalTasks.push(obj);
   saveDB(); closeIntModal('mo-int-task');
   _intUpdateBadge();
-  renderIntTasks(document.getElementById('int-tab-content'));
+  // 팀 업무관리 페이지에서 호출된 경우
+  if(window._ttCallback) window._ttCallback();
+  else if(document.getElementById('int-tab-content')) renderIntTasks(document.getElementById('int-tab-content'));
   toast(id?'업무 수정됨':'업무 추가됨','ok');
 }
 
@@ -10883,7 +10974,8 @@ function delIntTask(id){
   DB.internalTasks=(DB.internalTasks||[]).filter(x=>x.id!==id);
   saveDB(); closeIntModal('mo-int-task');
   _intUpdateBadge();
-  renderIntTasks(document.getElementById('int-tab-content'));
+  if(window._ttCallback) window._ttCallback();
+  else if(document.getElementById('int-tab-content')) renderIntTasks(document.getElementById('int-tab-content'));
   toast('삭제됨','ok');
 }
 
