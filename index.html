@@ -1123,6 +1123,131 @@ LG Electronics SEA Team"></textarea>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 'use strict';
+const VENDOR_MASTER=[
+{id:"vendor_2",name:"(유한) 일오고속관광",brn:"608-81-45907",rep:"강미영",addr:"경상남도 창원시 의창구 창원대로 390, 302호(팔용동, 위딘빌딩)",email:"rkd0295@naver.com",tel:'',mobile:'',category:"교통·차량",services:["버스임차료"],note:"거래 1건"},
+{id:"vendor_3",name:"(주) 코스모진여행사",brn:"105-86-31215",rep:"정명진",addr:"서울특별시 중구 을지로 16, 205호(을지로1가, 프레지던트호텔)",email:"kkh@cosmojin.com",tel:'',mobile:'',category:"교통·차량",services:["차량 임차"],note:"거래 1건"},
+{id:"vendor_4",name:"(주)감쪽앤가치",brn:"128-86-88763",rep:"채은경",addr:"경기도 고양시 일산동구 은행마을로 38(풍동)",email:"ladia1204@hanmail.net",tel:'',mobile:'',category:"기념품·선물",services:["가와지인형  중"],note:"거래 1건"},
+{id:"vendor_5",name:"(주)그라운드케이",brn:"238-81-00429",rep:"장동원",addr:"부산광역시 해운대구 센텀동로 45, 405호(우동, (주)웹스)",email:"invoice@groundk.com",tel:'',mobile:'',category:"교통·차량",services:["방산협력 해외 대표단 12인승 차량 수송", "한-폴란드 28인승 우등버스 운행건"],note:"거래 2건"},
+{id:"vendor_6",name:"(주)두잔",brn:"429-87-01517",rep:"전서린",addr:"서울특별시 구로구 디지털로30길 31, 3층 302호(구로동, 코오롱디지털타워빌란트Ⅱ)",email:"seorin.jun@dozan.co.kr",tel:'',mobile:'',category:"IT·디자인",services:["광고 대행"],note:"거래 3건"},
+{id:"vendor_7",name:"(주)빅터시스템",brn:"206-86-37619",rep:"서홍걸",addr:"서울특별시 광진구 용마산로1길 69(중곡동, 본동빌딩 지하1층)",email:"vsgat@naver.com",tel:'',mobile:'',category:"행사 인력",services:["2025 항공방위물류 박람회 운영인력", "보안인력", "2025 ISTC 국제 잠수함 기술 컨퍼런스 인건비"],note:"거래 19건"},
+{id:"vendor_8",name:"(주)스토어링크",brn:"668-85-00856",rep:"김기태",addr:"경기도 김포시 양촌읍 누산봉성로53번길 54 나동",email:"golflogo@naver.com",tel:'',mobile:'',category:"기념품·선물",services:["타이틀리스트 넥스트젠 원형 파우치 블랙"],note:"거래 1건"},
+{id:"vendor_9",name:"(주)에단아이엔씨",brn:"113-86-18722",rep:"안은찬",addr:"경기도 고양시 덕양구 꽃마을로 34, 향동디엠씨스타팰리스 1325호 (향동동)",email:"edaninc@edaninc.com",tel:'',mobile:'',category:"IT·디자인",services:["IMACC 1년 호스팅", "IMACC 컨퍼런스 홈페이지 계약금", "IMACC 컨퍼런스 홈페이지 잔금"],note:"거래 6건"},
+{id:"vendor_10",name:"(주)에스원 송파",brn:"208-81-13302",rep:"남궁범외 1인",addr:"서울특별시 송파구 백제고분로 401, 3층 (송파동, 골재회관)",email:"gaeun00.jeon@samsung.com",tel:'',mobile:'',category:"사무·관리",services:["서비스료 미사용분(20260101~20260131)", "서비스료(20250201~20250228)", "서비스료(20250301~20250331)"],note:"거래 14건"},
+{id:"vendor_11",name:"(주)이카운트",brn:"220-81-65848",rep:"김신래",addr:"서울특별시 강동구 고덕비즈밸리로6길 84 (고덕동) 이카운트",email:"csmail@ecounterp.com",tel:'',mobile:'',category:"사무·관리",services:["2025년 01월 사용료", "2025년 02월 사용료", "2025년 03월 사용료"],note:"거래 12건"},
+{id:"vendor_12",name:"(주)인터컴",brn:"220-81-27882",rep:"최태영, 석재민",addr:"서울특별시 강남구 봉은사로  225 (논현동) 스퀘어미빌딩 4~7층",email:"ischo@intercom.co.kr",tel:'',mobile:'',category:"숙박·연회",services:["GBCC 2025 소미팅룸 대관료"],note:"거래 1건"},
+{id:"vendor_13",name:"(주)조선호텔앤리조트 그랜드조선 부산",brn:"719-85-01435",rep:"전상진",addr:"부산 해운대구 해운대해변로 292 (중동, 그랜드 조선 부산)",email:"kim.hl@grandjosun.com",tel:'',mobile:'',category:"숙박·연회",services:["호텔 사용료"],note:"거래 1건"},
+{id:"vendor_14",name:"(주)타라티피에스 그래픽스사업부문",brn:"603-85-27237",rep:"강호연,강경중",addr:"서울 강남구 테헤란로63길 11 5층(삼성동, 이노센스빌딩)",email:"sj.jang@taragrp.co.kr",tel:'',mobile:'',category:"IT·디자인",services:["KIC2025 뉴스레터 디자인"],note:"거래 1건"},
+{id:"vendor_15",name:"(주)한국이엔아이인터내셔널",brn:"214-86-32139",rep:"정희재",addr:"서울특별시 성동구 성수이로 51 1203(성수동2가,서울숲한라시그마밸리)",email:"messewor1@naver.com",tel:'',mobile:'',category:"IT·디자인",services:["항공방위물류박람회 전시시스템 선금", "항공방위물류박람회 전시시스템 선금 2차", "항공방위물류박람회 전시시스템 잔금"],note:"거래 4건"},
+{id:"vendor_16",name:"(주)호텔롯데 시그니엘부산",brn:"262-85-01211",rep:"정호석",addr:"부산광역시 해운대구 달맞이길 30(중동)",email:"Yulia_Park@lotte.net",tel:'',mobile:'',category:"숙박·연회",services:["MADEX 2025 류민구님 숙박비용"],note:"거래 1건"},
+{id:"vendor_17",name:"(주)휴머스온",brn:"147-87-02929",rep:"백동훈",addr:"서울 강남구 선릉로 433, 10, 12층",email:"postman@humuson.com",tel:'',mobile:'',category:"IT·디자인",services:["발송서비스(무통장)"],note:"거래 5건"},
+{id:"vendor_18",name:"Global in Focus",brn:"204-14-54371",rep:"김관주",addr:"서울특별시 동대문구 회기로 185-1, 2,3층(휘경동)",email:"photoman-k@naver.com",tel:'',mobile:'',category:"사진·영상",services:["사진촬영", "사진촬영 등"],note:"거래 6건"},
+{id:"vendor_19",name:"e편한퀵서비스",brn:"220-06-06804",rep:"이흥락",addr:"서울특별시 서초구 마방로10길 15, 비동 209호(양재동, 트윈타워)",email:"dkgmdfkr@naver.com",tel:'',mobile:'',category:"운송·배송",services:["운송료"],note:"거래 10건"},
+{id:"vendor_20",name:"studio30",brn:"105-14-32819",rep:"조세영",addr:"서울특별시 마포구 월드컵북로 98, 2층 202호(성산동)",email:"zimn449@gmail.com",tel:'',mobile:'',category:"숙박·연회",services:["포시즌 호텔 행사사진 촬영"],note:"거래 1건"},
+{id:"vendor_21",name:"갤러리운수",brn:"226-09-27206",rep:"장영미",addr:"강원특별자치도 강릉시 사임당로489번길 41(대전동)",email:"galleryunsu@gmail.com",tel:'',mobile:'',category:"기념품·선물",services:["종이액자"],note:"거래 1건"},
+{id:"vendor_22",name:"고구려",brn:"504-13-68540",rep:"이성정",addr:"대구광역시 중구 태평로 268",email:"",tel:'',mobile:'',category:"기념품·선물",services:["탁상기"],note:"거래 1건"},
+{id:"vendor_23",name:"국가유산진흥원",brn:"203-82-02904",rep:"이귀영",addr:"서울특별시 강남구 봉은사로 406(삼성동)",email:"b2b@kh.or.kr",tel:'',mobile:'',category:"기념품·선물",services:["일월오봉도볼펜세트"],note:"거래 1건"},
+{id:"vendor_24",name:"금강문화사",brn:"119-06-17942",rep:"김상준",addr:"경기도 고양시 일산서구 주엽동 17 동부썬프라자 B동 116호",email:"kumkangpp@naver.com",tel:'',mobile:'',category:"인쇄·제작",services:["경쟁력포험 책자"],note:"거래 2건"},
+{id:"vendor_25",name:"금오인쇄소",brn:"513-01-67713",rep:"김승일",addr:"경상북도 구미시 형곡로 205(형곡동)",email:"kumo4842@naver.com",tel:'',mobile:'',category:"인쇄·제작",services:["2025 항공방위물류 박람회 중간보고회 책자", "리플렛"],note:"거래 2건"},
+{id:"vendor_26",name:"나누리",brn:"171-03-00526",rep:"박종호",addr:"서울특별시 서초구 강남대로93길 32, 2층 293호(잠원동)",email:"rx782jh@gmail.com",tel:'',mobile:'',category:"교통·차량",services:["IMACC2025 차량운행서비스(승용", "승합차", "이장호 실장님)"],note:"거래 12건"},
+{id:"vendor_27",name:"노무법인 유영",brn:"645-88-02930",rep:"손유권",addr:"서울특별시 강남구 선릉로 578 (삼성동, 태정빌딩)  7층3호",email:"cplayk@naver.com",tel:'',mobile:'',category:"전문직·자문",services:["10월 자문료", "노무 자문비용", "지원금 대행 수수료"],note:"거래 17건"},
+{id:"vendor_28",name:"다룸코리아(Darum Korea)",brn:"721-68-00029",rep:"권동욱",addr:"서울특별시 송파구 마천로65길 5, B01호(마천동)",email:"darumkorea@naver.com",tel:'',mobile:'',category:"사진·영상",services:["2025항공방위물류박람회 전시기획", "REPUBLIC OF KOREA ROMANIA 포토존"],note:"거래 4건"},
+{id:"vendor_29",name:"다채로움",brn:"161-24-00179",rep:"김태현",addr:"서울특별시 강동구 명일로18길 17-4, 302호(길동, 토성하우스)",email:"colorati@naver.com",tel:'',mobile:'',category:"인쇄·제작",services:["2025 AI컨퍼런스", "2025년 CIPA 국제심포지엄", "디자인 및 출력물"],note:"거래 5건"},
+{id:"vendor_30",name:"더더기획",brn:"611-10-31428",rep:"서준호",addr:"서울특별시 관악구 신림로3가길 38, 204호(신림동)",email:"thephotozone@naver.com",tel:'',mobile:'',category:"사진·영상",services:["행사포토월 등 대여(드래곤시티)"],note:"거래 1건"},
+{id:"vendor_31",name:"더베스트 케이터링",brn:"897-34-00618",rep:"고금주",addr:"서울특별시 송파구 백제고분로 75, 지하1층 104호(잠실동, 올림피아)",email:"arie102@naver.com",tel:'',mobile:'',category:"식음료",services:["케이터링", "케이터링과 푸드 박스"],note:"거래 2건"},
+{id:"vendor_32",name:"룰루메딕 주식회사",brn:"370-86-02648",rep:"김영웅, 우성한",addr:"서울특별시 강남구 테헤란로87길  29 (삼성동,엠타워) 4층 402호",email:"billing@lulumedic.com",tel:'',mobile:'',category:"식음료",services:["해외긴급지원이후송서비스"],note:"거래 3건"},
+{id:"vendor_33",name:"리브리",brn:"202-82-69673",rep:"김희나",addr:"서울특별시 마포구 월드컵로34길 7, 12층 1216호(성산동, 상암 스위트포레)",email:"heenaa@naver.com",tel:'',mobile:'',category:"투어·공연",services:["삼청각 재즈 공연 김희나 밴드"],note:"거래 1건"},
+{id:"vendor_34",name:"모나테이블",brn:"291-40-00636",rep:"박지희",addr:"대구광역시 수성구 들안로13길 87, 1층(상동)",email:"seren0209@naver.com",tel:'',mobile:'',category:"식음료",services:["방위사업청 다과 도시락"],note:"거래 1건"},
+{id:"vendor_35",name:"미라클디자인 주식회사",brn:"161-88-01113",rep:"윤성호",addr:"경기도 고양시 일산동구 노첨길 76(장항동)",email:"mdizain@naver.com",tel:'',mobile:'',category:"식음료",services:["현수막 제작"],note:"거래 1건"},
+{id:"vendor_36",name:"미래관광（주）",brn:"616-81-30972",rep:"이정훈",addr:"제주특별자치도 제주시 애월읍 광령평화10길 21",email:"mr30972@naver.com",tel:'',mobile:'',category:"교통·차량",services:["차량임대료(10.29-31 강인용)"],note:"거래 1건"},
+{id:"vendor_37",name:"미래네트웍스 주식회사",brn:"119-86-53921",rep:"천기남",addr:"서울특별시 송파구 송파대로 167, 비동 비411호(문정동, 문정역테라타워)",email:"miraenw@naver.com",tel:'',mobile:'',category:"식음료",services:["10월 인터넷 사용료", "11월 인터넷 사용료", "12월 인터넷 사용료"],note:"거래 12건"},
+{id:"vendor_38",name:"반짝반짝청소 (송파지점)",brn:"266-46-00627",rep:"이선우",addr:"서울특별시 송파구 법원로 128, C동 1105-12호(문정동, 문정에스케이브이원지엘메트로시티)",email:"lsw8945@gmail.com",tel:'',mobile:'',category:"사무·관리",services:["사무실 정기 청소(4회)", "사무실 정기 청소(5층)", "사무실 정기 청소(5회)"],note:"거래 10건"},
+{id:"vendor_39",name:"배너피아（Bannerpia）",brn:"229-03-02560",rep:"조형철",addr:"경기도 파주시 조리읍 당재봉로 59-15",email:"o3g@naver.com",tel:'',mobile:'',category:"인쇄·제작",services:["N배너(UV 600*1800) B타입외"],note:"거래 2건"},
+{id:"vendor_40",name:"법무사김정철사무소",brn:"214-03-28758",rep:"김정철",addr:"서울특별시 서초구 법원로2길 15, 204호(서초동, 길도빌딩 2층)",email:"zanga100@hanmail.net",tel:'',mobile:'',category:"전문직·자문",services:["관내 본점이전 등기의 건"],note:"거래 1건"},
+{id:"vendor_41",name:"본도시락옥계점",brn:"513-09-80158",rep:"박희열",addr:"경상북도 구미시 옥계북로 74(옥계동)",email:"parkhy5kr@naver.com",tel:'',mobile:'',category:"식음료",services:["도시락"],note:"거래 1건"},
+{id:"vendor_42",name:"부동산수 공인중개사사무소",brn:"760-03-00947",rep:"이태준",addr:"서울특별시 송파구 법원로 128, B동 1층 112호(문정동, 문정SK V1)",email:"eazy33@hanmail.net",tel:'',mobile:'',category:"전문직·자문",services:["중개보수료"],note:"거래 1건"},
+{id:"vendor_43",name:"부자부동산중개법인 주식회사",brn:"760-88-01303",rep:"한유정",addr:"서울특별시 송파구 송파대로 167, 에이동 1층 110호(문정동, 문정역테라타워)",email:"hhh4607@nate.com",tel:'',mobile:'',category:"식음료",services:["중개보수"],note:"거래 1건"},
+{id:"vendor_44",name:"블루문(Blue Moon)",brn:"485-04-00761",rep:"문현수",addr:"서울특별시 송파구 송파대로 201, A-806호(문정동, 송파 테라타워2 현대엔지니어링 지식산업센터)",email:"jbkarra@naver.com",tel:'',mobile:'',category:"사무·관리",services:["임대료"],note:"거래 12건"},
+{id:"vendor_45",name:"블루섬머린",brn:"214-11-58465",rep:"신영권",addr:"서울특별시 서초구 효령로29길 19,  지1층 지101호(방배동, 다복솔빌딩)",email:"team@backstage.co.kr",tel:'',mobile:'',category:"기념품·선물",services:["무광면테이프 블랙"],note:"거래 1건"},
+{id:"vendor_46",name:"사)한국우주항공산업협회",brn:"116-82-05039",rep:"강구영",addr:"서울특별시 마포구 대흥로 26 (용강동)",email:"cecilria@aerospace.or.kr",tel:'',mobile:'',category:"교통·차량",services:["ADEX2025_영국 대표단 차량 임차비"],note:"거래 1건"},
+{id:"vendor_47",name:"사단법인 한국산업경제연구소",brn:"112-82-03306",rep:"장현우",addr:"서울특별시 관악구 남부순환로 1838, 8층(봉천동, C.S타워)",email:"kiies@daum.net",tel:'',mobile:'',category:"전문직·자문",services:["원가조사용역[2025 고양 데스티네이션 위크 행사 대행 용역]"],note:"거래 1건"},
+{id:"vendor_48",name:"삼우기획",brn:"215-18-13801",rep:"허일회",addr:"서울특별시 송파구 중대로 218(가락동, 신광빌딩)",email:"dirmh@naver.com",tel:'',mobile:'',category:"인쇄·제작",services:["리플렛"],note:"거래 1건"},
+{id:"vendor_49",name:"서울평가정보(주)",brn:"114-81-47958",rep:"고인묵",addr:"서울특별시 영등포구 국회대로 70길 23(여의도동,용산빌딩)",email:"2181199@sci.co.kr",tel:'',mobile:'',category:"전문직·자문",services:["평가수수료"],note:"거래 1건"},
+{id:"vendor_50",name:"송파테라타워2 관리단",brn:"621-82-88212",rep:"조윤섭",addr:"서울 송파구 송파대로 201A동 지하1층 관리사무소(문정동, 송파테라타워2)",email:"teratera2@naver.com",tel:'',mobile:'',category:"사무·관리",services:["2024년12월 관리비", "2025년01월 관리비", "2025년02월 관리비"],note:"거래 24건"},
+{id:"vendor_51",name:"쉐프의 밥상",brn:"402-36-08959",rep:"안경철",addr:"서울특별시 송파구 송파대로 201, A동 지1층 지-103,104,105,106호(문정동, 송파 테라타워2)",email:"akc3355@naver.com",tel:'',mobile:'',category:"식음료",services:["10월 식대", "1월 식대", "2월 식대"],note:"거래 16건"},
+{id:"vendor_52",name:"에이에이주식회사",brn:"109-86-50965",rep:"김성현",addr:"서울특별시 강서구 하늘길 210, 3층(공항동, 364-4호)",email:"invoice@doubleagroup.net",tel:'',mobile:'',category:"교통·차량",services:["공항의전 서비스"],note:"거래 1건"},
+{id:"vendor_53",name:"엠빅 주식회사",brn:"120-86-15456",rep:"최두성",addr:"서울특별시 송파구 법원로11길 25 (문정동) 에이치비지니스파크 A동 311호",email:"mbig@mbig1998.com",tel:'',mobile:'',category:"식음료",services:["TRS 렌탈", "TRS무전기 렌탈"],note:"거래 2건"},
+{id:"vendor_54",name:"오성기획",brn:"430-03-00560",rep:"오종호",addr:"인천광역시 서구 백범로 611, 101호(가좌동, 아르테크 주안 지식산업센터)",email:"oncom1118@naver.com",tel:'',mobile:'',category:"인쇄·제작",services:["KIC2025 제작물"],note:"거래 1건"},
+{id:"vendor_55",name:"오케이코리아",brn:"645-05-02655",rep:"유진영 외 1명",addr:"인천광역시 중구 영종대로162번길 26, 제 10층 1031호(운서동, 삼성홈큐브)",email:"delight020@naver.com",tel:'',mobile:'',category:"교통·차량",services:["MVS 올데이&픽업&샌딩 수송건", "SMA PT 픽업", "샌딩 의전서비스"],note:"거래 11건"},
+{id:"vendor_56",name:"와이엠피 (YMP)",brn:"605-26-69143",rep:"윤진혁",addr:"부산광역시 부산진구 대학로 3, 906호(가야동, 세화빌딩)",email:"yoonsine1@naver.com",tel:'',mobile:'',category:"기념품·선물",services:["오죽선 (사군자) 기성 중형 부채"],note:"거래 1건"},
+{id:"vendor_57",name:"우드끌로",brn:"654-34-00097",rep:"김은영",addr:"대구광역시 달서구 월배로14길 53(진천동)",email:"momgru@naver.com",tel:'',mobile:'',category:"기념품·선물",services:["수제볼펜"],note:"거래 1건"},
+{id:"vendor_58",name:"우뜨",brn:"461-62-00144",rep:"박원식",addr:"경기도 구리시 갈매순환로166번길 45, 2층 H236호(갈매동, 구리갈매 아너시티)",email:"won@wootte.com",tel:'',mobile:'',category:"기념품·선물",services:["원목트로피"],note:"거래 2건"},
+{id:"vendor_59",name:"우림기획인쇄",brn:"802-18-00148",rep:"편옥자",addr:"서울특별시 송파구 법원로4길 6, 지하1층 110호(문정동, 문정아이파크)",email:"okj9949@naver.com",tel:'',mobile:'',category:"인쇄·제작",services:["교재 인쇄비", "명찰 인쇄비"],note:"거래 2건"},
+{id:"vendor_60",name:"우진앤팩",brn:"104-08-53106",rep:"오상은",addr:"서울특별시 중구 청계천로 210-1(주교동 가,20호)",email:"",tel:'',mobile:'',category:"기념품·선물",services:["무광T3 화이트 외 1종", "무광T3 화이트 외 2종"],note:"거래 6건"},
+{id:"vendor_61",name:"유레카 특허법률사무소",brn:"709-19-01224",rep:"김예슬",addr:"인천광역시 서구 중봉대로 490, 지원시설동 7층 783,784호(청라동)",email:"yskim@eurekapat.com",tel:'',mobile:'',category:"전문직·자문",services:["대리인수수료", "등록대행료"],note:"거래 2건"},
+{id:"vendor_62",name:"윤미디어스",brn:"728-55-00511",rep:"박아름",addr:"서울특별시 송파구 법원로 128, C동 지층 114호 P143(문정동, 문정에스케이브이원지엘메트로시티)",email:"yoonmedias@gmail.com",tel:'',mobile:'',category:"사진·영상",services:["MVS_tour_선급금", "MVS_tour_잔금"],note:"거래 4건"},
+{id:"vendor_63",name:"이지스",brn:"514-23-36971",rep:"김묘경",addr:"대구광역시 북구 침산로22길 31, 102동 704호(침산동, 침산동코오롱하늘채)",email:"aegis7720@naver.com",tel:'',mobile:'',category:"IT·디자인",services:["2025 항공방위물류 박람회 (GADLEX 2025) 등록시스템 운영"],note:"거래 2건"},
+{id:"vendor_64",name:"인천공항세관",brn:"109-83-02763",rep:"인천공항세관장",addr:"인천광역시 중구 공항로 272 (운서동)",email:"",tel:'',mobile:'',category:"기타",services:["nan"],note:"거래 4건"},
+{id:"vendor_65",name:"일루 퓨전한식",brn:"221-35-15285",rep:"김민정",addr:"서울특별시 송파구 송파대로 201, A동 G층 117,118,119호(문정동, 송파 테라타워2)",email:"indian32@nate.com",tel:'',mobile:'',category:"식음료",services:["식대"],note:"거래 16건"},
+{id:"vendor_66",name:"제이엘",brn:"109-14-78175",rep:"배동현",addr:"서울특별시 강서구 가로공원로 232(화곡동, 제이엘빌딩2층)",email:"ggaggung70@naver.com",tel:'',mobile:'',category:"기념품·선물",services:["더블에이 복사용지(A4/80g/500매*5권/박스)외", "코인 기념패 제작", "코인 제작"],note:"거래 8건"},
+{id:"vendor_67",name:"조일테크",brn:"107-16-58901",rep:"김승동",addr:"서울특별시 영등포구  양평로22길 21 01211(양평동5가,선유도코오롱디지털타워지상12층)",email:"rkdrla2@hanmail.net",tel:'',mobile:'',category:"기념품·선물",services:["7번비닐케이스", "곤색멜빵양고리 목걸이줄", "빨강붕어단고리목걸이줄"],note:"거래 4건"},
+{id:"vendor_68",name:"좋은소리 창작소",brn:"513-14-71764",rep:"정택봉",addr:"경상북도 구미시 신비로4길 16-1, 1층(신평동)",email:"sound-g@hanmail.net",tel:'',mobile:'',category:"교통·차량",services:["박람회 음향외", "음향임차"],note:"거래 3건"},
+{id:"vendor_69",name:"주식회사 광버스",brn:"130-86-56186",rep:"오종근",addr:"경기도 김포시 고촌읍 은행영사정로9,206호(한강프라자)",email:"kwangbus@nate.com",tel:'',mobile:'',category:"교통·차량",services:["차량대절비"],note:"거래 2건"},
+{id:"vendor_70",name:"주식회사 광화문169 (Gwanghwamun 169 Co., Ltd.)",brn:"429-88-02658",rep:"김인국",addr:"서울특별시 종로구 새문안로5길 13, 1105호(당주동, 변호사회관빌딩)",email:"taxbill@ghm169.com",tel:'',mobile:'',category:"숙박·연회",services:["퀴진광화 | 방위사업청-CSIS 오찬 및 대관"],note:"거래 3건"},
+{id:"vendor_71",name:"주식회사 금오산맥",brn:"513-81-88267",rep:"강나원",addr:"경상북도 구미시 금오시장로6길 7, 2층 금오빌딩(원평동)",email:"gmr0911@hanmail.net",tel:'',mobile:'',category:"식음료",services:["항공물류박람회 행사 인건비(9/22~9/26)"],note:"거래 1건"},
+{id:"vendor_72",name:"주식회사 늘솜커뮤니케이션",brn:"113-86-82447",rep:"오세진",addr:"경기도 파주시 광탄면 소라울2길 60-50",email:"sejin.oh@nulsom.kr",tel:'',mobile:'',category:"교통·차량",services:["GAP 홍보 잔금", "박람회 운영 인력", "박람회 운영인력"],note:"거래 4건"},
+{id:"vendor_73",name:"주식회사 디퍼루트",brn:"145-88-01810",rep:"박재준",addr:"서울특별시 은평구 통일로69길 7, 2 층 201 호(대조동)",email:"office@droute.io",tel:'',mobile:'',category:"식음료",services:["IMACC 등록시스템"],note:"거래 1건"},
+{id:"vendor_74",name:"주식회사 리드투어",brn:"211-87-52550",rep:"이용권",addr:"서울특별시 종로구 인사동5길 25, 812호(인사동, 하나로빌딩)",email:"leadtour@daum.net",tel:'',mobile:'',category:"식음료",services:["CSIS 행사 발권수수료 外", "감황인증 행사 발권수수료", "방산수출 다변화를 위한 25년 국내외행사 용역 발권수수료"],note:"거래 8건"},
+{id:"vendor_75",name:"주식회사 마이스피플",brn:"566-87-00592",rep:"최병재 외 1 명",addr:"대전광역시 유성구 계룡로 114, 11층 1103호(봉명동, 대전유성BYC빌딩)",email:"mice3943@micein.co.kr",tel:'',mobile:'',category:"식음료",services:["청정수소 R&D 혁신연합 출범식 개최 지원 용역"],note:"거래 3건"},
+{id:"vendor_76",name:"주식회사 뷰미디어",brn:"186-87-01376",rep:"문태성",addr:"경기도 김포시 양촌읍 김포한강4로278번길 99, 가동",email:"view-media@daum.net",tel:'',mobile:'',category:"교통·차량",services:["행사장비 임차"],note:"거래 1건"},
+{id:"vendor_77",name:"주식회사 비엠미디어 (BM Media Inc.)",brn:"208-87-02807",rep:"한상혁 외 1 명",addr:"경기도 수원시 영통구 광교중앙로248번길 7-3, 3층 다꿈비즈니스센터 398호(하동, 우연법전프라자)",email:"b-media@b-media.co.kr",tel:'',mobile:'',category:"식음료",services:["KIC 시스템", "첨단바이오 의약품건", "해양바이오산업 발전을 위한 산·학·연·정 협력 세미나"],note:"거래 3건"},
+{id:"vendor_78",name:"주식회사 숲플랜컴퍼니",brn:"214-88-55489",rep:"여인호",addr:"서울특별시 서초구 효령로68길 59(서초동, 동인빌딩 지층)",email:"soopplan@soopplan.com",tel:'',mobile:'',category:"식음료",services:["KIC2025 공연 게런티(팜페라 한아름)"],note:"거래 1건"},
+{id:"vendor_79",name:"주식회사 에스에이솔루션",brn:"541-87-00161",rep:"홍승아",addr:"서울특별시 성동구 아차산로 49, 비104호(성수동1가, 코오롱디지털타워3차)",email:"tax@sa-solution.co.kr",tel:'',mobile:'',category:"식음료",services:["2025년  1월 임대료", "2025년  2월 임대료", "2025년  3월 임대료"],note:"거래 18건"},
+{id:"vendor_80",name:"주식회사 에이프린트",brn:"248-86-01755",rep:"김봉환",addr:"서울특별시 중구 충무로 29, 704~706호(초동, 아시아미디어타워)",email:"aprint1@naver.com",tel:'',mobile:'',category:"식음료",services:["2025KIC 프로그램북"],note:"거래 5건"},
+{id:"vendor_81",name:"주식회사 엑스퍼트홀딩스",brn:"479-88-02949",rep:"김용재",addr:"경기도 용인시 기흥구 동백중앙로 191, 8층 디8485호(중동, 씨티프라자)",email:"germany1800@naver.com",tel:'',mobile:'',category:"식음료",services:["경영컨설팅-기업인증", "경영자문 등"],note:"거래 1건"},
+{id:"vendor_82",name:"주식회사 엘에스컴퍼니",brn:"240-86-02594",rep:"신재진",addr:"경기도 부천시 오정구 고강로72번길 49, 지하101호(고강동, 청암빌딩)",email:"youngshin193@naver.com",tel:'',mobile:'',category:"식음료",services:["pvc가방"],note:"거래 1건"},
+{id:"vendor_83",name:"주식회사 엠케이1025",brn:"746-87-02712",rep:"김민경",addr:"경기도 고양시 일산서구 킨텍스로 217-59, 오피스동 902호(대화동, 제2킨텍스)",email:"kmk3572@naver.com",tel:'',mobile:'',category:"식음료",services:["2025 고양 데스티네이션 위크 디자인"],note:"거래 1건"},
+{id:"vendor_84",name:"주식회사 오케이소프트",brn:"799-88-01354",rep:"황정숙 외 1 명",addr:"경기도 고양시 덕양구 삼원로 63, 806~809호(원흥동, 고양 아크비즈 지식산업센터)",email:"special@okaysoft.co.kr",tel:'',mobile:'',category:"식음료",services:["KIC 홈페이지 행사 운영 지원 (선금)", "KIC 홈페이지 행사 운영 지원 (잔금)"],note:"거래 2건"},
+{id:"vendor_85",name:"주식회사 윤커뮤니케이션",brn:"586-81-02291",rep:"정지윤",addr:"부산광역시 남구 분포로 113, 216동 1403호(용호동, 엘지메트로시티)",email:"jjyun0324@naver.com",tel:'',mobile:'',category:"통역·번역",services:["통역사 지원", "한영동시통역(9/22~24)"],note:"거래 3건"},
+{id:"vendor_86",name:"주식회사 일성양행",brn:"202-81-52122",rep:"김대준",addr:"서울 중구 충무로 4길 2, 3층 (초동) 3층",email:"junad2261@naver.com",tel:'',mobile:'',category:"식음료",services:["폼보드 출력 외3건"],note:"거래 1건"},
+{id:"vendor_87",name:"주식회사 잘론네츄럴",brn:"101-87-00702",rep:"이현주",addr:"서울특별시 마포구 마포대로 49, 4층 1,2,3,4,5,6호(도화동, 성우빌딩)",email:"believe_order@naver.com",tel:'',mobile:'',category:"식음료",services:["프레비츠 에어핏 선스틱 키링(민트) 1EA"],note:"거래 1건"},
+{id:"vendor_88",name:"주식회사 제이엠커넥티드",brn:"139-81-67521",rep:"임지민",addr:"서울특별시 강서구 양천로 583, A동 19층 1904호(염창동, 우림블루나인비즈니스센터)",email:"jc@jmconnected.co.kr",tel:'',mobile:'',category:"식음료",services:["용산 드래곤시티 행사운영 용역", "이태원참사 추모행사 통역 용역"],note:"거래 2건"},
+{id:"vendor_89",name:"주식회사 제이케이모건",brn:"222-86-01637",rep:"강진규",addr:"서울특별시 중구 퇴계로27길 33-1, 2층(충무로3가)",email:"good_luck@nate.com",tel:'',mobile:'',category:"식음료",services:["출력 외"],note:"거래 2건"},
+{id:"vendor_90",name:"주식회사 줌네트웍스",brn:"416-81-68709",rep:"김연희",addr:"경상북도 구미시 1공단로 212, 409호(공단동, 한라시그마밸리)",email:"tax2@zoomnet.pro",tel:'',mobile:'',category:"식음료",services:["구미코 행사장 인터넷 회선설치 7회선"],note:"거래 1건"},
+{id:"vendor_91",name:"주식회사 지투어",brn:"814-88-02458",rep:"이희승",addr:"경기도 김포시 고촌읍 은행영사정로 19, 5층(도우빌딩)",email:"jitour1596@naver.com",tel:'',mobile:'',category:"교통·차량",services:["25-4월 차량운임", "25-8월 차량운임"],note:"거래 2건"},
+{id:"vendor_92",name:"주식회사 케이티",brn:"102-81-42945",rep:"김영섭",addr:"경기도 성남시 분당구 불정로 90",email:"",tel:'',mobile:'',category:"식음료",services:["5G 슬림 4GB (01066725740)", "biz 인터넷전화 Centrex (007042685022)", "biz 인터넷전화 Centrex (007077703658)"],note:"거래 37건"},
+{id:"vendor_93",name:"주식회사 포디아이",brn:"114-86-72995",rep:"박정진",addr:"서울특별시 구로구 디지털로 272, 707호(구로동, 한신아이티타워)",email:"ag0815@hanmail.net",tel:'',mobile:'',category:"식음료",services:["삼성 갤럭시 버즈 3"],note:"거래 1건"},
+{id:"vendor_94",name:"주식회사 포커스인터내셔날",brn:"206-86-80566",rep:"류근찬",addr:"서울특별시 성동구 천호대로 400, 102호(용답동, 신창비바패밀리)",email:"goodfocus04@goodfocus.co.kr",tel:'',mobile:'',category:"통역·번역",services:["2025 국용항공기 감항인증 국제 컨퍼런스 통역시스템", "2025 고양 데스티네이션 위크 통역시스템", "2025 국제 잠수함 기술 컨퍼런스(ISTC) 통역시스템"],note:"거래 7건"},
+{id:"vendor_95",name:"주식회사 피플앤밸류",brn:"536-86-01195",rep:"전민정",addr:"서울특별시 강서구 마곡중앙로 161-8, 씨동 6층 606호(마곡동, 두산더랜드파크)",email:"rosa@peoplenvalue.com",tel:'',mobile:'',category:"식음료",services:["연사 항공권(폴란드)"],note:"거래 1건"},
+{id:"vendor_96",name:"주식회사 한복남",brn:"735-86-00546",rep:"박세상",addr:"서울특별시 종로구 사직로 133-5(적선동)",email:"account@hanboknam.com",tel:'',mobile:'',category:"식음료",services:["한복체험"],note:"거래 1건"},
+{id:"vendor_97",name:"주식회사 해피밸리",brn:"807-87-02623",rep:"강동근",addr:"경기도 광주시 신현동 346-12 해피밸리AZONE 101호",email:"happyvalley0101@gmail.com",tel:'',mobile:'',category:"교통·차량",services:["수송대행"],note:"거래 1건"},
+{id:"vendor_98",name:"지비더블유 투어(GBW TOUR)",brn:"574-25-01084",rep:"이선희",addr:"경기도 고양시 덕양구 호국로 1532, 나동(대자동)",email:"gbwgt1215@naver.com",tel:'',mobile:'',category:"교통·차량",services:["4/13~19 VIP투어", "5/25~28 삼성의전(스페인)", "7/16~18 브라질VIP의전"],note:"거래 4건"},
+{id:"vendor_99",name:"진 기획",brn:"591-09-02531",rep:"김상진",addr:"전북특별자치도 군산시 개정면 번영로 494, 2층 1호",email:"wlstkd714@naver.com",tel:'',mobile:'',category:"인쇄·제작",services:["자료인쇄제본", "첨단 바이오 약품 허가 워크숍"],note:"거래 2건"},
+{id:"vendor_100",name:"채널케이",brn:"132-28-15013",rep:"이윤경",addr:"",email:"",tel:'',mobile:'',category:"행사대행",services:["세금", "행사 대행료"],note:"거래 18건"},
+{id:"vendor_101",name:"캘리존",brn:"101-08-54090",rep:"장운식",addr:"서울특별시 종로구 인사동길 33  1층",email:"sok7809@naver.com",tel:'',mobile:'',category:"기념품·선물",services:["수제도장"],note:"거래 1건"},
+{id:"vendor_102",name:"케이엠플러스",brn:"228-57-00373",rep:"김경미",addr:"서울특별시 서초구 방배로 21",email:"kkm7139@naver.com",tel:'',mobile:'',category:"행사 인력",services:["2025 국제 잠수함 기술 컨퍼런스 사회자", "konect 사회자", "감항인증 컨퍼런스 사회자"],note:"거래 3건"},
+{id:"vendor_103",name:"콤마프로젝트",brn:"219-05-28757",rep:"고은비",addr:"경기도 수원시 권선구 호매실로166번길 63, 1902동 702호(호매실동, 호매실스위첸)",email:"commadp@gmail.com",tel:'',mobile:'',category:"IT·디자인",services:["키비주얼 및 제작물 디자인", "키비주얼디자인"],note:"거래 2건"},
+{id:"vendor_104",name:"테딘스",brn:"815-30-01505",rep:"조성용",addr:"경기도 김포시 김포한강8로 173-59, 108동 1902호(마산동, e편한세상 한강신도시2차)",email:"ted@tedins.com",tel:'',mobile:'',category:"IT·디자인",services:["2025 가들렉스(GADLEX) 실행 디자인", "2025 핵심광물 국제포럼 키비쥬얼 디자인", "DAPA IDCE 키비쥬얼 디자인"],note:"거래 11건"},
+{id:"vendor_105",name:"팀요술",brn:"356-25-00624",rep:"김호수",addr:"인천광역시 남동구 남동서로236번길 30, 222-H135호(논현동, 논현2차푸르지오시티)",email:"from.momo@gmail.com",tel:'',mobile:'',category:"사진·영상",services:["사진촬영"],note:"거래 1건"},
+{id:"vendor_106",name:"평화상사",brn:"108-01-51697",rep:"모덕기",addr:"서울특별시 동작구 양녕로36길 17(상도동)",email:"icecarving@naver.com",tel:'',mobile:'',category:"투어·공연",services:["얼음조각"],note:"거래 1건"},
+{id:"vendor_107",name:"푸른기획",brn:"202-01-28668",rep:"박인수",addr:"서울특별시 성동구 아차산로11길 11, 301호(성수동2가, 동성빌딩)",email:"prproda@hanmail.net",tel:'',mobile:'',category:"인쇄·제작",services:["ISTC 제작물", "감항인증 제작물", "첨단바이오의약품 허가교육 워크숍 제작물"],note:"거래 6건"},
+{id:"vendor_108",name:"푸른솔관광(주)",brn:"229-81-37806",rep:"박형옥,윤용현",addr:"서울 중구 서소문로9길 28 1층 128호(순화동)",email:"purunsol@bill36524.com",tel:'',mobile:'',category:"교통·차량",services:["전세버스"],note:"거래 5건"},
+{id:"vendor_109",name:"프라임렌트카（주）",brn:"506-81-46202",rep:"김상수",addr:"서울특별시 송파구 송파대로 394, 3층(송파동)",email:"primerent@hanmail.net",tel:'',mobile:'',category:"교통·차량",services:["차량대여료"],note:"거래 1건"},
+{id:"vendor_110",name:"프린토피아 (PRINTOPIA)",brn:"220-02-75716",rep:"조원희",addr:"서울특별시 송파구 법원로11길 25, 제지1층 에이-비108호(문정동, 에이치비지니스파크)",email:"printmax@naver.com",tel:'',mobile:'',category:"인쇄·제작",services:["ID카드", "ID카드", "ID카드(방사청)"],note:"거래 9건"},
+{id:"vendor_111",name:"플리에 아트 컴퍼니",brn:"391-09-00364",rep:"윤보애",addr:"서울특별시 강남구 논현로157길 20, 지하1층(신사동)",email:"plie-art@naver.com",tel:'',mobile:'',category:"사진·영상",services:["미디어퍼포먼스"],note:"거래 1건"},
+{id:"vendor_112",name:"픽시케익&픽시쿠키",brn:"384-03-01892",rep:"김은정",addr:"서울특별시 광진구 능동로 169, 3층(화양동)",email:"rainbowpixy@naver.com",tel:'',mobile:'',category:"기념품·선물",services:["로고쿠키"],note:"거래 1건"},
+{id:"vendor_113",name:"하나정보",brn:"413-09-37517",rep:"이충성",addr:"서울 광진구 천호대로114길50. 203호",email:"hanaoa-tax@naver.com",tel:'',mobile:'',category:"숙박·연회",services:["12월 복합기 단기임대", "A3컬러복합기 단기렌탈", "로카우스호텔 복합기 단기"],note:"거래 3건"},
+{id:"vendor_114",name:"학교법인해광학원",brn:"220-82-03567",rep:"윤종훈",addr:"서울특별시 서초구 남부순환로356길 85 (양재동)",email:"itc2@sufs.ac.kr",tel:'',mobile:'',category:"통역·번역",services:["2025 고양 데스티네이션 위크 통역", "2025 국제 잠수함 기술 컨퍼런스 통역", "2025 군용항공기 감항인증 국제 컨퍼런스 통역"],note:"거래 7건"},
+{id:"vendor_115",name:"한국전자인증(주)",brn:"214-86-30830",rep:"신홍식",addr:"서울특별시 서초구 서초대로 62길 9-22 (자동차산업회관) 5층",email:"finance@crosscert.com",tel:'',mobile:'',category:"사무·관리",services:["국민은행 인증서"],note:"거래 1건"},
+{id:"vendor_116",name:"한울플러스",brn:"772-53-00080",rep:"권승희",addr:"전북특별자치도 군산시 미성로 472(산북동)",email:"ksh0267@hanmail.net",tel:'',mobile:'',category:"인쇄·제작",services:["워크숍자료집인쇄제본", "정책토론자료집(초록집)", "초록집인쇄제본"],note:"거래 3건"},
+{id:"vendor_117",name:"회계법인오현",brn:"668-85-00026",rep:"이성훈",addr:"서울 송파구 법원로8길 7 2층 204호 (문정동,화엄타워)",email:"ohn@ohyeoncpa.kr",tel:'',mobile:'',category:"전문직·자문",services:["10월 기장료", "11월 기장료", "12월 기장료"],note:"거래 13건"},
+{id:"vendor_118",name:"（주）노블레스트렌스포",brn:"107-86-94593",rep:"이미라",addr:"경기도 고양시 덕양구 통일로 210, 2층(지축동)",email:"seung6287@naver.com",tel:'',mobile:'',category:"교통·차량",services:["소노캄 호텔 차량료"],note:"거래 1건"},
+{id:"vendor_119",name:"（주）드림아이플래너스",brn:"114-86-07868",rep:"배윤진",addr:"서울특별시 중구 다산로8길 38-3(신당동, 디아이피빌딩)",email:"gmdip@dip.kr",tel:'',mobile:'',category:"IT·디자인",services:["CI 디자인 개발 및 납품"],note:"거래 1건"},
+{id:"vendor_120",name:"（주）서부티엔디",brn:"106-85-27420",rep:"승만호",addr:"서울특별시 용산구 청파로20길 95(한강로3가)",email:"1068527420@daum.net",tel:'',mobile:'',category:"행사대행",services:["행사비 선급금"],note:"거래 3건"},
+{id:"vendor_121",name:"（주）에프아이씨",brn:"114-87-15273",rep:"이경진",addr:"서울특별시 서초구 올림픽대로 2085-14(반포동, 새빛둥둥섬 제1섬 1층,2층,3층)",email:"ficonvention@naver.com",tel:'',mobile:'',category:"숙박·연회",services:["연회"],note:"거래 1건"},
+{id:"vendor_122",name:"（주）판도라피아",brn:"114-86-10378",rep:"조강래",addr:"서울특별시 종로구 혜화로 35, 305호(명륜1가, 경주이씨중앙화수회관)",email:"info@pandora.kr",tel:'',mobile:'',category:"인쇄·제작",services:["깃발", "뱃지", "뱃지외"],note:"거래 4건"},
+{id:"vendor_123",name:"（주）환상제주투어버스",brn:"616-81-32795",rep:"조영구",addr:"제주특별자치도 제주시 황사평길 35(화북이동)",email:"ikillsky@hanmail.net",tel:'',mobile:'',category:"교통·차량",services:["차량임차료(1/10)"],note:"거래 1건"}
+];
+
 const DB_KEY='ck-db-v1', CFG_KEY='ck-cfg-v1';
 
 /* ══════════════════════════════════════════
@@ -1419,9 +1544,8 @@ function loadDB(){
   try{
     const d=JSON.parse(localStorage.getItem(DB_KEY)||'null');
     if(d&&d.projects){
-      // 협력업체만 초기화 (직접 등록 예정) — 서비스 항목은 유지
-      d.vendors=[];
-      d._vendors_legacy=[];
+      // 협력업체: 기존 데이터 유지, 없으면 마스터 데이터로 초기화
+      if(!d.vendors||!d.vendors.length) d.vendors=[...VENDOR_MASTER];
       return d;
     }
   }catch(e){}
@@ -2898,47 +3022,54 @@ function switchVendorTab(tab){
   } else if(tab==='co'){
     // 협력업체 탭
     setActive('svc-tab-co');
-    if(!DB.vendors) DB.vendors=[];
+    if(!DB.vendors) DB.vendors=[...VENDOR_MASTER];
     var vs=DB.vendors;
     var search2=(window._coSearch||'').toLowerCase();
-    var filtered2=search2?vs.filter(function(v){
-      return (v.name||'').toLowerCase().includes(search2)
-        ||(v.manager||'').toLowerCase().includes(search2)
-        ||(v.services||[]).join(' ').toLowerCase().includes(search2);
-    }):vs;
+    var curCat2=window._coCat||'전체';
+    var cats2=['전체',...new Set(vs.map(function(v){return v.category||'기타';}).filter(Boolean).sort())];
+
+    var filtered2=vs.filter(function(v){
+      var catOk=curCat2==='전체'||(v.category||'기타')===curCat2;
+      var searchOk=!search2||(v.name||'').toLowerCase().includes(search2)
+        ||(v.manager||v.rep||'').toLowerCase().includes(search2)
+        ||(v.services||[]).join(' ').toLowerCase().includes(search2)
+        ||(v.category||'').toLowerCase().includes(search2);
+      return catOk&&searchOk;
+    });
+
     var coBody='';
     if(!filtered2.length){
-      coBody='<div class="alert al-i">등록된 협력업체가 없습니다.</div>';
+      coBody='<div class="alert al-i">검색 결과가 없습니다.</div>';
     } else {
       coBody='<div class="tw" style="overflow-x:auto"><table><thead><tr>'
-        +'<th>회사명</th><th>사업자번호</th><th>대표연락처</th>'
-        +'<th>담당자</th><th>담당자 휴대폰</th><th>서비스 항목</th><th>비고</th><th style="text-align:center">관리</th>'
+        +'<th>카테고리</th><th>회사명</th><th>대표자</th><th>사업자번호</th><th>이메일</th><th>서비스 항목</th><th>비고</th><th style="text-align:center">관리</th>'
         +'</tr></thead><tbody>';
       filtered2.forEach(function(v){
-        var svcs=v.services||v.categories||[];
+        var svcs=v.services||[];
         coBody+='<tr>'
+          +'<td><span class="chip ca" style="font-size:9.5px;white-space:nowrap">'+h(v.category||'기타')+'</span></td>'
           +'<td style="font-weight:700;white-space:nowrap">'+h(v.name||'')+'</td>'
-          +'<td style="font-family:monospace;font-size:11px;color:var(--ink3)">'+h(v.brn||'')+'</td>'
-          +'<td style="white-space:nowrap;font-size:12px">'+h(v.tel||'')+'</td>'
-          +'<td style="font-size:12px">'+h(v.manager||'')+'</td>'
-          +'<td style="white-space:nowrap;font-size:12px">'+h(v.mobile||'')+'</td>'
-          +'<td>'+svcs.map(function(s){return '<span class="chip ca" style="font-size:9.5px;margin:1px">'+h(s)+'</span>';}).join('')+'</td>'
-          +'<td style="font-size:11.5px;color:var(--ink3);max-width:120px">'+h(v.note||'')+'</td>'
+          +'<td style="font-size:12px;white-space:nowrap">'+h(v.rep||v.manager||'')+'</td>'
+          +'<td style="font-family:monospace;font-size:11px;color:var(--ink3);white-space:nowrap">'+h(v.brn||'')+'</td>'
+          +'<td style="font-size:11px;color:var(--ink3)">'+h(v.email||v.tel||'')+'</td>'
+          +'<td style="font-size:11px;max-width:200px">'+svcs.slice(0,2).map(function(s){return '<span class="chip cb" style="font-size:9px;margin:1px">'+h(s)+'</span>';}).join('')+'</td>'
+          +'<td style="font-size:11px;color:var(--ink4)">'+h(v.note||'')+'</td>'
           +'<td style="text-align:center;white-space:nowrap">'
-            +'<button class="btn bd btn-sm" data-id="'+v.id+'" onclick="editVendorCo(this.dataset.id)" style="margin-right:4px">수정</button>'
-            +'<button class="btn bdr2c btn-sm" data-id="'+v.id+'" onclick="delVendorCo(this.dataset.id)">삭제</button>'
+            +'<button class="btn bd btn-sm" data-id="'+v.id+'" onclick="editVendorCoInTab(this.dataset.id)" style="margin-right:4px">수정</button>'
+            +'<button class="btn bdr2c btn-sm" data-id="'+v.id+'" onclick="delVendorCoInTab(this.dataset.id)">삭제</button>'
           +'</td></tr>';
       });
       coBody+='</tbody></table></div>';
     }
     cont.innerHTML=
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
-      +'<span class="chip ca">'+vs.length+'개</span>'
-      +'<span style="font-size:11px;color:var(--ink4)">서비스를 제공하는 외부 파트너사</span>'
-      +'<input class="fi" style="max-width:220px;margin-left:auto" placeholder="회사명/담당자/서비스 검색..." value="'+h(window._coSearch||'')+'" oninput="window._coSearch=this.value;switchVendorTab(\'co\')">'
-      +'<button class="btn bd btn-sm" onclick="openCoBulkUpload()">📥 일괄 업로드</button>'
-      +'<button class="btn bd btn-sm" onclick="exportCoXLSX()">📊 엑셀</button>'
-      +'<button class="btn bp btn-sm" onclick="newVendorCo()">+ 업체 추가</button>'
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
+      +'<span class="chip ca">'+filtered2.length+' / '+vs.length+'개</span>'
+      +'<input class="fi" style="max-width:200px;margin-left:auto" placeholder="회사명/카테고리/서비스 검색..." value="'+h(window._coSearch||'')+'" oninput="window._coSearch=this.value;switchVendorTab(\'co\')">'
+      +'<button class="btn bd btn-sm" onclick="resetVendorsToMaster()">🔄 초기 데이터 복원</button>'
+      +'<button class="btn bp btn-sm" onclick="newVendorCoInTab()">+ 업체 추가</button>'
+      +'</div>'
+      +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">'
+      +cats2.map(function(c){return '<button class="btn btn-sm '+(curCat2===c?'bp':'bd')+'" onclick="window._coCat=\''+c.replace(/'/g,"\\'")+"';switchVendorTab('co')\">"+ c+'</button>';}).join('')
       +'</div>'
       +coBody;
   }
@@ -2996,6 +3127,87 @@ function delSvcCat(id){
   saveDB();
   openAddSvcCat();
   toast('삭제됨','ok');
+}
+
+// ── 협력업체 탭 내 CRUD ──
+var VENDOR_CATS=['교통·차량','숙박·연회','식음료','인쇄·제작','IT·디자인','기념품·선물','사진·영상','통역·번역','행사 인력','AV·음향·장비','투어·공연','전문직·자문','사무·관리','운송·배송','행사대행','기타'];
+
+function openVendorCoModal(id){
+  var v=id?(DB.vendors||[]).find(function(x){return x.id===id;}):null;
+  var m=document.getElementById('mo-co-tab');
+  if(!m){m=document.createElement('div');m.id='mo-co-tab';m.className='mo';m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+  m.innerHTML='<div class="mb" style="max-width:580px">'
+    +'<div class="mo-t">'+(id?'협력업체 수정':'협력업체 추가')+'</div>'
+    +'<div class="fr2">'
+    +'<div class="fg"><label class="fl">회사명 ★</label><input class="fi" id="vct-name" value="'+h(v?.name||'')+'" placeholder="(주)예시업체"></div>'
+    +'<div class="fg"><label class="fl">카테고리</label>'
+    +'<select class="fi" id="vct-cat">'
+    +VENDOR_CATS.map(function(c){return '<option value="'+c+'"'+(c===(v?.category||'기타')?' selected':'')+'>'+c+'</option>';}).join('')
+    +'</select></div></div>'
+    +'<div class="fr3">'
+    +'<div class="fg"><label class="fl">사업자번호</label><input class="fi" id="vct-brn" value="'+h(v?.brn||'')+'" placeholder="000-00-00000"></div>'
+    +'<div class="fg"><label class="fl">대표자명</label><input class="fi" id="vct-rep" value="'+h(v?.rep||v?.manager||'')+'" placeholder="홍길동"></div>'
+    +'<div class="fg"><label class="fl">연락처</label><input class="fi" id="vct-tel" value="'+h(v?.tel||'')+'" placeholder="02-0000-0000"></div>'
+    +'</div>'
+    +'<div class="fr2">'
+    +'<div class="fg"><label class="fl">이메일</label><input class="fi" id="vct-email" value="'+h(v?.email||'')+'" placeholder="contact@example.com"></div>'
+    +'<div class="fg"><label class="fl">담당자 휴대폰</label><input class="fi" id="vct-mobile" value="'+h(v?.mobile||'')+'" placeholder="010-0000-0000"></div>'
+    +'</div>'
+    +'<div class="fg"><label class="fl">주소</label><input class="fi" id="vct-addr" value="'+h(v?.addr||'')+'" placeholder="서울특별시 ..."></div>'
+    +'<div class="fg"><label class="fl">주요 서비스 (쉼표로 구분)</label><input class="fi" id="vct-svcs" value="'+h((v?.services||[]).join(', '))+'" placeholder="버스 임차, 차량 운행"></div>'
+    +'<div class="fg"><label class="fl">비고</label><input class="fi" id="vct-note" value="'+h(v?.note||'')+'"></div>'
+    +'<div class="mo-f">'
+    +'<button class="btn bd" style="flex:1" onclick="document.getElementById(\'mo-co-tab\').classList.remove(\'open\')">취소</button>'
+    +(id?'<button class="btn bdr2c btn-sm" data-id="'+id+'" onclick="delVendorCoInTab(this.dataset.id)">삭제</button>':'')
+    +'<button class="btn bp" style="flex:2" onclick="saveVendorCoInTab(\''+( id||'')+'\')">저장</button>'
+    +'</div></div>';
+  m.classList.add('open');
+}
+
+function newVendorCoInTab(){openVendorCoModal(null);}
+function editVendorCoInTab(id){openVendorCoModal(id);}
+
+function saveVendorCoInTab(id){
+  var name=document.getElementById('vct-name').value.trim();
+  if(!name){toast('회사명 필수','err');return;}
+  if(!DB.vendors) DB.vendors=[];
+  var svcsRaw=document.getElementById('vct-svcs').value;
+  var svcs=svcsRaw.split(',').map(function(s){return s.trim();}).filter(Boolean);
+  var obj={
+    id:id||uid(), name,
+    category:document.getElementById('vct-cat').value,
+    brn:document.getElementById('vct-brn').value.trim(),
+    rep:document.getElementById('vct-rep').value.trim(),
+    tel:document.getElementById('vct-tel').value.trim(),
+    email:document.getElementById('vct-email').value.trim(),
+    mobile:document.getElementById('vct-mobile').value.trim(),
+    addr:document.getElementById('vct-addr').value.trim(),
+    services:svcs,
+    note:document.getElementById('vct-note').value.trim(),
+  };
+  if(id){var i=DB.vendors.findIndex(function(x){return x.id===id;});if(i>=0)DB.vendors[i]=obj;}
+  else DB.vendors.unshift(obj);
+  saveDB();
+  document.getElementById('mo-co-tab').classList.remove('open');
+  switchVendorTab('co');
+  toast(id?'수정 완료':'업체 추가 완료','ok');
+}
+
+function delVendorCoInTab(id){
+  if(!confirm('이 업체를 삭제할까요?'))return;
+  DB.vendors=(DB.vendors||[]).filter(function(x){return x.id!==id;});
+  saveDB();
+  var m=document.getElementById('mo-co-tab');if(m)m.classList.remove('open');
+  switchVendorTab('co');
+  toast('삭제됨','ok');
+}
+
+function resetVendorsToMaster(){
+  if(!confirm('협력업체 목록을 기본 데이터로 복원할까요?\n(현재 추가·수정된 내용이 사라집니다)'))return;
+  DB.vendors=[...VENDOR_MASTER];
+  saveDB();
+  switchVendorTab('co');
+  toast('협력업체 데이터 복원 완료 ('+VENDOR_MASTER.length+'개)','ok');
 }
 
 // 서비스 항목 탭에서 테마 적용
