@@ -3813,7 +3813,7 @@ function _renderTeamChips(members){
       const isManual=supabaseMembers.length>0&&!supabaseMembers.includes(m);
       return '<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;border:1px solid '+(assigned?'var(--a)':'var(--bdr)')+';background:'+(assigned?'var(--abg)':'var(--sur)')+';font-size:12px;font-weight:'+(assigned?700:400)+';color:'+(assigned?'var(--a)':'var(--ink3)')+';">'
         +'<span onclick="toggleAssigned(\''+h(m)+'\')" style="cursor:pointer">'+(assigned?'✓ ':'')+h(m)+'</span>'
-        +(isManual?'<span onclick="removeAssignedMember(\''+h(m)+'\')" style="cursor:pointer;color:var(--r);font-size:10px;font-weight:700;padding:0 2px" title="제거">✕</span>':'')
+        +(isManual?'<span onclick="removeAssignedMember(\''+h(m)+'\')" style="cursor:pointer;color:var(--r);font-size:10px;font-weight:700;padding:4px 2px" title="제거">✕</span>':'')
         +'</span>';
     }).join('');
   }
@@ -4563,7 +4563,7 @@ function renderPCOTable(lang){
   const L=(ko,en)=>lang==='en'?en:ko;
   const items=CUR.qItems||[];
   const cats=getQCats('PCO');
-  const H='min-height:34px';
+  const H='min-height:44px';
   let html='';
 
   // colgroup 정의 (전체 테이블 공통)
@@ -4582,16 +4582,16 @@ function renderPCOTable(lang){
   </colgroup>`;
 
   const TH=`<thead><tr style="background:var(--sur3);${H}">
-    <th style="padding:0 8px;text-align:left;font-size:11px;color:var(--ink3)">${L('항목명','Item')}</th>
-    <th style="padding:0 5px;text-align:right;font-size:11px;color:var(--ink3)">${L('단가(₩)','Unit(₩)')}</th>
-    <th style="padding:0 3px;text-align:right;font-size:11px;color:var(--ink3)">${L('수량','Qty')}</th>
-    <th style="padding:0 3px;text-align:right;font-size:11px;color:var(--ink3)">${L('기간','Period')}</th>
-    <th style="padding:0 3px;text-align:right;font-size:11px;color:var(--ink3)">${L('투입률','Rate%')}</th>
-    <th style="padding:0 5px;text-align:right;font-size:11px;color:#38236F;font-weight:700">${L('금액(₩)','Amt(₩)')}</th>
-    <th style="padding:0 5px;text-align:left;font-size:11px;color:var(--ink);font-weight:700">${L('비고','Note')}</th>
-    <th style="padding:0 5px;text-align:right;font-size:10.5px;color:var(--r);background:rgba(255,0,0,.04)">${L('원가단가','CostU')}</th>
-    <th style="padding:0 5px;text-align:right;font-size:10.5px;color:var(--r);background:rgba(255,0,0,.04)">${L('원가합계','CostT')}</th>
-    <th style="padding:0 5px;text-align:left;font-size:11px;color:var(--ink3)">${L('협력업체','Vendor')}</th>
+    <th style="padding:5px 8px;text-align:left;font-size:11px;color:var(--ink3)">${L('항목명','Item')}</th>
+    <th style="padding:5px 5px;text-align:right;font-size:11px;color:var(--ink3)">${L('단가(₩)','Unit(₩)')}</th>
+    <th style="padding:5px 3px;text-align:right;font-size:11px;color:var(--ink3)">${L('수량','Qty')}</th>
+    <th style="padding:5px 3px;text-align:right;font-size:11px;color:var(--ink3)">${L('기간','Period')}</th>
+    <th style="padding:5px 3px;text-align:right;font-size:11px;color:var(--ink3)">${L('투입률','Rate%')}</th>
+    <th style="padding:5px 5px;text-align:right;font-size:11px;color:#38236F;font-weight:700">${L('금액(₩)','Amt(₩)')}</th>
+    <th style="padding:5px 5px;text-align:left;font-size:11px;color:var(--ink);font-weight:700">${L('비고','Note')}</th>
+    <th style="padding:5px 5px;text-align:right;font-size:10.5px;color:var(--r);background:rgba(255,0,0,.04)">${L('원가단가','CostU')}</th>
+    <th style="padding:5px 5px;text-align:right;font-size:10.5px;color:var(--r);background:rgba(255,0,0,.04)">${L('원가합계','CostT')}</th>
+    <th style="padding:5px 5px;text-align:left;font-size:11px;color:var(--ink3)">${L('협력업체','Vendor')}</th>
     <th></th>
   </tr></thead>`;
 
@@ -4652,17 +4652,17 @@ function renderPCORow(item, H){
       onchange="${onchg}" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'">`;
 
   return `<tr style="border-bottom:1px solid var(--bdr);${H}" id="qrow-${item.id}">
-    <td style="padding:0 5px">${INP('','text',h(item.name||''),'',`upQInline('${item.id}','name',this.value)`)}</td>
-    <td style="padding:0 3px">${INP('','number',item.price||'','',`upQInlineN('${item.id}','price',this.value);updateQCalc()`)}</td>
-    <td style="padding:0 2px">${INP('','number',item.qty||1,'',`upQInlineN('${item.id}','qty',this.value);updateQCalc()`)}</td>
-    <td style="padding:0 2px">${INP('','number',item.period||1,'',`upQInlineN('${item.id}','period',this.value);updateQCalc()`)}</td>
-    <td style="padding:0 2px">${INP('','number',Math.round((item.rate||1)*100),'',`upQInlineN('${item.id}','rate',(parseFloat(this.value)||100)/100);updateQCalc()`)}</td>
+    <td style="padding:4px 5px">${INP('','text',h(item.name||''),'',`upQInline('${item.id}','name',this.value)`)}</td>
+    <td style="padding:4px 3px">${INP('','number',item.price||'','',`upQInlineN('${item.id}','price',this.value);updateQCalc()`)}</td>
+    <td style="padding:4px 2px">${INP('','number',item.qty||1,'',`upQInlineN('${item.id}','qty',this.value);updateQCalc()`)}</td>
+    <td style="padding:4px 2px">${INP('','number',item.period||1,'',`upQInlineN('${item.id}','period',this.value);updateQCalc()`)}</td>
+    <td style="padding:4px 2px">${INP('','number',Math.round((item.rate||1)*100),'',`upQInlineN('${item.id}','rate',(parseFloat(this.value)||100)/100);updateQCalc()`)}</td>
     <td style="padding:0 5px;text-align:right"><span id="qamt-${item.id}" style="font-size:12.5px;font-weight:700;color:#38236F;font-family:var(--fm)">${Math.round(amt).toLocaleString()}</span></td>
-    <td style="padding:0 4px"><input class="fi" style="width:100%;font-size:12px;padding:3px 5px;border:none;background:transparent;font-weight:500" value="${h(item.note||'')}"
+    <td style="padding:4px 4px"><input class="fi" style="width:100%;font-size:12px;padding:3px 5px;border:none;background:transparent;font-weight:500" value="${h(item.note||'')}"
       onchange="upQInline('${item.id}','note',this.value)" onfocus="this.style.background='var(--gbg)';this.style.borderColor='var(--g)'" onblur="this.style.background='transparent';this.style.borderColor=''"></td>
     <td style="padding:0 3px;background:rgba(255,0,0,.03)">${INP('','number',item.costKRW||'','',`upQInlineN('${item.id}','costKRW',this.value);updateQCalc()`,'style="color:var(--r)"')}</td>
     <td style="padding:0 5px;text-align:right;background:rgba(255,0,0,.03)"><span id="qcost-${item.id}" style="font-size:11.5px;color:var(--r);font-family:var(--fm)">${Math.round(costTot).toLocaleString()}</span></td>
-    <td style="padding:0 4px"><button class="btn ${vname?'':'bd'} btn-sm" style="padding:2px 6px;font-size:10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${vname?'background:#38236F;color:#fff;border-color:#38236F':''}" data-id="${item.id}" onclick="openVendorLink(this.dataset.id)">${h(vname||'+업체')}</button></td>
+    <td style="padding:4px 4px"><button class="btn ${vname?'':'bd'} btn-sm" style="padding:2px 6px;font-size:10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${vname?'background:#38236F;color:#fff;border-color:#38236F':''}" data-id="${item.id}" onclick="openVendorLink(this.dataset.id)">${h(vname||'+업체')}</button></td>
     <td style="padding:0 3px;text-align:center"><button class="btn bdr2c btn-sm" style="padding:2px 5px;font-size:10px" data-id="${item.id}" onclick="delQItem(this.dataset.id)">🗑</button></td>
   </tr>`;
 }
@@ -4680,7 +4680,7 @@ function buildPCOSummary(CG){
     });
   });
   const mgmt=Math.round(sub1*mgmtR/100),sub2=sub1+mgmt,profit=Math.round(sub2*profitR/100),sub3=sub2+profit,vat=Math.round(sub3*vatR/100),total=Math.floor((sub3+vat)/1000)*1000;
-  const H='min-height:34px';
+  const H='min-height:44px';
   const sumCG=CG||`<colgroup><col style="flex:1"><col style="width:115px"><col style="min-width:100px"><col style="width:88px"><col style="width:100px"><col style="width:90px"><col style="width:36px"></colgroup>`;
 
   return `<table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed">${sumCG}
@@ -4712,7 +4712,7 @@ function renderDMCTable(lang){
   const items=CUR.qItems||[];
   const cats=getQCats('DMC');
   const rate=parseFloat(CUR.exchangeRate||CFG.rate||1380);
-  const H='min-height:34px';
+  const H='min-height:44px';
   let html='';
 
   const CG=`<colgroup>
@@ -4731,17 +4731,17 @@ function renderDMCTable(lang){
   </colgroup>`;
 
   const TH=`<thead><tr style="background:var(--sur3);${H}">
-    <th style="padding:0 5px;text-align:left;font-size:11px;color:var(--ink3)">Date</th>
-    <th style="padding:0 5px;text-align:left;font-size:11px;color:var(--ink3)">Description</th>
-    <th style="padding:0 5px;text-align:right;font-size:11px;color:#1E3A5F;font-weight:700">Price ($)</th>
-    <th style="padding:0 3px;text-align:right;font-size:11px;color:var(--ink3)">Qty</th>
-    <th style="padding:0 3px;text-align:right;font-size:11px;color:var(--ink3)">Period</th>
-    <th style="padding:0 5px;text-align:right;font-size:11px;color:#1E3A5F;font-weight:700">Amt ($)</th>
-    <th style="padding:0 5px;text-align:right;font-size:11px;color:var(--ink3)">≈ KRW</th>
-    <th style="padding:0 5px;text-align:left;font-size:11px;color:var(--ink);font-weight:700">${L('비고','Note')}</th>
-    <th style="padding:0 5px;text-align:right;font-size:10.5px;color:var(--r);background:rgba(255,0,0,.04)">Cost($)</th>
-    <th style="padding:0 5px;text-align:right;font-size:10.5px;color:var(--r);background:rgba(255,0,0,.04)">CostTot</th>
-    <th style="padding:0 5px;text-align:left;font-size:11px;color:var(--ink3)">${L('협력업체','Vendor')}</th>
+    <th style="padding:5px 5px;text-align:left;font-size:11px;color:var(--ink3)">Date</th>
+    <th style="padding:5px 5px;text-align:left;font-size:11px;color:var(--ink3)">Description</th>
+    <th style="padding:5px 5px;text-align:right;font-size:11px;color:#1E3A5F;font-weight:700">Price ($)</th>
+    <th style="padding:5px 3px;text-align:right;font-size:11px;color:var(--ink3)">Qty</th>
+    <th style="padding:5px 3px;text-align:right;font-size:11px;color:var(--ink3)">Period</th>
+    <th style="padding:5px 5px;text-align:right;font-size:11px;color:#1E3A5F;font-weight:700">Amt ($)</th>
+    <th style="padding:5px 5px;text-align:right;font-size:11px;color:var(--ink3)">≈ KRW</th>
+    <th style="padding:5px 5px;text-align:left;font-size:11px;color:var(--ink);font-weight:700">${L('비고','Note')}</th>
+    <th style="padding:5px 5px;text-align:right;font-size:10.5px;color:var(--r);background:rgba(255,0,0,.04)">Cost($)</th>
+    <th style="padding:5px 5px;text-align:right;font-size:10.5px;color:var(--r);background:rgba(255,0,0,.04)">CostTot</th>
+    <th style="padding:5px 5px;text-align:left;font-size:11px;color:var(--ink3)">${L('협력업체','Vendor')}</th>
     <th></th>
   </tr></thead>`;
 
@@ -4802,26 +4802,26 @@ function renderDMCRow(item, H, rate, lang){
   const dispName=lang==='en'?(item.nameEn||item.name):item.name;
 
   return `<tr style="border-bottom:1px solid var(--bdr);${H}" id="qrow-${item.id}">
-    <td style="padding:0 4px"><input class="fi" style="width:100%;font-size:11px;padding:2px 4px;border:none;background:transparent" value="${h(item.dateLabel||'')}"
+    <td style="padding:4px 4px"><input class="fi" style="width:100%;font-size:11px;padding:2px 4px;border:none;background:transparent" value="${h(item.dateLabel||'')}"
       onchange="upQInline('${item.id}','dateLabel',this.value)" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'"></td>
-    <td style="padding:0 4px"><input class="fi" style="width:100%;font-size:12px;padding:3px 5px;border:none;background:transparent" value="${h(dispName)}"
+    <td style="padding:4px 4px"><input class="fi" style="width:100%;font-size:12px;padding:3px 5px;border:none;background:transparent" value="${h(dispName)}"
       data-id="${item.id}" data-f="${lang==='en'?'nameEn':'name'}"
       onchange="upQInline(this.dataset.id,this.dataset.f,this.value)" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'"></td>
-    <td style="padding:0 3px"><input class="fi" type="number" id="qprice-${item.id}" style="width:100%;text-align:right;font-size:12px;padding:3px;border:none;background:transparent;font-family:var(--fm)" value="${item.price||''}"
+    <td style="padding:4px 3px"><input class="fi" type="number" id="qprice-${item.id}" style="width:100%;text-align:right;font-size:12px;padding:3px;border:none;background:transparent;font-family:var(--fm)" value="${item.price||''}"
       onchange="upDMCPriceUSD('${item.id}',parseFloat(this.value)||0)" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'"></td>
-    <td style="padding:0 2px"><input class="fi" type="number" style="width:100%;text-align:right;font-size:12px;padding:2px;border:none;background:transparent" value="${item.qty||1}" min="1"
+    <td style="padding:4px 2px"><input class="fi" type="number" style="width:100%;text-align:right;font-size:12px;padding:2px;border:none;background:transparent" value="${item.qty||1}" min="1"
       onchange="upQInlineN('${item.id}','qty',this.value);updateQCalc()" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'"></td>
-    <td style="padding:0 2px"><input class="fi" type="number" style="width:100%;text-align:right;font-size:12px;padding:2px;border:none;background:transparent" value="${item.period||1}" min="1"
+    <td style="padding:4px 2px"><input class="fi" type="number" style="width:100%;text-align:right;font-size:12px;padding:2px;border:none;background:transparent" value="${item.period||1}" min="1"
       onchange="upQInlineN('${item.id}','period',this.value);updateQCalc()" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'"></td>
     <td style="padding:0 5px;text-align:right"><span id="qamt-${item.id}" style="font-size:12.5px;font-weight:700;color:#1E3A5F;font-family:var(--fm)">$${amt.toLocaleString('en',{minimumFractionDigits:0})}</span></td>
-    <td style="padding:0 3px"><input class="fi" type="number" id="qkrw-${item.id}" style="width:100%;text-align:right;font-size:11.5px;padding:3px;border:none;background:transparent;color:var(--ink3);font-family:var(--fm)" value="${amtKRW}"
+    <td style="padding:4px 3px"><input class="fi" type="number" id="qkrw-${item.id}" style="width:100%;text-align:right;font-size:11.5px;padding:3px;border:none;background:transparent;color:var(--ink3);font-family:var(--fm)" value="${amtKRW}"
       onchange="upDMCPriceKRW('${item.id}',parseFloat(this.value)||0)" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'"></td>
-    <td style="padding:0 4px"><input class="fi" style="width:100%;font-size:12px;padding:3px 5px;border:none;background:transparent;font-weight:500" value="${h(item.note||'')}"
+    <td style="padding:4px 4px"><input class="fi" style="width:100%;font-size:12px;padding:3px 5px;border:none;background:transparent;font-weight:500" value="${h(item.note||'')}"
       onchange="upQInline('${item.id}','note',this.value)" onfocus="this.style.background='var(--gbg)';this.style.borderColor='var(--g)'" onblur="this.style.background='transparent';this.style.borderColor=''"></td>
     <td style="padding:0 3px;background:rgba(255,0,0,.03)"><input class="fi" type="number" style="width:100%;text-align:right;font-size:11.5px;padding:3px;border:none;background:transparent;color:var(--r);font-family:var(--fm)" value="${item.costUSD||''}"
       onchange="upQInlineN('${item.id}','costUSD',this.value);updateQCalc()" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'"></td>
     <td style="padding:0 5px;text-align:right;background:rgba(255,0,0,.03)"><span id="qcost-${item.id}" style="font-size:11.5px;color:var(--r);font-family:var(--fm)">$${costTot.toLocaleString('en',{minimumFractionDigits:0})}</span></td>
-    <td style="padding:0 4px"><button class="btn ${vname?'':'bd'} btn-sm" style="padding:2px 5px;font-size:10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${vname?'background:#1E3A5F;color:#fff;border-color:#1E3A5F':''}" data-id="${item.id}" onclick="openVendorLink(this.dataset.id)">${h(vname||'+')}</button></td>
+    <td style="padding:4px 4px"><button class="btn ${vname?'':'bd'} btn-sm" style="padding:2px 5px;font-size:10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${vname?'background:#1E3A5F;color:#fff;border-color:#1E3A5F':''}" data-id="${item.id}" onclick="openVendorLink(this.dataset.id)">${h(vname||'+')}</button></td>
     <td style="padding:0 3px;text-align:center"><button class="btn bdr2c btn-sm" style="padding:2px 5px;font-size:10px" data-id="${item.id}" onclick="delQItem(this.dataset.id)">🗑</button></td>
   </tr>`;
 }
@@ -4834,7 +4834,7 @@ function buildDMCSummary(CG){
   const sub=items.reduce((s,i)=>s+calcQItemAmt(i),0);
   const totalCost=items.reduce((s,i)=>s+calcQItemCost(i),0);
   const mgmt=Math.round(sub*mgmtR)/100,tot=Math.round((sub+mgmt)*100)/100,tax=Math.round(tot*vatR)/100,grand=Math.round((tot+tax)*100)/100;
-  const H='min-height:34px';
+  const H='min-height:44px';
   const sumCG=CG||`<colgroup><col style="flex:1"><col style="width:100px"><col style="width:110px"><col style="min-width:90px"><col style="width:82px"><col style="width:100px"><col style="width:85px"><col style="width:36px"></colgroup>`;
 
   const mkRow=(label,usd,indent,bold,bg)=>{
@@ -4849,12 +4849,12 @@ function buildDMCSummary(CG){
 
   return `<table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed">${sumCG}
   <thead><tr style="background:var(--sur3);${H}">
-    <th colspan="5" style="padding:0 14px;text-align:left;font-size:11.5px;color:#1E3A5F">Summary</th>
-    <th style="padding:0 5px;text-align:right;font-size:11.5px;color:#1E3A5F">USD</th>
-    <th style="padding:0 5px;text-align:right;font-size:11.5px;color:var(--ink3)">≈ KRW</th>
+    <th colspan="5" style="padding:5px 14px;text-align:left;font-size:11.5px;color:#1E3A5F">Summary</th>
+    <th style="padding:5px 5px;text-align:right;font-size:11.5px;color:#1E3A5F">USD</th>
+    <th style="padding:5px 5px;text-align:right;font-size:11.5px;color:var(--ink3)">≈ KRW</th>
     <th></th>
-    <th style="padding:0 5px;text-align:right;font-size:10.5px;color:var(--r);background:rgba(255,0,0,.04)">Cost($)</th>
-    <th style="padding:0 5px;text-align:right;font-size:10.5px;color:var(--r);background:rgba(255,0,0,.04)">CostTot</th>
+    <th style="padding:5px 5px;text-align:right;font-size:10.5px;color:var(--r);background:rgba(255,0,0,.04)">Cost($)</th>
+    <th style="padding:5px 5px;text-align:right;font-size:10.5px;color:var(--r);background:rgba(255,0,0,.04)">CostTot</th>
     <th colspan="2"></th>
   </tr></thead>
   ${mkRow('Sub Total',sub,false,false,'rgba(30,58,95,.06)')}
@@ -4978,13 +4978,12 @@ function upDMCPriceKRW(id, krwAmt){
   const qty=parseFloat(item.qty)||1;
   const period=parseFloat(item.period)||1;
   const r=parseFloat(item.rate)||1;
-  // KRW 총액 → USD 단가 역산
-  const usdAmt=krwAmt/rate;
-  const usdPrice=Math.round(usdAmt/qty/period/r*100)/100;
+  // KRW 총액 → USD 단가 역산 (6자리 유지로 반올림 오차 최소화)
+  const usdPrice=Math.round(krwAmt/rate/qty/period/r*1000000)/1000000;
   item.price=usdPrice;
   persist(CUR);
   const prEl=document.getElementById('qprice-'+id);
-  if(prEl) prEl.value=usdPrice;
+  if(prEl) prEl.value=Math.round(usdPrice*100)/100; // 표시는 2자리
   const amt=calcQItemAmt(item);
   const amtEl=document.getElementById('qamt-'+id);
   if(amtEl) amtEl.textContent='$'+amt.toLocaleString('en',{minimumFractionDigits:0});
@@ -5007,7 +5006,7 @@ function printQuotePDF(){
   const today=new Date().toLocaleDateString('ko-KR');
   const proj=CUR.nameKO||'프로젝트';
   const docTitle=lang==='ko'?'산출내역서':(isPCO?'PCO Quotation':'DMC Quotation');
-  const RH='min-height:30px';
+  const RH='min-height:36px';
   let body='';
 
   if(isPCO){
