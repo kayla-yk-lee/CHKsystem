@@ -1510,6 +1510,14 @@ function calcNights(prefix){
   return nights;
 }
 const uid=()=>'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+// 검색창 debounce — 타이핑 중 re-render 방지
+var _sbTimers={};
+function sbSearch(key, val, fn, delay){
+  window[key]=val;
+  clearTimeout(_sbTimers[key]);
+  _sbTimers[key]=setTimeout(function(){fn();},delay||300);
+}
 const now=()=>new Date().toISOString();
 const dday=s=>{if(!s)return 999;const d=new Date(s),t=new Date();t.setHours(0,0,0,0);return Math.ceil((d-t)/86400e3);};
 const fmt=n=>{if(n==null)return'—';return'₩'+Math.round(Math.abs(n)).toLocaleString('ko-KR');};
@@ -2910,7 +2918,7 @@ function renderVendors(){
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
     +'<button class="btn bd btn-sm" onclick="expandAllSvc()" style="font-size:10.5px">전체 펼치기</button>'
     +'<button class="btn bd btn-sm" onclick="collapseAllSvc()" style="font-size:10.5px">전체 접기</button>'
-    +'<input class="fi" style="max-width:200px;margin-left:auto" placeholder="항목명 검색..." value="'+h(window._svcSearch||'')+'" oninput="window._svcSearch=this.value;renderVendors()">'
+    +'<input class="fi" style="max-width:200px;margin-left:auto" placeholder="항목명 검색..." value="'+h(window._svcSearch||'')+'" oninput="sbSearch(\'_svcSearch\',this.value,renderVendors)">'
     +'<button class="btn bd btn-sm" onclick="openAddSvcCat()">+ 카테고리 추가</button>'
     +'<button class="btn bd btn-sm" onclick="loadSampleVendors()">샘플 불러오기</button>'
     +'<button class="btn bp btn-sm" onclick="newSvcItem()">+ 항목 추가</button>'
@@ -2992,7 +3000,7 @@ function switchVendorTab(tab){
       +'<span style="font-size:11px;color:var(--ink4)">가이드·통역 개인 인력 DB</span>'
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
-      +'<input class="fi" style="max-width:200px;margin-left:auto" placeholder="이름/언어 검색..." value="'+h(window._flSearch||'')+'" oninput="window._flSearch=this.value;switchVendorTab(\'fl\')">'
+      +'<input class="fi" style="max-width:200px;margin-left:auto" placeholder="이름/언어 검색..." value="'+h(window._flSearch||'')+'" oninput="sbSearch(\'_flSearch\',this.value,function(){switchVendorTab(\'fl\');})">'
       +'<button class="btn bd btn-sm" onclick="exportFlXLSX()">📊 엑셀 내보내기</button>'
       +'<button class="btn bp btn-sm" onclick="openFreelancerModal()">+ 인력 추가</button>'
       +'</div>'
@@ -3064,7 +3072,7 @@ function switchVendorTab(tab){
     cont.innerHTML=
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
       +'<span class="chip ca">'+filtered2.length+' / '+vs.length+'개</span>'
-      +'<input class="fi" style="max-width:200px;margin-left:auto" placeholder="회사명/카테고리/서비스 검색..." value="'+h(window._coSearch||'')+'" oninput="window._coSearch=this.value;switchVendorTab(\'co\')">'
+      +'<input class="fi" style="max-width:200px;margin-left:auto" placeholder="회사명/카테고리/서비스 검색..." value="'+h(window._coSearch||'')+'" oninput="sbSearch(\'_coSearch\',this.value,function(){switchVendorTab(\'co\');})">'
       +'<button class="btn bd btn-sm" onclick="resetVendorsToMaster()">🔄 초기 데이터 복원</button>'
       +'<button class="btn bp btn-sm" onclick="newVendorCoInTab()">+ 업체 추가</button>'
       +'</div>'
@@ -3344,7 +3352,7 @@ function renderVendorsCo(){
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
     +'<div style="font-size:16px;font-weight:700;color:var(--ink)">협력업체</div>'
     +'<span class="chip ca">'+vs.length+'개</span>'
-    +'<input class="fi" style="max-width:220px;margin-left:auto" placeholder="회사명/담당자/서비스 검색..." value="'+h(window._coSearch||'')+'" oninput="window._coSearch=this.value;renderVendorsCo()">'
+    +'<input class="fi" style="max-width:220px;margin-left:auto" placeholder="회사명/담당자/서비스 검색..." value="'+h(window._coSearch||'')+'" oninput="sbSearch(\'_coSearch\',this.value,renderVendorsCo)">'
     +'<button class="btn bd btn-sm" onclick="openCoBulkUpload()">📥 일괄 업로드</button>'
     +'<button class="btn bd btn-sm" onclick="exportCoXLSX()">📊 엑셀 내보내기</button>'
     +'<button class="btn bd btn-sm" onclick="clearAllVendors()" style="color:var(--r);border-color:var(--r)">전체 삭제</button>'
@@ -6620,7 +6628,7 @@ function renderProjects(){
       <div style="font-size:16px;font-weight:700;color:var(--ink)">전체 프로젝트</div>
       <span class="chip ca">${DB.projects.length}개</span>
       <input class="fi" style="max-width:220px;margin-left:auto" placeholder="🔍 검색 (고객사·담당자·출발지)"
-        value="${h(_projFilter)}" oninput="_projFilter=this.value;renderProjects()">
+        value="${h(_projFilter)}" oninput="sbSearch('_projFilter',this.value,renderProjects)">
       <button class="btn bp btn-sm" onclick="quickNewProj()">+ 새 프로젝트</button>
     </div>
     <div style="display:flex;gap:0;border-bottom:2px solid var(--bdr);margin-bottom:16px">
@@ -9840,7 +9848,7 @@ function renderFreelancers(){
     `<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
       <div style="font-size:16px;font-weight:700;color:var(--ink)">👤 가이드·통역 인력</div>
       <span class="chip ca">${fl.length}명</span>
-      <input class="fi" style="max-width:200px;margin-left:auto" placeholder="이름/언어 검색..." value="${h(window._flSearch||'')}" oninput="window._flSearch=this.value;renderFreelancers()">
+      <input class="fi" style="max-width:200px;margin-left:auto" placeholder="이름/언어 검색..." value="${h(window._flSearch||'')}" oninput="sbSearch('_flSearch',this.value,renderFreelancers)">
       <button class="btn bd btn-sm" onclick="exportFlXLSX()">📊 엑셀 내보내기</button>
       <button class="btn bp btn-sm" onclick="openFreelancerModal()">+ 인력 추가</button>
     </div>`+rows;
@@ -10062,7 +10070,7 @@ function renderArchive(){
   pg.innerHTML=`
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
     <div style="font-size:17px;font-weight:800;color:var(--ink)">📁 자료실</div>
-    <input class="fi" style="max-width:200px;margin-left:auto" placeholder="검색..." value="${h(window._archiveSearch||'')}" oninput="window._archiveSearch=this.value;renderArchive()">
+    <input class="fi" style="max-width:200px;margin-left:auto" placeholder="검색..." value="${h(window._archiveSearch||'')}" oninput="sbSearch('_archiveSearch',this.value,renderArchive)">
     ${canCreate()?`<button class="btn bp btn-sm" onclick="openArchiveModal()">+ 자료 등록</button>`:''}
   </div>
   <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px">
@@ -10185,7 +10193,7 @@ function renderPeople(){
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
     <div style="font-size:17px;font-weight:800;color:var(--ink)">👥 인사·팀원</div>
     <span class="chip ca">${members.length}명</span>
-    <input class="fi" style="max-width:200px;margin-left:auto" placeholder="이름/직책 검색..." value="${h(window._peopleSearch||'')}" oninput="window._peopleSearch=this.value;renderPeople()">
+    <input class="fi" style="max-width:200px;margin-left:auto" placeholder="이름/직책 검색..." value="${h(window._peopleSearch||'')}" oninput="sbSearch('_peopleSearch',this.value,renderPeople)">
     <button class="btn bd btn-sm" onclick="loadPeopleFromSupabase()">🔄 동기화</button>
     ${canCreate()?`<button class="btn bp btn-sm" onclick="openPeopleModal()">+ 팀원 추가</button>`:''}
   </div>
