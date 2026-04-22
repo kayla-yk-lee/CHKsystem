@@ -5900,12 +5900,12 @@ function renderInvoice(){
   }
   var cancelHTML=CUR.invCancelPolicy?'<div style="background:var(--ybg);border:1px solid #F5CC85;border-radius:var(--ra);padding:12px 14px;margin-bottom:16px"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--y);text-transform:uppercase;margin-bottom:6px">'+(L==='ko'?'취소 및 환불 정책':'CANCELLATION POLICY')+'</div><div style="font-size:11.5px;color:var(--ink2);line-height:1.7;white-space:pre-wrap">'+h(CUR.invCancelPolicy)+'</div></div>':'';
   var noteHTML=CUR.invNote?'<div style="background:var(--sur2);border:1px solid var(--bdr);border-radius:var(--ra);padding:12px 14px;margin-bottom:16px"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--ink3);text-transform:uppercase;margin-bottom:6px">'+(L==='ko'?'비고':'NOTES')+'</div><div style="font-size:11.5px;color:var(--ink2);line-height:1.7;white-space:pre-wrap">'+h(CUR.invNote)+'</div></div>':'';
-  var snaps=CUR.invSnapshots||[]; var logs=CUR.invEmailLog||[];
+  var snaps=CUR.invSnapshots||[]; var logs=CUR.invMailLogs||CUR.invEmailLog||[];
   var histHTML='';
   if(snaps.length||logs.length){
     histHTML='<div class="card" style="margin-bottom:12px"><div class="card-t">문서 이력</div>';
     if(snaps.length){histHTML+='<div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:6px">저장된 버전</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">';snaps.forEach(function(s){var d=new Date(s.savedAt).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});histHTML+='<div style="display:flex;align-items:center;gap:4px;background:var(--sur2);border:1px solid var(--bdr);border-radius:4px;padding:4px 8px"><span style="font-size:12px;font-weight:600">'+h(s.label)+'</span><span style="font-size:10px;color:var(--ink4)">'+d+'</span><button style="background:none;border:none;color:var(--r);cursor:pointer;font-size:11px" data-sid="'+s.id+'" onclick="delInvSnapshot(this.dataset.sid)">✕</button></div>';});histHTML+='</div>';}
-    if(logs.length){histHTML+='<div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:6px">메일 발송 이력</div>';logs.slice(-5).reverse().forEach(function(l){histHTML+='<div style="font-size:11.5px;color:var(--ink2);padding:3px 0">→ '+h(l.to)+' · '+new Date(l.at).toLocaleString('ko-KR')+'</div>';});}
+    if(logs.length){histHTML+='<div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:6px">메일 발송 이력</div>';logs.slice(-5).reverse().forEach(function(l){histHTML+='<div style="font-size:11.5px;color:var(--ink2);padding:3px 0">→ '+h(l.to)+(l.cc?' <span style="color:var(--ink4);font-size:10.5px">CC: '+h(l.cc)+'</span>':'')+' · '+new Date(l.at).toLocaleString('ko-KR')+'</div>';});}
     histHTML+='</div>';
   }
   document.getElementById('page-invoice').innerHTML=
@@ -10001,6 +10001,119 @@ function saveCfgGmail(){
   CFG.gmailClientId=id;
   localStorage.setItem(CFG_KEY,JSON.stringify(CFG));
   toast('Gmail Client ID 저장됨','ok');
+}
+
+/* ── 인보이스 메일 발송 (CC: tax@channelk.kr) ── */
+async function sendInvEmail(){
+  if(!CUR) return;
+  if(!CFG.gmailToken){toast('먼저 ⚙ 설정에서 Gmail을 연동하세요','warn');return;}
+  if(CFG.gmailTokenExpires&&Date.now()>CFG.gmailTokenExpires){
+    toast('Gmail 인증이 만료됐습니다. 다시 연동해주세요','warn');
+    CFG.gmailToken='';localStorage.setItem(CFG_KEY,JSON.stringify(CFG));return;
+  }
+
+  const toEmail=CUR.clientEmail||'';
+  const projName=CUR.nameEN||CUR.nameKO||'프로젝트';
+  const CC='tax@channelk.kr';
+
+  // 수신 이메일 확인
+  if(!toEmail){
+    const input=prompt('수신자 이메일 주소를 입력하세요:','');
+    if(!input||!input.includes('@')){toast('유효한 이메일 주소가 필요합니다','err');return;}
+    CUR.clientEmail=input.trim();
+    persist(CUR);
+  }
+  const finalTo=CUR.clientEmail;
+
+  // 발송 확인 모달
+  let m=document.getElementById('mo-send-inv');
+  if(!m){m=document.createElement('div');m.id='mo-send-inv';m.className='mo';m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+
+  const L=_invL||'en';
+  const isKo=L==='ko';
+  const defSubject=isKo
+    ?`[채널케이] 인보이스 발송 - ${projName}`
+    :`[Channel K] Invoice - ${projName}`;
+  const defBody=isKo
+    ?`안녕하세요,\n\n채널케이입니다.\n아래 인보이스를 송부드립니다.\n\n행사명: ${projName}\n담당자: ${CUR.salesperson||'담당자 미지정'}\n\n문의사항이 있으시면 언제든지 연락주세요.\n\n감사합니다.\n\n(주)채널케이\nkayla.lee@channelk.kr`
+    :`Dear ${CUR.clientName||'Client'},\n\nPlease find the invoice attached for the following:\n\nEvent: ${projName}\nContact: ${CUR.salesperson||'Channel K'}\n\nPlease do not hesitate to contact us if you have any questions.\n\nBest regards,\nChannel K Corp.\nkayla.lee@channelk.kr`;
+
+  m.innerHTML=`<div class="mb wide"><div class="mo-t">✉️ 인보이스 메일 발송</div>
+  <div class="fg"><label class="fl">받는 사람 (To) ★</label>
+    <input class="fi" id="inv-mail-to" value="${h(finalTo)}" placeholder="client@company.com"></div>
+  <div class="fg"><label class="fl">참조 (CC) — 자동 포함</label>
+    <input class="fi" value="${CC}" disabled style="background:var(--sur2);color:var(--ink3)"></div>
+  <div class="fg"><label class="fl">제목 (Subject)</label>
+    <input class="fi" id="inv-mail-sub" value="${h(defSubject)}"></div>
+  <div class="fg"><label class="fl">본문</label>
+    <textarea class="fi" id="inv-mail-body" rows="8" style="font-size:12px;line-height:1.7">${h(defBody)}</textarea></div>
+  <div style="background:var(--sur2);border-radius:6px;padding:8px 12px;font-size:11.5px;color:var(--ink3);margin-bottom:4px">
+    ℹ️ 메일 발송 시 <b>tax@channelk.kr</b>이 자동으로 참조(CC)에 포함됩니다.
+  </div>
+  <div class="mo-f">
+    <button class="btn bd" style="flex:1" onclick="document.getElementById('mo-send-inv').classList.remove('open')">취소</button>
+    <button class="btn bp" style="flex:2" onclick="_doSendInvEmail()">📤 발송</button>
+  </div></div>`;
+  m.classList.add('open');
+}
+
+async function _doSendInvEmail(){
+  const to=(document.getElementById('inv-mail-to')?.value||'').trim();
+  const sub=(document.getElementById('inv-mail-sub')?.value||'').trim();
+  const body=(document.getElementById('inv-mail-body')?.value||'').trim();
+  const cc='tax@channelk.kr';
+
+  if(!to||!to.includes('@')){toast('수신자 이메일을 확인하세요','err');return;}
+  if(!sub){toast('제목을 입력하세요','err');return;}
+
+  toast('발송 중...','ok');
+
+  try{
+    // MIME 메시지 구성 (UTF-8, CC 포함)
+    const boundary='----=_CHK_'+Date.now();
+    const mime=[
+      `From: Channel K <${CFG.myemail||'kayla.lee@channelk.kr'}>`,
+      `To: ${to}`,
+      `Cc: ${cc}`,
+      `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(sub)))}?=`,
+      `MIME-Version: 1.0`,
+      `Content-Type: text/plain; charset=UTF-8`,
+      `Content-Transfer-Encoding: base64`,
+      ``,
+      btoa(unescape(encodeURIComponent(body)))
+    ].join('\r\n');
+
+    // base64url 인코딩
+    const raw=btoa(unescape(encodeURIComponent(mime)))
+      .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+
+    const res=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
+      method:'POST',
+      headers:{
+        'Authorization':'Bearer '+CFG.gmailToken,
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({raw})
+    });
+
+    if(!res.ok){
+      const err=await res.json();
+      throw new Error(err.error?.message||res.statusText);
+    }
+
+    // 발송 이력 기록
+    if(!CUR.invMailLogs) CUR.invMailLogs=[];
+    CUR.invMailLogs.push({to,cc,sub,at:Date.now()});
+    persist(CUR);
+
+    document.getElementById('mo-send-inv')?.classList.remove('open');
+    renderInvoice();
+    toast(`✅ 발송 완료 → ${to} (CC: ${cc})`,'ok');
+
+  }catch(e){
+    toast('발송 실패: '+e.message,'err');
+    console.error(e);
+  }
 }
 
 function gmailAuth(){
