@@ -534,8 +534,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
       <div class="nav" data-nav="projects" onclick="navTo('projects',this)"><span class="nav-ic"></span>전체 프로젝트<span class="nc" id="nc-all">0</span></div>
       <div id="nav-new-proj" class="nav" data-nav="proj-create" onclick="navTo('proj-create',this)"><span class="nav-ic" style="color:var(--a);font-weight:700">📥</span>프로젝트 생성<span class="nc" id="nc-rfp" style="background:var(--rbg);color:var(--r);display:none">0</span></div>
       <div class="nav" data-nav="calendar" onclick="navTo('calendar',this)"><span class="nav-ic"></span>캘린더</div>
-      <div class="nav" data-nav="vendors" onclick="navTo('vendors',this)"><span class="nav-ic"></span>서비스 항목</div>
-      <div class="nav" data-nav="vendors-co" onclick="navTo('vendors-co',this)"><span class="nav-ic"></span>협력업체</div>
+      <div class="nav" data-nav="vendors" onclick="navTo('vendors',this)"><span class="nav-ic"></span>서비스·협력업체</div>
       <div class="nav" data-nav="teamtasks" onclick="navTo('teamtasks',this)"><span class="nav-ic">✅</span>팀 업무관리<span class="nc" id="nc-tasks" style="display:none">0</span></div>
       <div class="nav" data-nav="vendor-payments" onclick="navTo('vendor-payments',this)"><span class="nav-ic">💰</span>업체 대금 관리</div>
       <div class="nav" data-nav="finance" onclick="navTo('finance',this)"><span class="nav-ic">📊</span>경리·재무</div>
@@ -1601,6 +1600,7 @@ function buildSample(){
     teamEvents:[],
     certificates:[],
     leaves:[],
+    customSvcCats:[],
   };
 }
 
@@ -2771,10 +2771,11 @@ function renderVendors(){
     +'<div style="font-size:16px;font-weight:700;color:var(--ink)">서비스 항목</div>'
     +'<span style="font-size:11px;color:var(--ink4);font-weight:400">— 카테고리 기준 단가 DB</span>'
     +'</div>'
-    +'<div style="display:flex;gap:0;border-bottom:2px solid var(--bdr);margin-bottom:16px">'
+    +'<div style="display:flex;gap:0;border-bottom:2px solid var(--bdr);margin-bottom:16px;flex-wrap:wrap">'
     +'<button id="svc-tab-items" onclick="switchVendorTab(\'items\')" class="btn" style="font-size:12.5px;padding:8px 18px;border-bottom:2px solid var(--a);color:var(--a);background:transparent;margin-bottom:-2px;font-weight:700">📦 개별 서비스 항목</button>'
     +'<button id="svc-tab-themes" onclick="switchVendorTab(\'themes\')" class="btn" style="font-size:12.5px;padding:8px 18px;border-bottom:2px solid transparent;color:var(--ink3);background:transparent;margin-bottom:-2px">🎯 테마 서비스</button>'
     +'<button id="svc-tab-fl" onclick="switchVendorTab(\'fl\')" class="btn" style="font-size:12.5px;padding:8px 18px;border-bottom:2px solid transparent;color:var(--ink3);background:transparent;margin-bottom:-2px">👤 가이드·통역 인력</button>'
+    +'<button id="svc-tab-co" onclick="switchVendorTab(\'co\')" class="btn" style="font-size:12.5px;padding:8px 18px;border-bottom:2px solid transparent;color:var(--ink3);background:transparent;margin-bottom:-2px">🏢 협력업체</button>'
     +'</div>'
     +'<div id="svc-tab-content">'
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
@@ -2785,6 +2786,7 @@ function renderVendors(){
     +'<button class="btn bd btn-sm" onclick="expandAllSvc()" style="font-size:10.5px">전체 펼치기</button>'
     +'<button class="btn bd btn-sm" onclick="collapseAllSvc()" style="font-size:10.5px">전체 접기</button>'
     +'<input class="fi" style="max-width:200px;margin-left:auto" placeholder="항목명 검색..." value="'+h(window._svcSearch||'')+'" oninput="window._svcSearch=this.value;renderVendors()">'
+    +'<button class="btn bd btn-sm" onclick="openAddSvcCat()">+ 카테고리 추가</button>'
     +'<button class="btn bd btn-sm" onclick="loadSampleVendors()">샘플 불러오기</button>'
     +'<button class="btn bp btn-sm" onclick="newSvcItem()">+ 항목 추가</button>'
     +'</div>'
@@ -2793,9 +2795,8 @@ function renderVendors(){
 }
 
 function switchVendorTab(tab){
-  // 탭 버튼 활성화 상태 업데이트
   function setActive(id){
-    ['svc-tab-items','svc-tab-themes','svc-tab-fl'].forEach(function(tid){
+    ['svc-tab-items','svc-tab-themes','svc-tab-fl','svc-tab-co'].forEach(function(tid){
       var el=document.getElementById(tid);
       if(!el) return;
       if(tid===id){el.style.borderBottomColor='var(--a)';el.style.color='var(--a)';el.style.fontWeight='700';}
@@ -2853,7 +2854,7 @@ function switchVendorTab(tab){
       +(filtered2.length===0?'<div class="alert al-i">해당 지역의 테마가 없습니다.</div>':'')
       +'</div>';
 
-  } else {
+  } else if(tab==='fl'){
     // fl 탭 — 가이드·통역 인력
     setActive('svc-tab-fl');
     if(!DB.freelancers) DB.freelancers=[];
@@ -2893,7 +2894,107 @@ function switchVendorTab(tab){
           +'</tbody></table></div>'
         :'<div class="alert al-i">등록된 인력이 없습니다.</div>'
       );
+  } else if(tab==='co'){
+    // 협력업체 탭
+    setActive('svc-tab-co');
+    if(!DB.vendors) DB.vendors=[];
+    var vs=DB.vendors;
+    var search2=(window._coSearch||'').toLowerCase();
+    var filtered2=search2?vs.filter(function(v){
+      return (v.name||'').toLowerCase().includes(search2)
+        ||(v.manager||'').toLowerCase().includes(search2)
+        ||(v.services||[]).join(' ').toLowerCase().includes(search2);
+    }):vs;
+    var coBody='';
+    if(!filtered2.length){
+      coBody='<div class="alert al-i">등록된 협력업체가 없습니다.</div>';
+    } else {
+      coBody='<div class="tw" style="overflow-x:auto"><table><thead><tr>'
+        +'<th>회사명</th><th>사업자번호</th><th>대표연락처</th>'
+        +'<th>담당자</th><th>담당자 휴대폰</th><th>서비스 항목</th><th>비고</th><th style="text-align:center">관리</th>'
+        +'</tr></thead><tbody>';
+      filtered2.forEach(function(v){
+        var svcs=v.services||v.categories||[];
+        coBody+='<tr>'
+          +'<td style="font-weight:700;white-space:nowrap">'+h(v.name||'')+'</td>'
+          +'<td style="font-family:monospace;font-size:11px;color:var(--ink3)">'+h(v.brn||'')+'</td>'
+          +'<td style="white-space:nowrap;font-size:12px">'+h(v.tel||'')+'</td>'
+          +'<td style="font-size:12px">'+h(v.manager||'')+'</td>'
+          +'<td style="white-space:nowrap;font-size:12px">'+h(v.mobile||'')+'</td>'
+          +'<td>'+svcs.map(function(s){return '<span class="chip ca" style="font-size:9.5px;margin:1px">'+h(s)+'</span>';}).join('')+'</td>'
+          +'<td style="font-size:11.5px;color:var(--ink3);max-width:120px">'+h(v.note||'')+'</td>'
+          +'<td style="text-align:center;white-space:nowrap">'
+            +'<button class="btn bd btn-sm" data-id="'+v.id+'" onclick="editVendorCo(this.dataset.id)" style="margin-right:4px">수정</button>'
+            +'<button class="btn bdr2c btn-sm" data-id="'+v.id+'" onclick="delVendorCo(this.dataset.id)">삭제</button>'
+          +'</td></tr>';
+      });
+      coBody+='</tbody></table></div>';
+    }
+    cont.innerHTML=
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+      +'<span class="chip ca">'+vs.length+'개</span>'
+      +'<span style="font-size:11px;color:var(--ink4)">서비스를 제공하는 외부 파트너사</span>'
+      +'<input class="fi" style="max-width:220px;margin-left:auto" placeholder="회사명/담당자/서비스 검색..." value="'+h(window._coSearch||'')+'" oninput="window._coSearch=this.value;switchVendorTab(\'co\')">'
+      +'<button class="btn bd btn-sm" onclick="openCoBulkUpload()">📥 일괄 업로드</button>'
+      +'<button class="btn bd btn-sm" onclick="exportCoXLSX()">📊 엑셀</button>'
+      +'<button class="btn bp btn-sm" onclick="newVendorCo()">+ 업체 추가</button>'
+      +'</div>'
+      +coBody;
   }
+}
+
+// ── 카테고리 추가 모달 ──
+function openAddSvcCat(){
+  var m=document.getElementById('mo-add-svc-cat');
+  if(!m){m=document.createElement('div');m.id='mo-add-svc-cat';m.className='mo';m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+
+  // 현재 사용자 정의 카테고리 목록
+  var customCats=DB.customSvcCats||[];
+
+  m.innerHTML='<div class="mb" style="max-width:500px">'
+    +'<div class="mo-t">카테고리 관리</div>'
+    +'<div style="font-size:11.5px;color:var(--ink3);margin-bottom:14px">개별 서비스 항목에 사용할 카테고리를 추가합니다.</div>'
+    +'<div class="fg"><label class="fl">새 카테고리 그룹명</label>'
+    +'<div style="display:flex;gap:8px">'
+    +'<input class="fi" id="new-cat-name" placeholder="예: 공연·엔터테인먼트" style="flex:1">'
+    +'<input class="fi" id="new-cat-icon" placeholder="아이콘 (예: 🎤)" style="width:80px">'
+    +'</div></div>'
+    +'<button class="btn bp" style="width:100%;margin-bottom:16px" onclick="addSvcCat()">+ 카테고리 추가</button>'
+    +(customCats.length?
+      '<div style="font-size:11.5px;font-weight:700;color:var(--ink3);margin-bottom:8px">사용자 추가 카테고리</div>'
+      +customCats.map(function(c){
+        return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--sur2);border-radius:6px;margin-bottom:6px">'
+          +'<span style="font-size:16px">'+(c.icon||'📌')+'</span>'
+          +'<span style="font-size:13px;font-weight:600;flex:1">'+h(c.name)+'</span>'
+          +'<button class="btn bdr2c btn-sm" data-id="'+c.id+'" onclick="delSvcCat(this.dataset.id)" style="font-size:10px">삭제</button>'
+          +'</div>';
+      }).join('')
+    :'<div class="alert al-i" style="font-size:11.5px">추가한 카테고리가 없습니다.</div>')
+    +'<div class="mo-f"><button class="btn bd" onclick="document.getElementById(\'mo-add-svc-cat\').classList.remove(\'open\')">닫기</button></div>'
+    +'</div>';
+  m.classList.add('open');
+}
+
+function addSvcCat(){
+  var name=document.getElementById('new-cat-name').value.trim();
+  var icon=document.getElementById('new-cat-icon').value.trim()||'📌';
+  if(!name){toast('카테고리명을 입력하세요','err');return;}
+  if(!DB.customSvcCats) DB.customSvcCats=[];
+  if(DB.customSvcCats.find(function(c){return c.name===name;})){toast('이미 있는 카테고리입니다','warn');return;}
+  DB.customSvcCats.push({id:uid(),name:name,icon:icon});
+  saveDB();
+  document.getElementById('new-cat-name').value='';
+  document.getElementById('new-cat-icon').value='';
+  openAddSvcCat(); // 모달 새로고침
+  toast('카테고리 추가 완료','ok');
+}
+
+function delSvcCat(id){
+  if(!confirm('이 카테고리를 삭제할까요?\n해당 카테고리의 항목들은 "기타"로 이동됩니다.'))return;
+  DB.customSvcCats=(DB.customSvcCats||[]).filter(function(c){return c.id!==id;});
+  saveDB();
+  openAddSvcCat();
+  toast('삭제됨','ok');
 }
 
 // 서비스 항목 탭에서 테마 적용
@@ -3223,6 +3324,15 @@ function fillSvcCatSelect(selectedKey){
     cats.forEach(function(c){html+='<option value="'+c.key+'"'+(c.key===cur?' selected':'')+'>'+c.icon+' '+c.label+'</option>';});
     html+='</optgroup>';
   });
+  // 사용자 추가 카테고리
+  var customCats=DB.customSvcCats||[];
+  if(customCats.length){
+    html+='<optgroup label="★ 사용자 추가 카테고리">';
+    customCats.forEach(function(c){
+      html+='<option value="custom_'+c.id+'"'+('custom_'+c.id===cur?' selected':'')+'>'+(c.icon||'📌')+' '+h(c.name)+'</option>';
+    });
+    html+='</optgroup>';
+  }
   el.innerHTML=html;
 }
 function newSvcItem(){
@@ -6573,6 +6683,11 @@ const SVC_GROUPS = [
 ];
 
 function svcCat(key){
+  if(key&&key.startsWith('custom_')){
+    var cid=key.replace('custom_','');
+    var custom=(DB.customSvcCats||[]).find(function(c){return c.id===cid;});
+    if(custom) return {key:key,label:custom.name,icon:custom.icon||'📌',group:custom.name};
+  }
   return SVC_CATS.find(c=>c.key===key)||{key,label:key,icon:'📌',group:'기타'};
 }
 
