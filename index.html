@@ -4652,16 +4652,21 @@ function renderPCORow(item, H){
       onchange="${onchg}" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'">`;
 
   return `<tr style="border-bottom:1px solid var(--bdr);${H}" id="qrow-${item.id}">
-    <td style="padding:4px 5px">${INP('','text',h(item.name||''),'',`upQInline('${item.id}','name',this.value)`)}</td>
+    <td style="padding:4px 5px">
+      <div style="display:flex;gap:3px;align-items:center">
+        ${INP('','text',h(item.name||''),'',`upQInline('${item.id}','name',this.value)`)}
+        <button class="btn bd btn-sm" style="padding:1px 5px;font-size:10px;flex-shrink:0;white-space:nowrap" data-id="${item.id}" onclick="openSvcPicker(this.dataset.id)" title="서비스항목 불러오기">📦</button>
+      </div>
+    </td>
     <td style="padding:4px 3px">${INP('','number',item.price||'','',`upQInlineN('${item.id}','price',this.value);updateQCalc()`)}</td>
     <td style="padding:4px 2px">${INP('','number',item.qty||1,'',`upQInlineN('${item.id}','qty',this.value);updateQCalc()`)}</td>
     <td style="padding:4px 2px">${INP('','number',item.period||1,'',`upQInlineN('${item.id}','period',this.value);updateQCalc()`)}</td>
-    <td style="padding:4px 2px">${INP('','number',Math.round((item.rate||1)*100),'',`upQInlineN('${item.id}','rate',(parseFloat(this.value)||100)/100);updateQCalc()`)}</td>
-    <td style="padding:0 5px;text-align:right"><span id="qamt-${item.id}" style="font-size:12.5px;font-weight:700;color:#38236F;font-family:var(--fm)">${Math.round(amt).toLocaleString()}</span></td>
+    <td style="padding:4px 2px">${INP('','number',Math.round((item.rate??1)*100),'',`upQInlineN('${item.id}','rate',this.value);updateQCalc()`)}</td>
+    <td style="padding:0 5px;text-align:right"><span id="qamt-${item.id}" style="font-size:12.5px;font-weight:700;color:#38236F;font-family:var(--fm)">${fmtKRW(amt)}</span></td>
     <td style="padding:4px 4px"><input class="fi" style="width:100%;font-size:12px;padding:3px 5px;border:none;background:transparent;font-weight:500" value="${h(item.note||'')}"
       onchange="upQInline('${item.id}','note',this.value)" onfocus="this.style.background='var(--gbg)';this.style.borderColor='var(--g)'" onblur="this.style.background='transparent';this.style.borderColor=''"></td>
     <td style="padding:0 3px;background:rgba(255,0,0,.03)">${INP('','number',item.costKRW||'','',`upQInlineN('${item.id}','costKRW',this.value);updateQCalc()`,'style="color:var(--r)"')}</td>
-    <td style="padding:0 5px;text-align:right;background:rgba(255,0,0,.03)"><span id="qcost-${item.id}" style="font-size:11.5px;color:var(--r);font-family:var(--fm)">${Math.round(costTot).toLocaleString()}</span></td>
+    <td style="padding:0 5px;text-align:right;background:rgba(255,0,0,.03)"><span id="qcost-${item.id}" style="font-size:11.5px;color:var(--r);font-family:var(--fm)">${fmtKRW(costTot)}</span></td>
     <td style="padding:4px 4px"><button class="btn ${vname?'':'bd'} btn-sm" style="padding:2px 6px;font-size:10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${vname?'background:#38236F;color:#fff;border-color:#38236F':''}" data-id="${item.id}" onclick="openVendorLink(this.dataset.id)">${h(vname||'+업체')}</button></td>
     <td style="padding:0 3px;text-align:center"><button class="btn bdr2c btn-sm" style="padding:2px 5px;font-size:10px" data-id="${item.id}" onclick="delQItem(this.dataset.id)">🗑</button></td>
   </tr>`;
@@ -4685,9 +4690,9 @@ function buildPCOSummary(CG){
 
   return `<table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed">${sumCG}
   <tr style="background:rgba(56,35,111,.08);${H}"><td colspan="5" style="padding:0 12px;font-size:12px;font-weight:600;color:var(--ink2)">　소계 Ⅰ</td>
-    <td style="padding:0 5px;text-align:right;font-family:var(--fm);font-weight:700">${Math.round(sub1).toLocaleString()}</td>
+    <td style="padding:0 5px;text-align:right;font-family:var(--fm);font-weight:700">${fmtKRW(sub1)}</td>
     <td></td><td style="padding:0 5px;text-align:right;font-size:11px;color:var(--r);font-family:var(--fm);background:rgba(255,0,0,.04)"></td>
-    <td style="padding:0 5px;text-align:right;font-size:11px;font-weight:700;color:var(--r);font-family:var(--fm);background:rgba(255,0,0,.04)">${Math.round(totalCost).toLocaleString()}</td>
+    <td style="padding:0 5px;text-align:right;font-size:11px;font-weight:700;color:var(--r);font-family:var(--fm);background:rgba(255,0,0,.04)">${fmtKRW(totalCost)}</td>
     <td colspan="2"></td></tr>
   <tr style="${H}"><td colspan="5" style="padding:0 12px;font-size:12px;color:var(--ink3)">　　일반관리비 (${mgmtR}%)</td>
     <td style="padding:0 5px;text-align:right;font-family:var(--fm);color:var(--ink3)">${mgmt.toLocaleString()}</td><td colspan="5"></td></tr>
@@ -4804,18 +4809,23 @@ function renderDMCRow(item, H, rate, lang){
   return `<tr style="border-bottom:1px solid var(--bdr);${H}" id="qrow-${item.id}">
     <td style="padding:4px 4px"><input class="fi" style="width:100%;font-size:11px;padding:2px 4px;border:none;background:transparent" value="${h(item.dateLabel||'')}"
       onchange="upQInline('${item.id}','dateLabel',this.value)" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'"></td>
-    <td style="padding:4px 4px"><input class="fi" style="width:100%;font-size:12px;padding:3px 5px;border:none;background:transparent" value="${h(dispName)}"
-      data-id="${item.id}" data-f="${lang==='en'?'nameEn':'name'}"
-      onchange="upQInline(this.dataset.id,this.dataset.f,this.value)" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'"></td>
+    <td style="padding:4px 4px">
+      <div style="display:flex;gap:3px;align-items:center">
+        <input class="fi" style="width:100%;font-size:12px;padding:3px 5px;border:none;background:transparent" value="${h(dispName)}"
+          data-id="${item.id}" data-f="${lang==='en'?'nameEn':'name'}"
+          onchange="upQInline(this.dataset.id,this.dataset.f,this.value)" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'">
+        <button class="btn bd btn-sm" style="padding:1px 5px;font-size:10px;flex-shrink:0" data-id="${item.id}" onclick="openSvcPicker(this.dataset.id)" title="서비스항목">📦</button>
+      </div>
+    </td>
     <td style="padding:4px 3px"><input class="fi" type="number" id="qprice-${item.id}" style="width:100%;text-align:right;font-size:12px;padding:3px;border:none;background:transparent;font-family:var(--fm)" value="${item.price||''}"
       onchange="upDMCPriceUSD('${item.id}',parseFloat(this.value)||0)" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'"></td>
     <td style="padding:4px 2px"><input class="fi" type="number" style="width:100%;text-align:right;font-size:12px;padding:2px;border:none;background:transparent" value="${item.qty||1}" min="1"
       onchange="upQInlineN('${item.id}','qty',this.value);updateQCalc()" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'"></td>
     <td style="padding:4px 2px"><input class="fi" type="number" style="width:100%;text-align:right;font-size:12px;padding:2px;border:none;background:transparent" value="${item.period||1}" min="1"
       onchange="upQInlineN('${item.id}','period',this.value);updateQCalc()" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'"></td>
-    <td style="padding:0 5px;text-align:right"><span id="qamt-${item.id}" style="font-size:12.5px;font-weight:700;color:#1E3A5F;font-family:var(--fm)">$${amt.toLocaleString('en',{minimumFractionDigits:0})}</span></td>
-    <td style="padding:4px 3px"><input class="fi" type="number" id="qkrw-${item.id}" style="width:100%;text-align:right;font-size:11.5px;padding:3px;border:none;background:transparent;color:var(--ink3);font-family:var(--fm)" value="${amtKRW}"
-      onchange="upDMCPriceKRW('${item.id}',parseFloat(this.value)||0)" onfocus="this.style.background='var(--abg)'" onblur="this.style.background='transparent'"></td>
+    <td style="padding:0 5px;text-align:right"><span id="qamt-${item.id}" style="font-size:12.5px;font-weight:700;color:#1E3A5F;font-family:var(--fm)">$${amt.toLocaleString('en',{minimumFractionDigits:1,maximumFractionDigits:1})}</span></td>
+    <td style="padding:4px 3px"><input class="fi" id="qkrw-${item.id}" style="width:100%;text-align:right;font-size:11.5px;padding:3px;border:none;background:transparent;color:var(--ink3);font-family:var(--fm)" value="${fmtKRW(amtKRW)}"
+      onchange="upDMCPriceKRW('${item.id}',parseKRW(this.value))" onfocus="this.style.background='var(--abg)'" onblur="this.value=fmtKRW(Math.round(calcQItemAmt((CUR.qItems||[]).find(x=>x.id==='${item.id}')||{})*parseFloat(CUR.exchangeRate||1380)));this.style.background='transparent'"></td>
     <td style="padding:4px 4px"><input class="fi" style="width:100%;font-size:12px;padding:3px 5px;border:none;background:transparent;font-weight:500" value="${h(item.note||'')}"
       onchange="upQInline('${item.id}','note',this.value)" onfocus="this.style.background='var(--gbg)';this.style.borderColor='var(--g)'" onblur="this.style.background='transparent';this.style.borderColor=''"></td>
     <td style="padding:0 3px;background:rgba(255,0,0,.03)"><input class="fi" type="number" style="width:100%;text-align:right;font-size:11.5px;padding:3px;border:none;background:transparent;color:var(--r);font-family:var(--fm)" value="${item.costUSD||''}"
@@ -4841,7 +4851,7 @@ function buildDMCSummary(CG){
     const fc=bold?'#1E3A5F':'var(--ink)';
     return `<tr style="${bg?'background:'+bg+';':''}${H}">
       <td colspan="5" style="padding:0 14px;font-size:12.5px;font-weight:${bold?'700':'400'};color:${fc}">${indent?'　　':'　'}${label}</td>
-      <td style="padding:0 5px;text-align:right;font-family:var(--fm);font-weight:${bold?'700':'400'};color:${fc}">$${usd.toLocaleString('en',{minimumFractionDigits:2})}</td>
+      <td style="padding:0 5px;text-align:right;font-family:var(--fm);font-weight:${bold?'700':'400'};color:${fc}">$${usd.toLocaleString('en',{minimumFractionDigits:1})}</td>
       <td style="padding:0 5px;text-align:right;font-size:11px;font-family:var(--fm);color:var(--ink3)">₩${Math.round(usd*rate).toLocaleString()}</td>
       <td colspan="5"></td>
     </tr>`;
@@ -4863,7 +4873,7 @@ function buildDMCSummary(CG){
   ${mkRow('Government Tax '+vatR+'%',tax,true,false)}
   <tr style="background:linear-gradient(135deg,#0F2952,#1E3A5F);height:42px">
     <td colspan="5" style="padding:0 14px;font-size:13px;font-weight:800;color:#fff">　Grand Total</td>
-    <td style="padding:0 5px;text-align:right;font-size:16px;font-weight:800;color:#fff;font-family:var(--fm)">$${grand.toLocaleString('en',{minimumFractionDigits:2})}</td>
+    <td style="padding:0 5px;text-align:right;font-size:16px;font-weight:800;color:#fff;font-family:var(--fm)">$${grand.toLocaleString('en',{minimumFractionDigits:1})}</td>
     <td style="padding:0 5px;text-align:right;font-size:12px;font-weight:700;color:rgba(255,255,255,.75);font-family:var(--fm)">₩${Math.round(grand*rate).toLocaleString()}</td>
     <td colspan="3" style="padding:0 5px;text-align:right;font-size:11px;color:rgba(255,255,255,.5);background:rgba(255,0,0,.12);font-family:var(--fm)">${totalCost>0?'Cost: $'+totalCost.toLocaleString('en',{minimumFractionDigits:0}):''}</td>
     <td colspan="2"></td>
@@ -4921,9 +4931,18 @@ function updateQCalc(){
     const amtEl=document.getElementById('qamt-'+item.id);
     const costEl=document.getElementById('qcost-'+item.id);
     const krwEl=document.getElementById('qkrw-'+item.id);
-    if(amtEl) amtEl.textContent=isPCO?Math.round(amt).toLocaleString():('$'+amt.toLocaleString('en',{minimumFractionDigits:0}));
-    if(costEl) costEl.textContent=isPCO?Math.round(cost).toLocaleString():('$'+cost.toLocaleString('en',{minimumFractionDigits:0}));
-    if(krwEl&&!isPCO) krwEl.value=Math.round(amt*rate);
+    if(amtEl){
+      if(isPCO) amtEl.textContent=fmtKRW(amt);
+      else amtEl.textContent='$'+amt.toLocaleString('en',{minimumFractionDigits:1,maximumFractionDigits:1});
+    }
+    if(costEl){
+      if(isPCO) costEl.textContent=fmtKRW(cost);
+      else costEl.textContent='$'+cost.toLocaleString('en',{minimumFractionDigits:1,maximumFractionDigits:1});
+    }
+    // KRW 입력 필드 갱신 (DMC, 포커스 중이 아닐 때만)
+    if(krwEl&&!isPCO&&document.activeElement!==krwEl){
+      krwEl.value=fmtKRW(amt*rate);
+    }
   });
 
   // 소계 행 갱신
@@ -4934,8 +4953,8 @@ function updateQCalc(){
         const si=(CUR.qItems||[]).filter(i=>i.cat===sub.k);
         const el=document.getElementById('qsub-amt-'+sub.k);
         const ce=document.getElementById('qsub-cost-'+sub.k);
-        if(el) el.textContent=Math.round(si.reduce((s,i)=>s+calcQItemAmt(i),0)).toLocaleString();
-        if(ce) ce.textContent=Math.round(si.reduce((s,i)=>s+calcQItemCost(i),0)).toLocaleString();
+        if(el) el.textContent=fmtKRW(si.reduce((s,i)=>s+calcQItemAmt(i),0));
+        if(ce) ce.textContent=fmtKRW(si.reduce((s,i)=>s+calcQItemCost(i),0));
       });
     });
   } else {
@@ -4945,13 +4964,13 @@ function updateQCalc(){
       const ke=document.getElementById('qsub-krw-'+cat.k);
       const ce=document.getElementById('qsub-cost-'+cat.k);
       const a=ci.reduce((s,i)=>s+calcQItemAmt(i),0);
-      if(el) el.textContent='$'+a.toLocaleString('en',{minimumFractionDigits:0});
-      if(ke) ke.textContent='₩'+Math.round(a*rate).toLocaleString();
-      if(ce) ce.textContent='$'+ci.reduce((s,i)=>s+calcQItemCost(i),0).toLocaleString('en',{minimumFractionDigits:0});
+      if(el) el.textContent='$'+a.toLocaleString('en',{minimumFractionDigits:1,maximumFractionDigits:1});
+      if(ke) ke.textContent='₩'+fmtKRW(a*rate);
+      if(ce) ce.textContent='$'+ci.reduce((s,i)=>s+calcQItemCost(i),0).toLocaleString('en',{minimumFractionDigits:1,maximumFractionDigits:1});
     });
   }
 
-  // 합계 섹션
+  // 합계 섹션 갱신
   const summaryEl=document.getElementById('q-summary-'+qt.toLowerCase());
   if(summaryEl) summaryEl.innerHTML=isPCO?buildPCOSummary():buildDMCSummary();
 }
@@ -4977,16 +4996,16 @@ function upDMCPriceKRW(id, krwAmt){
   if(!rate) return;
   const qty=parseFloat(item.qty)||1;
   const period=parseFloat(item.period)||1;
-  const r=parseFloat(item.rate)||1;
+  const r=parseFloat(item.rate??1);
   // KRW 총액 → USD 단가 역산 (6자리 유지로 반올림 오차 최소화)
   const usdPrice=Math.round(krwAmt/rate/qty/period/r*1000000)/1000000;
   item.price=usdPrice;
   persist(CUR);
   const prEl=document.getElementById('qprice-'+id);
-  if(prEl) prEl.value=Math.round(usdPrice*100)/100; // 표시는 2자리
+  if(prEl) prEl.value=Math.round(usdPrice*100)/100;
   const amt=calcQItemAmt(item);
   const amtEl=document.getElementById('qamt-'+id);
-  if(amtEl) amtEl.textContent='$'+amt.toLocaleString('en',{minimumFractionDigits:0});
+  if(amtEl) amtEl.textContent='$'+amt.toLocaleString('en',{minimumFractionDigits:1,maximumFractionDigits:1});
   updateQCalc();
 }
 
@@ -5060,18 +5079,18 @@ function printQuotePDF(){
         <td>${h(lang==='en'?(it.nameEn||it.name):it.name)}</td>
         <td class="r">$${(it.price||0).toLocaleString('en')}</td><td class="r">${it.qty||1}</td><td class="r">${it.period||1}</td>
         <td class="r"><b>$${a.toLocaleString('en',{minimumFractionDigits:0})}</b></td><td>${h(it.note||'')}</td></tr>`;}).join('')}
-      <tr class="sub-row" style="${RH}"><td colspan="5">Sub Total</td><td class="r"><b>$${catAmt.toFixed(2)}</b></td><td></td></tr>
+      <tr class="sub-row" style="${RH}"><td colspan="5">Sub Total</td><td class="r"><b>$${catAmt.toFixed(1)}</b></td><td></td></tr>
       </table></div>`;
     });
     const mgmt=Math.round(sub*mgmtR)/100,tot=Math.round((sub+mgmt)*100)/100,tax=Math.round(tot*vatR)/100,grand=Math.round((tot+tax)*100)/100;
     body+=`<table class="pdf-tbl pdf-sum-full">
     <colgroup><col style="flex:1"><col style="width:130px"></colgroup>
     <tr class="sum-h dmc"><th colspan="2">Summary (USD)</th></tr>
-    <tr style="${RH}"><td>Sub Total</td><td class="r">$${sub.toFixed(2)}</td></tr>
-    <tr style="${RH}"><td>　Channel K Management Fee ${mgmtR}%</td><td class="r">$${mgmt.toFixed(2)}</td></tr>
-    <tr style="${RH};background:#e8f0fa;font-weight:700"><td>Total</td><td class="r">$${tot.toFixed(2)}</td></tr>
-    <tr style="${RH}"><td>　Government Tax ${vatR}%</td><td class="r">$${tax.toFixed(2)}</td></tr>
-    <tr class="grand dmc" style="min-height:38px"><td>Grand Total</td><td class="r">$${grand.toFixed(2)}</td></tr>
+    <tr style="${RH}"><td>Sub Total</td><td class="r">$${sub.toFixed(1)}</td></tr>
+    <tr style="${RH}"><td>　Channel K Management Fee ${mgmtR}%</td><td class="r">$${mgmt.toFixed(1)}</td></tr>
+    <tr style="${RH};background:#e8f0fa;font-weight:700"><td>Total</td><td class="r">$${tot.toFixed(1)}</td></tr>
+    <tr style="${RH}"><td>　Government Tax ${vatR}%</td><td class="r">$${tax.toFixed(1)}</td></tr>
+    <tr class="grand dmc" style="min-height:38px"><td>Grand Total</td><td class="r">$${grand.toFixed(1)}</td></tr>
     </table>`;
   }
 
@@ -5446,6 +5465,108 @@ function delQSub(ci,si){if(!confirm('삭제?'))return;const cats=getQCats('PCO')
 function resetQCats(){const qt=CUR.quoteType||'DMC';if(!confirm('기본값으로 복원?'))return;DB['qCats_'+qt]=null;saveDB();openQCatMgr();toast('복원됨','ok');}
 
 /* ─── 버전 관리 ─── */
+/* ── 인라인 편집 헬퍼 (누락됐던 핵심 함수) ── */
+function upQInline(id, field, val){
+  const item=(CUR.qItems||[]).find(x=>x.id===id);
+  if(item){ item[field]=val; persist(CUR); }
+}
+function upQInlineN(id, field, val){
+  const item=(CUR.qItems||[]).find(x=>x.id===id);
+  if(!item) return;
+  // rate 필드는 % 입력 → 소수로 변환
+  if(field==='rate') item[field]=(parseFloat(val)||100)/100;
+  else item[field]=parseFloat(val)||0;
+  persist(CUR);
+}
+
+/* ── 원화 컴마 포맷 헬퍼 ── */
+function fmtKRW(n){ return Math.round(n).toLocaleString('ko-KR'); }
+function parseKRW(s){ return parseFloat(String(s).replace(/,/g,''))||0; }
+
+/* ── 서비스항목 불러오기 (인라인 행용) ── */
+function openSvcPicker(itemId){
+  const item=(CUR.qItems||[]).find(x=>x.id===itemId);
+  if(!item) return;
+  const qt=CUR.quoteType||'DMC';
+  const svcItems=DB.svcItems||[];
+  const fls=DB.freelancers||[];
+
+  let m=document.getElementById('mo-svc-pick');
+  if(!m){m=document.createElement('div');m.id='mo-svc-pick';m.className='mo';m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+
+  const svcRows=svcItems.map(s=>`
+    <tr onclick="applySvcToItem('${itemId}','${s.id}','svc')" style="cursor:pointer" onmouseover="this.style.background='var(--abg)'" onmouseout="this.style.background=''">
+      <td style="padding:6px 10px;font-size:12px;font-weight:500">${h(s.name||'')}</td>
+      <td style="padding:6px 8px;font-size:11px;color:var(--ink3)">${h(s.nameEN||'')}</td>
+      <td style="padding:6px 8px;text-align:right;font-family:var(--fm);font-size:12px">${(s.costKRW||0).toLocaleString()}</td>
+      <td style="padding:6px 8px;font-size:11px;color:var(--ink3)">${h(s.unit||'')}</td>
+    </tr>`).join('');
+
+  const flRows=fls.map(f=>`
+    <tr onclick="applySvcToItem('${itemId}','${f.id}','fl')" style="cursor:pointer" onmouseover="this.style.background='var(--abg)'" onmouseout="this.style.background=''">
+      <td style="padding:6px 10px;font-size:12px;font-weight:500">${h(f.name||'')} ${h(f.lang||'')}</td>
+      <td style="padding:6px 8px;font-size:11px;color:var(--ink3)">${h(f.name||'')}</td>
+      <td style="padding:6px 8px;text-align:right;font-family:var(--fm);font-size:12px">${(f.rateDay||0).toLocaleString()}</td>
+      <td style="padding:6px 8px;font-size:11px;color:var(--ink3)">1일</td>
+    </tr>`).join('');
+
+  m.innerHTML=`<div class="mb wide"><div class="mo-t">📦 서비스항목 불러오기</div>
+  <div style="font-size:11.5px;color:var(--ink3);margin-bottom:10px">선택 시 항목명·단가·원가가 자동 입력됩니다.</div>
+  ${svcRows?`<div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:6px">개별 서비스 항목</div>
+  <div style="overflow-x:auto;max-height:220px;overflow-y:auto;border:1px solid var(--bdr);border-radius:6px;margin-bottom:12px">
+  <table style="width:100%;border-collapse:collapse">
+  <thead><tr style="background:var(--sur3)"><th style="padding:5px 10px;text-align:left;font-size:11px">항목명</th><th style="font-size:11px;padding:5px 8px">영문</th><th style="text-align:right;font-size:11px;padding:5px 8px">단가(₩)</th><th style="font-size:11px;padding:5px 8px">단위</th></tr></thead>
+  <tbody>${svcRows}</tbody></table></div>`:''}
+  ${flRows?`<div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:6px">가이드·통역 인력</div>
+  <div style="overflow-x:auto;max-height:180px;overflow-y:auto;border:1px solid var(--bdr);border-radius:6px">
+  <table style="width:100%;border-collapse:collapse">
+  <thead><tr style="background:var(--sur3)"><th style="padding:5px 10px;text-align:left;font-size:11px">이름</th><th style="font-size:11px;padding:5px 8px">영문</th><th style="text-align:right;font-size:11px;padding:5px 8px">일당(₩)</th><th style="font-size:11px;padding:5px 8px">단위</th></tr></thead>
+  <tbody>${flRows}</tbody></table></div>`:''}
+  <div class="mo-f"><button class="btn bd" onclick="document.getElementById('mo-svc-pick').classList.remove('open')">닫기</button></div>
+  </div>`;
+  m.classList.add('open');
+}
+
+function applySvcToItem(itemId, srcId, srcType){
+  const item=(CUR.qItems||[]).find(x=>x.id===itemId);
+  if(!item) return;
+  const qt=CUR.quoteType||'DMC';
+
+  if(srcType==='svc'){
+    const s=(DB.svcItems||[]).find(x=>x.id===srcId);
+    if(!s) return;
+    item.name=s.name||'';
+    item.nameEn=s.nameEN||'';
+    if(qt==='PCO'){
+      item.price=s.costKRW||0;
+      item.costKRW=s.costKRW||0;
+    } else {
+      // DMC: KRW → USD 변환
+      const rate=parseFloat(CUR.exchangeRate||CFG.rate||1380);
+      item.price=Math.round((s.costKRW||0)/rate*100)/100;
+      item.costUSD=item.price;
+    }
+  } else if(srcType==='fl'){
+    const f=(DB.freelancers||[]).find(x=>x.id===srcId);
+    if(!f) return;
+    item.name=(f.name||'')+(f.lang?' ('+f.lang+')':'');
+    item.nameEn=f.name||'';
+    if(qt==='PCO'){
+      item.price=f.rateDay||0;
+      item.costKRW=f.rateDay||0;
+    } else {
+      const rate=parseFloat(CUR.exchangeRate||CFG.rate||1380);
+      item.price=Math.round((f.rateDay||0)/rate*100)/100;
+      item.costUSD=item.price;
+    }
+  }
+
+  persist(CUR);
+  document.getElementById('mo-svc-pick')?.classList.remove('open');
+  renderQuote();
+  toast('항목 적용 완료','ok');
+}
+
 function saveQuoteSnapshot(){if(!CUR)return;const name=prompt('버전 이름',`v${((CUR.quoteVersions||[]).length+1)} (${new Date().toLocaleDateString('ko-KR')})`);if(!name)return;if(!CUR.quoteVersions)CUR.quoteVersions=[];CUR.quoteVersions.push({id:uid(),name,savedAt:now(),type:CUR.quoteType,lang:CUR.quoteLang,items:JSON.parse(JSON.stringify(CUR.qItems||[]))});persist(CUR);renderQuote();toast(`"${name}" 저장됨`,'ok');}
 function loadQuoteSnapshot(vid){if(!confirm('이 버전을 불러올까요?'))return;const v=(CUR.quoteVersions||[]).find(x=>x.id===vid);if(!v)return;CUR.qItems=JSON.parse(JSON.stringify(v.items||[]));CUR.quoteType=v.type||CUR.quoteType;if(v.lang)CUR.quoteLang=v.lang;persist(CUR);renderQuote();toast(`"${v.name}" 불러옴`,'ok');}
 function delQuoteSnapshot(vid){if(!confirm('삭제?'))return;CUR.quoteVersions=(CUR.quoteVersions||[]).filter(x=>x.id!==vid);persist(CUR);renderQuote();toast('삭제됨','ok');}
