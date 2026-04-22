@@ -6,6 +6,7 @@
 <title>Channel K MICE — 사내 인트라넷</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1487,6 +1488,26 @@ const STATUSES=[
 ];
 const OPS=['awarded','operating','settling','done'];
 const PIPE=['bidding','awarded','operating','settling','done'];
+
+/* ── 견적서 카테고리 정의 ── */
+const QPCO={
+  type:'PCO',currency:'KRW',mgmtRate:8,profitRate:10,vatRate:10,
+  cats:[
+    {k:'p1',l:'1. 인건비',subs:[{k:'p1a',l:'가) PCO 인건비'},{k:'p1b',l:'나) 보조 인력'}]},
+    {k:'p2',l:'2. 행사장 임차',subs:[{k:'p2a',l:'가) 대관료'},{k:'p2b',l:'나) 식음료'}]},
+    {k:'p3',l:'3. 행사 운영 부문',subs:[{k:'p3a',l:'가) 회의장비 임차료'},{k:'p3b',l:'나) 제작물·홍보물'}]},
+    {k:'p4',l:'4. 운영비',subs:[{k:'p4a',l:'가) 사전/현장 운영비'}]},
+    {k:'p5',l:'5. 기타',subs:[{k:'p5a',l:'가) 기타'}]},
+  ]
+};
+const QDMC={
+  type:'DMC',currency:'USD',mgmtRate:15,vatRate:10,
+  cats:[
+    {k:'d1',l:'1. Hotel'},{k:'d2',l:'2. Transportation'},
+    {k:'d3',l:'3. Activity'},{k:'d4',l:'4. Manpower'},
+    {k:'d5',l:'5. Meal'},{k:'d6',l:'6. Event Option'},
+  ]
+};
 // CLG 전역 참조
 
 /* ── HELPERS (DB 초기화 전 필수) ── */
@@ -4421,461 +4442,646 @@ function applyV(i){
 /* ── QUOTE ── */
 function renderQuote(){
   if(!CUR) return;
-  if(!CUR.quoteItems) CUR.quoteItems=[];
-  var items   = CUR.quoteItems;
-  var rate    = CUR.exchangeRate||CFG.rate||1380;
-  var fee     = CUR.feePercent||CFG.fee||10;
-  var nights  = CUR.nights||3;
-  var CATS   = ['숙박','교통','식음료','관광·체험','공연·행사','가이드','기타'];
+  const qt=CUR.quoteType||'DMC';
+  const def=qt==='PCO'?QPCO:QDMC;
+  if(!CUR.qItems) CUR.qItems=[];
 
-  var feeIncl = CUR.feeInclude==null ? true : !!CUR.feeInclude;
-  var vatRate = CUR.vatRate!=null ? parseFloat(CUR.vatRate)||0 : 10;
-  var vatIncl = !!CUR.vatInclude;
+  const pg=document.getElementById('page-quote');
+  if(!pg) return;
 
-  var totalCostKRW=0, totalSellKRW=0;
-  items.forEach(function(qi){
-    var q=(qi.qty||1)*(qi.nights!=null?qi.nights:1);
-    totalCostKRW+=(qi.costKRW||0)*q;
-    totalSellKRW+=(qi.sellKRW||0)*q;
-  });
-  var fa   = feeIncl ? Math.round(totalSellKRW*(fee/100)) : 0;
-  var vat  = vatIncl ? Math.round((totalSellKRW+fa)*(vatRate/100)) : 0;
-  var tot  = totalSellKRW + fa + vat;
-  var mg   = totalSellKRW - totalCostKRW;
-  var mp   = totalSellKRW?(mg/totalSellKRW*100).toFixed(1):0;
+  const rate=parseFloat(CUR.exchangeRate||CFG.rate||1380);
+  const versions=CUR.quoteVersions||[];
 
-  var html='';
+  // 탭 헤더
+  let html=`
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <div style="font-size:15px;font-weight:800;color:var(--ink)">견적서</div>
+    <div style="display:flex;gap:0;border:1px solid var(--bdr);border-radius:6px;overflow:hidden">
+      <button onclick="setQuoteType('PCO')" class="btn" style="padding:5px 14px;font-size:12px;border-radius:0;${qt==='PCO'?'background:var(--purple-pco,#38236F);color:#fff;font-weight:700':'background:transparent;color:var(--ink3)'}">📋 PCO</button>
+      <button onclick="setQuoteType('DMC')" class="btn" style="padding:5px 14px;font-size:12px;border-radius:0;${qt==='DMC'?'background:var(--a);color:#fff;font-weight:700':'background:transparent;color:var(--ink3)'}">✈️ DMC</button>
+    </div>
+    <span class="chip ${qt==='PCO'?'cv':'ca'}" style="font-size:10px">${qt==='PCO'?'KRW · 일반관리비8%+이윤10%+VAT10%':'USD · 관리비15%+Tax10%'}</span>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn bd btn-sm" onclick="saveQuoteSnapshot()">💾 버전 저장</button>
+      <button class="btn bd btn-sm" onclick="exportQuoteExcel()">📊 Excel</button>
+      <button class="btn bp btn-sm" onclick="openAddQItem(null)">+ 항목 추가</button>
+    </div>
+  </div>`;
 
-  // 헤더
-  html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">';
-  html+='<div style="font-size:13px;font-weight:700;flex:1">견적서</div>';
-  html+='<button class="btn bd btn-sm" onclick="importFromSched()">일정 가져오기</button>';
-  html+='<button class="btn bd btn-sm" onclick="downloadQuoteExcel()">Excel</button>';
-  html+='<button class="btn bd btn-sm" onclick="downloadQuotePDF()">PDF</button>';
-  html+='<button class="btn bg btn-sm" onclick="saveQuoteVersion()">버전 저장</button>';
-  html+='<button class="btn bp btn-sm" onclick="addQIRow()">+ 항목 추가</button></div>';
-  // 버전 목록
-  var versions=CUR.quoteVersions||[];
+  // 저장 버전
   if(versions.length){
-    html+='<div class="card" style="margin-bottom:10px;padding:10px 14px">';
-    html+='<div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:7px">저장된 버전</div>';
-    html+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
-    versions.forEach(function(v){
-      var d=new Date(v.savedAt).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-      html+='<div style="display:flex;align-items:center;gap:4px;background:var(--sur2);border:1px solid var(--bdr);border-radius:4px;padding:4px 8px">';
-      html+='<span style="font-size:12px;font-weight:600;cursor:pointer" data-vid="'+v.id+'" onclick="loadQuoteVersion(this.dataset.vid)">'+h(v.name)+'</span>';
-      html+='<span style="font-size:10px;color:var(--ink4)">'+d+'</span>';
-      html+='<button style="background:none;border:none;color:var(--ink4);cursor:pointer;font-size:11px;padding:0 2px" data-vid="'+v.id+'" onclick="delQuoteVersion(this.dataset.vid)"></button>';
-      html+='</div>';
+    html+=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;padding:8px 12px;background:var(--sur2);border-radius:6px;border:1px solid var(--bdr)">
+    <span style="font-size:10.5px;font-weight:700;color:var(--ink3);align-self:center">버전:</span>`;
+    versions.forEach(v=>{
+      const d=new Date(v.savedAt).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+      html+=`<div style="display:flex;align-items:center;gap:3px;background:#fff;border:1px solid var(--bdr);border-radius:4px;padding:3px 8px;font-size:11px">
+        <span style="cursor:pointer;color:var(--a);font-weight:700" data-vid="${v.id}" onclick="loadQuoteSnapshot(this.dataset.vid)">${h(v.name)}</span>
+        <span style="color:var(--ink4);font-size:10px">${d}</span>
+        <button style="background:none;border:none;color:var(--ink4);cursor:pointer;padding:0 2px;font-size:10px" data-vid="${v.id}" onclick="delQuoteSnapshot(this.dataset.vid)">✕</button>
+      </div>`;
     });
-    html+='</div></div>';
+    html+=`</div>`;
   }
 
-  // 설정
-  html+='<div class="card" style="margin-bottom:14px">';
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">';
-  html+='<div class="fg" style="margin:0"><label class="fl">환율 (KRW/USD)</label>';
-  html+='<input class="fi" type="number" value="'+rate+'" onchange="setQRate(this.value)"></div>';
-  html+='<div class="fg" style="margin:0"><label class="fl">채널케이 수수료 %</label>';
-  html+='<div style="display:flex;gap:5px;align-items:center">';
-  html+='<input class="fi" type="number" value="'+fee+'" style="flex:1" onchange="setQFee(this.value)">';
-  html+='<label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap;cursor:pointer">';
-  html+='<input type="checkbox" id="qFeeChk" '+(feeIncl?'checked':'')+' onchange="setQFeeIncl(this.checked)"> 포함</label>';
-  html+='</div></div>';
-  html+='<div class="fg" style="margin:0"><label class="fl">부가세 (VAT) %</label>';
-  html+='<div style="display:flex;gap:5px;align-items:center">';
-  html+='<input class="fi" type="number" value="'+vatRate+'" style="flex:1" placeholder="10" onchange="setQVat(this.value)">';
-  html+='<label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap;cursor:pointer">';
-  html+='<input type="checkbox" id="qVatChk" '+(vatIncl?'checked':'')+' onchange="setQVatIncl(this.checked)"> 포함</label>';
-  html+='</div></div>';
-  html+='<div class="fg" style="margin:0"><label class="fl">적용 요약</label>';
-  html+='<div style="font-size:11px;color:var(--ink3);padding:7px 0;line-height:1.8">';
-  html += feeIncl ? '<span style="color:var(--g);font-weight:600"> 수수료 '+fee+'%</span><br>' : '<span style="color:var(--ink4)">— 수수료 미포함</span><br>';
-  html += vatIncl ? '<span style="color:var(--g);font-weight:600"> 부가세 '+vatRate+'%</span>' : '<span style="color:var(--ink4)">— 부가세 미포함</span>';
-  html += '</div></div>';
-  html+='</div></div>';
-
-  // 테이블
-  html+='<div style="overflow-x:auto"><table class="q-tbl" style="min-width:880px">';
-  html+='<thead><tr>';
-  html+='<th style="width:80px">카테고리</th><th>항목명</th>';
-  html+='<th style="width:50px;text-align:right">수량</th>';
-  html+='<th style="width:50px;text-align:right">기간</th>';
-  html+='<th style="width:115px;text-align:right">원가/건 KRW</th>';
-  html+='<th style="width:115px;text-align:right">판매가/건 KRW</th>';
-  html+='<th style="width:95px;text-align:right">판매가/건 USD</th>';
-  html+='<th style="width:46px;text-align:right">마진</th>';
-  html+='<th style="width:55px;text-align:center">확인</th>';
-  html+='<th style="width:30px"></th></tr></thead><tbody>';
-
-  if(!items.length){
-    html+='<tr><td colspan="10" style="text-align:center;color:var(--ink4);padding:20px">항목 없음 — + 항목 추가</td></tr>';
+  // 환율 설정 (DMC)
+  if(qt==='DMC'){
+    html+=`<div class="card" style="padding:10px 14px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div class="fg" style="margin:0;display:flex;align-items:center;gap:8px">
+        <label class="fl" style="margin:0;white-space:nowrap">환율 KRW/USD</label>
+        <input class="fi" type="number" style="width:100px" value="${rate}" onchange="upC('exchangeRate',parseFloat(this.value)||1380)">
+      </div>
+      <div style="font-size:11.5px;color:var(--ink3)">관리비 <b>15%</b> + Tax <b>10%</b> 자동 적용</div>
+    </div></div>`;
   } else {
-    CATS.forEach(function(cat){
-      var catItems=items.filter(function(qi){return (qi.category||'기타')===cat;});
-      if(!catItems.length) return;
-      var catCost=0, catSell=0;
-      catItems.forEach(function(qi){
-        var isHotel=qi.category==='숙박';
-        var qtyVal=qi.qty||1;
-        var nightsVal=qi.nights!=null?qi.nights:(isHotel?nights:1);
-        var total=qtyVal*nightsVal;
-        var costKRW=qi.costKRW||0;
-        var sellKRW=qi.sellKRW||0;
-        var sellUSD=sellKRW?Math.round(sellKRW/rate):0;
-        var mp2=sellKRW&&costKRW?((sellKRW-costKRW)/sellKRW*100).toFixed(0):0;
-        catCost+=costKRW*total; catSell+=sellKRW*total;
+    html+=`<div class="card" style="padding:10px 14px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="font-size:11.5px;color:var(--ink3)">소계Ⅰ → <b>+일반관리비 8%</b> → 소계Ⅱ → <b>+기업이윤 10%</b> → 소계Ⅲ → <b>+VAT 10%</b> → 계 <span style="color:var(--ink4)">(천단위 절사)</span></div>
+      <div class="fg" style="margin:0;display:flex;align-items:center;gap:8px;margin-left:auto">
+        <label class="fl" style="margin:0;white-space:nowrap">환율 참고</label>
+        <input class="fi" type="number" style="width:100px" value="${rate}" onchange="upC('exchangeRate',parseFloat(this.value)||1380)">
+      </div>
+    </div></div>`;
+  }
 
-        var catOpts='';
-        CATS.forEach(function(c){catOpts+='<option value="'+c+'"'+(qi.category===c?' selected':'')+'>'+c+'</option>';});
+  // 카테고리별 항목 렌더
+  if(qt==='PCO'){
+    html+=renderPCOTable();
+  } else {
+    html+=renderDMCTable();
+  }
 
-        html+='<tr>';
-        html+='<td style="padding:5px 6px"><select class="fi" style="font-size:11px;padding:3px 4px"'+
-          ' data-id="'+qi.id+'" onchange="upQI(this.dataset.id,this.dataset.f,this.value);renderQuote()" data-f="category">'+catOpts+'</select></td>';
-        html+='<td style="padding:5px 6px"><input class="fi" style="font-size:12px;width:100%" value="'+h(qi.name||'')+'"'+
-          ' placeholder="항목명" data-id="'+qi.id+'" data-f="name" oninput="upQIf(this.dataset.id,this.dataset.f,this.value)"></td>';
-        html+='<td style="padding:5px 4px;text-align:right">'+
-          '<input class="fi" type="number" min="1" style="width:46px;text-align:right;font-size:12px;padding:4px"'+
-          ' value="'+qtyVal+'" data-id="'+qi.id+'" data-f="qty" onchange="upQIfi(this.dataset.id,this.dataset.f,this.value,1);renderQuote()"></td>';
-        html+='<td style="padding:5px 4px;text-align:right">'+
-          '<input class="fi" type="number" min="0" style="width:46px;text-align:right;font-size:12px;padding:4px'+(isHotel?';background:var(--abg)':'')+'"'+
-          ' value="'+nightsVal+'" data-id="'+qi.id+'" data-f="nights" onchange="upQIfi(this.dataset.id,this.dataset.f,this.value,1);renderQuote()"></td>';
-        html+='<td style="padding:5px 4px;text-align:right">'+
-          '<input class="fi" type="number" min="0" style="width:108px;text-align:right;font-size:12px;padding:4px"'+
-          ' value="'+(costKRW||'')+'" placeholder="원가/건" data-id="'+qi.id+'" data-f="costKRW" onchange="upQIfi(this.dataset.id,this.dataset.f,this.value,0);renderQuote()"></td>';
-        html+='<td style="padding:5px 4px;text-align:right">'+
-          '<input class="fi" type="number" min="0" style="width:108px;text-align:right;font-size:12px;padding:4px'+(sellKRW?';background:var(--gbg)':'')+'"'+
-          ' value="'+(sellKRW||'')+'" id="qkrw-'+qi.id+'" placeholder="판매가/건 KRW"'+
-          ' data-id="'+qi.id+'" data-rate="'+rate+'" data-total="'+total+'" onchange="upQIkrw(this.dataset.id,parseInt(this.value)||0,+this.dataset.rate,+this.dataset.total);renderQuote()"></td>';
-        html+='<td style="padding:5px 4px;text-align:right">'+
-          '<input class="fi" type="number" min="0" style="width:88px;text-align:right;font-size:12px;padding:4px"'+
-          ' value="'+(sellUSD||'')+'" placeholder="USD/건" id="qusd-'+qi.id+'"'+
-          ' data-id="'+qi.id+'" data-rate="'+rate+'" data-total="'+total+'" onchange="upQIusd(this.dataset.id,parseInt(this.value)||0,+this.dataset.rate,+this.dataset.total);renderQuote()"></td>';
-        html+='<td style="text-align:right;font-size:12px;font-weight:600;padding:5px 6px" class="'+(mp2>=20?'dp':mp2>=0?'':'dn')+'">'+mp2+'%</td>';
-        html+='<td style="text-align:center;padding:5px 4px">'+
-          '<button class="btn btn-sm '+(qi.confirmed?'bg':'bd')+'" style="font-size:10px;padding:2px 6px"'+
-          ' data-id="'+qi.id+'" onclick="togConf(this.dataset.id)">'+(qi.confirmed?'확인':'미확인')+'</button></td>';
-        html+='<td style="text-align:center;padding:5px 4px">'+
-          '<button class="btn bdr2c btn-sm" style="padding:2px 6px" data-id="'+qi.id+'" onclick="delQI(this.dataset.id)"></button></td>';
-        html+='</tr>';
+  pg.innerHTML=html;
+}
+
+/* ── PCO 테이블 ── */
+function renderPCOTable(){
+  const items=CUR.qItems||[];
+  const rate=parseFloat(CUR.exchangeRate||CFG.rate||1380);
+  let subtotal1=0;
+  let html='';
+
+  QPCO.cats.forEach(cat=>{
+    html+=`<div class="card" style="margin-bottom:10px;padding:0;overflow:hidden">
+    <div style="background:linear-gradient(135deg,#2A1853,#38236F);color:#fff;padding:8px 14px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:13px;font-weight:700">${h(cat.l)}</span>
+      <button class="btn btn-sm" style="margin-left:auto;padding:3px 10px;font-size:10.5px;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.25)" onclick="openAddQItem('${cat.subs[0].k}')">+ 추가</button>
+    </div>`;
+
+    cat.subs.forEach(sub=>{
+      const subItems=items.filter(i=>i.cat===sub.k);
+      const subTotal=subItems.reduce((s,i)=>s+(calcQItemAmt(i)),0);
+      subtotal1+=subTotal;
+
+      html+=`<div style="padding:6px 14px 2px;background:var(--sur2);border-bottom:1px solid var(--bdr)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11.5px;font-weight:700;color:var(--ink2)">${h(sub.l)}</span>
+          <button class="btn bd btn-sm" style="padding:2px 8px;font-size:10px" onclick="openAddQItem('${sub.k}')">+ 항목</button>
+          ${subItems.length?`<span style="margin-left:auto;font-size:12px;font-weight:700;color:var(--ink);font-family:var(--fm)">소계: ₩${Math.round(subTotal).toLocaleString()}</span>`:''}
+        </div>
+      </div>`;
+
+      if(subItems.length){
+        html+=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--sur3)">
+          <th style="padding:5px 8px;text-align:left;font-weight:600;color:var(--ink3);font-size:11px">항목명</th>
+          <th style="padding:5px 6px;text-align:right;width:90px;font-size:11px">단가(₩)</th>
+          <th style="padding:5px 6px;text-align:right;width:55px;font-size:11px">수량</th>
+          <th style="padding:5px 6px;text-align:right;width:55px;font-size:11px">기간</th>
+          <th style="padding:5px 6px;text-align:right;width:60px;font-size:11px">투입률</th>
+          <th style="padding:5px 6px;text-align:right;width:110px;font-size:11px;color:var(--a)">금액(₩)</th>
+          <th style="padding:5px 6px;text-align:left;width:110px;font-size:11px">협력업체</th>
+          <th style="padding:5px 6px;text-align:left;width:80px;font-size:11px">비고</th>
+          <th style="width:56px"></th>
+        </tr></thead><tbody>`;
+        subItems.forEach(item=>{
+          const amt=calcQItemAmt(item);
+          const vname=item.vendorName||'';
+          html+=`<tr style="border-bottom:1px solid var(--bdr)">
+            <td style="padding:5px 8px">${h(item.name||'')}</td>
+            <td style="padding:5px 6px;text-align:right;font-family:var(--fm)">${item.price?item.price.toLocaleString():'-'}</td>
+            <td style="padding:5px 6px;text-align:right">${item.qty||1}</td>
+            <td style="padding:5px 6px;text-align:right">${item.period||1}</td>
+            <td style="padding:5px 6px;text-align:right">${(item.rate||1)*100}%</td>
+            <td style="padding:5px 6px;text-align:right;font-weight:700;color:var(--a);font-family:var(--fm)">₩${Math.round(amt).toLocaleString()}</td>
+            <td style="padding:5px 6px">
+              <button class="btn btn-sm ${vname?'bg':'bd'}" style="padding:2px 7px;font-size:10px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" 
+                data-id="${item.id}" onclick="openVendorLink(this.dataset.id)">${h(vname||'+ 업체 연결')}</button>
+            </td>
+            <td style="padding:5px 6px;font-size:11px;color:var(--ink3)">${h(item.note||'')}</td>
+            <td style="padding:5px 4px;text-align:center;white-space:nowrap">
+              <button class="btn bd btn-sm" style="padding:2px 6px;font-size:10px" data-id="${item.id}" onclick="openAddQItem(null,'${item.id}')">수정</button>
+              <button class="btn bdr2c btn-sm" style="padding:2px 6px;font-size:10px" data-id="${item.id}" onclick="delQItem(this.dataset.id)">삭제</button>
+            </td>
+          </tr>`;
+        });
+        html+=`</tbody></table></div>`;
+      }
+    });
+    html+=`</div>`;
+  });
+
+  // PCO 합계 계산
+  const mgmt=Math.round(subtotal1*0.08);
+  const sub2=subtotal1+mgmt;
+  const profit=Math.round(sub2*0.10);
+  const sub3=sub2+profit;
+  const vat=Math.round(sub3*0.10);
+  const total=Math.floor((sub3+vat)/1000)*1000; // 천단위 절사
+
+  html+=`<div class="card" style="margin-top:4px">
+  <div class="card-t">📊 견적 합계</div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+  ${pcoSumRow('소계 Ⅰ (대분류 합계)',subtotal1)}
+  ${pcoSumRow('일반관리비 (소계Ⅰ × 8%)',mgmt,'var(--ink3)')}
+  ${pcoSumRow('소계 Ⅱ',sub2,'var(--a)',true)}
+  ${pcoSumRow('기업이윤 (소계Ⅱ × 10%)',profit,'var(--ink3)')}
+  ${pcoSumRow('소계 Ⅲ',sub3,'var(--a)',true)}
+  ${pcoSumRow('부가세 (소계Ⅲ × 10%)',vat,'var(--ink3)')}
+  <tr style="background:var(--abg)"><td style="padding:10px 14px;font-size:14px;font-weight:800;color:var(--a)">계 (천단위 이하 절사)</td>
+    <td style="padding:10px 14px;text-align:right;font-size:16px;font-weight:800;color:var(--a);font-family:var(--fm)">₩${total.toLocaleString()}</td></tr>
+  </table></div>`;
+
+  return html;
+}
+
+function pcoSumRow(label,amt,color,bold){
+  return `<tr style="border-bottom:1px solid var(--bdr)">
+    <td style="padding:8px 14px;color:${color||'var(--ink)'};${bold?'font-weight:700':''}">　${label}</td>
+    <td style="padding:8px 14px;text-align:right;font-family:var(--fm);${bold?'font-weight:700':''}">₩${Math.round(amt).toLocaleString()}</td>
+  </tr>`;
+}
+
+/* ── DMC 테이블 ── */
+function renderDMCTable(){
+  const items=CUR.qItems||[];
+  const rate=parseFloat(CUR.exchangeRate||CFG.rate||1380);
+  let subTotal=0;
+  let html='';
+
+  QDMC.cats.forEach(cat=>{
+    const catItems=items.filter(i=>i.cat===cat.k);
+    const catAmt=catItems.reduce((s,i)=>s+(calcQItemAmt(i)),0);
+    subTotal+=catAmt;
+
+    html+=`<div class="card" style="margin-bottom:10px;padding:0;overflow:hidden">
+    <div style="background:linear-gradient(135deg,#1a6b4a,#2d9966);color:#fff;padding:8px 14px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:13px;font-weight:700">${h(cat.l)}</span>
+      ${catAmt?`<span style="margin-left:8px;font-size:11.5px;background:rgba(255,255,255,.18);padding:1px 8px;border-radius:99px">$${catAmt.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:0})}</span>`:''}
+      <button class="btn btn-sm" style="margin-left:auto;padding:3px 10px;font-size:10.5px;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.25)" onclick="openAddQItem('${cat.k}')">+ 추가</button>
+    </div>`;
+
+    if(catItems.length){
+      html+=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--sur3)">
+        <th style="padding:5px 8px;text-align:left;font-size:11px">Date / Item</th>
+        <th style="padding:5px 6px;text-align:left;font-size:11px">Description</th>
+        <th style="padding:5px 6px;text-align:right;width:90px;font-size:11px">Price($)</th>
+        <th style="padding:5px 6px;text-align:right;width:55px;font-size:11px">Qty</th>
+        <th style="padding:5px 6px;text-align:right;width:55px;font-size:11px">Period</th>
+        <th style="padding:5px 6px;text-align:right;width:100px;font-size:11px;color:var(--g)">Amount($)</th>
+        <th style="padding:5px 6px;text-align:left;width:110px;font-size:11px">협력업체</th>
+        <th style="padding:5px 6px;text-align:left;width:80px;font-size:11px">Note</th>
+        <th style="width:56px"></th>
+      </tr></thead><tbody>`;
+      catItems.forEach(item=>{
+        const amt=calcQItemAmt(item);
+        const vname=item.vendorName||'';
+        html+=`<tr style="border-bottom:1px solid var(--bdr)">
+          <td style="padding:5px 8px;color:var(--ink3);font-size:11px">${h(item.dateLabel||'')}</td>
+          <td style="padding:5px 6px">${h(item.name||'')}</td>
+          <td style="padding:5px 6px;text-align:right;font-family:var(--fm)">$${(item.price||0).toLocaleString('en',{minimumFractionDigits:0})}</td>
+          <td style="padding:5px 6px;text-align:right">${item.qty||1}</td>
+          <td style="padding:5px 6px;text-align:right">${item.period||1}</td>
+          <td style="padding:5px 6px;text-align:right;font-weight:700;color:var(--g);font-family:var(--fm)">$${amt.toLocaleString('en',{minimumFractionDigits:0})}</td>
+          <td style="padding:5px 6px">
+            <button class="btn btn-sm ${vname?'bg':'bd'}" style="padding:2px 7px;font-size:10px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              data-id="${item.id}" onclick="openVendorLink(this.dataset.id)">${h(vname||'+ 업체 연결')}</button>
+          </td>
+          <td style="padding:5px 6px;font-size:11px;color:var(--ink3)">${h(item.note||'')}</td>
+          <td style="padding:5px 4px;text-align:center;white-space:nowrap">
+            <button class="btn bd btn-sm" style="padding:2px 6px;font-size:10px" data-id="${item.id}" onclick="openAddQItem(null,'${item.id}')">수정</button>
+            <button class="btn bdr2c btn-sm" style="padding:2px 6px;font-size:10px" data-id="${item.id}" onclick="delQItem(this.dataset.id)">삭제</button>
+          </td>
+        </tr>`;
       });
-      // 카테고리 소계
-      html+='<tr style="background:var(--sur2);border-top:1px solid var(--bdr)">';
-      html+='<td colspan="4" style="font-size:11px;font-weight:700;color:var(--ink2);padding:5px 8px">'+cat+' 소계</td>';
-      html+='<td style="text-align:right;font-size:12px;color:var(--ink3);padding:5px 8px">'+fmt(catCost)+'</td>';
-      html+='<td style="text-align:right;font-size:12px;font-weight:700;padding:5px 8px">'+fmt(catSell)+'</td>';
-      html+='<td style="text-align:right;font-size:12px;font-weight:700;padding:5px 8px">'+fUSD(catSell,rate)+'</td>';
-      html+='<td colspan="3"></td></tr>';
+      html+=`</tbody></table></div>`;
+    } else {
+      html+=`<div style="padding:12px 14px;font-size:11.5px;color:var(--ink4)">항목 없음 — + 추가 버튼으로 입력하세요</div>`;
+    }
+    html+=`</div>`;
+  });
+
+  // DMC 합계
+  const mgmtFee=Math.round(subTotal*0.15*100)/100;
+  const total=Math.round((subTotal+mgmtFee)*100)/100;
+  const govTax=Math.round(total*0.10*100)/100;
+  const grandTotal=Math.round((total+govTax)*100)/100;
+  const grandKRW=Math.round(grandTotal*rate);
+
+  html+=`<div class="card" style="margin-top:4px">
+  <div class="card-t">📊 Quotation Summary</div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+  <tr style="border-bottom:1px solid var(--bdr)"><td style="padding:8px 14px">Sub Total</td>
+    <td style="padding:8px 14px;text-align:right;font-family:var(--fm);font-weight:700">$${subTotal.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>
+  <tr style="border-bottom:1px solid var(--bdr)"><td style="padding:8px 14px;color:var(--ink3)">　Channel K Management Fee 15%</td>
+    <td style="padding:8px 14px;text-align:right;font-family:var(--fm)">$${mgmtFee.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>
+  <tr style="border-bottom:1px solid var(--bdr);font-weight:700"><td style="padding:8px 14px;color:var(--a)">　Total</td>
+    <td style="padding:8px 14px;text-align:right;font-family:var(--fm);color:var(--a)">$${total.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>
+  <tr style="border-bottom:1px solid var(--bdr)"><td style="padding:8px 14px;color:var(--ink3)">　Government Tax 10%</td>
+    <td style="padding:8px 14px;text-align:right;font-family:var(--fm)">$${govTax.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>
+  <tr style="background:var(--abg)"><td style="padding:10px 14px;font-size:14px;font-weight:800;color:var(--a)">Grand Total</td>
+    <td style="padding:10px 14px;text-align:right;font-size:15px;font-weight:800;color:var(--a);font-family:var(--fm)">$${grandTotal.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}
+      <div style="font-size:11px;color:var(--ink3);font-weight:400">≈ ₩${grandKRW.toLocaleString()} (@ ${rate.toLocaleString()})</div>
+    </td></tr>
+  </table></div>`;
+
+  return html;
+}
+
+/* ── 항목 금액 계산 ── */
+function calcQItemAmt(item){
+  const p=parseFloat(item.price)||0;
+  const q=parseFloat(item.qty)||1;
+  const d=parseFloat(item.period)||1;
+  const r=parseFloat(item.rate)||1;
+  return p*q*d*r;
+}
+
+/* ── 견적 타입 변경 ── */
+function setQuoteType(t){
+  if(!CUR) return;
+  CUR.quoteType=t;
+  saveDB();
+  renderQuote();
+  toast(t==='PCO'?'PCO 견적 (KRW)':'DMC 견적 (USD)','ok');
+}
+
+/* ── 항목 추가/수정 모달 ── */
+function openAddQItem(catKey, editId){
+  if(!CUR) return;
+  const qt=CUR.quoteType||'DMC';
+  const def=qt==='PCO'?QPCO:QDMC;
+  const item=editId?(CUR.qItems||[]).find(x=>x.id===editId):null;
+
+  // 카테고리 select
+  let catOpts='';
+  if(qt==='PCO'){
+    QPCO.cats.forEach(cat=>{
+      cat.subs.forEach(sub=>{
+        const sel=(item?item.cat:catKey)===sub.k;
+        catOpts+=`<option value="${sub.k}"${sel?' selected':''}>${h(cat.l)} > ${h(sub.l)}</option>`;
+      });
+    });
+  } else {
+    QDMC.cats.forEach(cat=>{
+      const sel=(item?item.cat:catKey)===cat.k;
+      catOpts+=`<option value="${cat.k}"${sel?' selected':''}>${h(cat.l)}</option>`;
     });
   }
 
-  html+='</tbody><tfoot>';
-  html+='<tr style="border-top:2px solid var(--a)"><td colspan="4" style="font-size:11px;color:var(--ink3)">원가 합계</td>';
-  html+='<td style="text-align:right;font-weight:700">'+fmt(totalCostKRW)+'</td><td colspan="5"></td></tr>';
-  html+='<tr><td colspan="4" style="font-size:11px;color:var(--ink3)">판매가 합계</td><td></td>';
-  html+='<td style="text-align:right;font-weight:700">'+fmt(totalSellKRW)+'</td>';
-  html+='<td style="text-align:right">'+fUSD(totalSellKRW,rate)+'</td><td colspan="3"></td></tr>';
-  if(feeIncl && fa>0){
-    html+='<tr><td colspan="4" style="font-size:11px;color:var(--ink3)">채널케이 수수료 ('+fee+'%)</td><td></td>';
-    html+='<td style="text-align:right">'+fmt(Math.round(fa))+'</td>';
-    html+='<td style="text-align:right">'+fUSD(Math.round(fa),rate)+'</td><td colspan="3"></td></tr>';
+  // 서비스항목 DB 선택 옵션
+  const svcOpts=(DB.svcItems||[]).slice(0,30).map(s=>
+    `<option value="${s.id}">${h(s.name)} — ₩${(s.costKRW||0).toLocaleString()}</option>`
+  ).join('');
+
+  let m=document.getElementById('mo-q-item');
+  if(!m){m=document.createElement('div');m.id='mo-q-item';m.className='mo';m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+
+  m.innerHTML=`<div class="mb wide"><div class="mo-t">${editId?'항목 수정':'항목 추가'} (${qt})</div>
+  ${svcOpts?`<div class="fg"><label class="fl">서비스항목 DB에서 선택 (선택사항)</label>
+  <select class="fi" onchange="fillQItemFromSvc(this.value)">
+    <option value="">— 직접 입력 —</option>${svcOpts}
+  </select></div>`:''}
+  <div class="fr2">
+    <div class="fg"><label class="fl">카테고리 ★</label>
+      <select class="fi" id="qm-cat">${catOpts}</select></div>
+    <div class="fg"><label class="fl">${qt==='PCO'?'항목명 ★':'Item / Description ★'}</label>
+      <input class="fi" id="qm-name" value="${h(item?.name||'')}" placeholder="${qt==='PCO'?'예: 운영 총괄PM':'예: Summit Hotel Seoul'}"></div>
+  </div>
+  ${qt==='DMC'?`<div class="fg"><label class="fl">Date Label</label><input class="fi" id="qm-datelabel" value="${h(item?.dateLabel||'')}" placeholder="예: May 12-15"></div>`:''}
+  <div class="fr3">
+    <div class="fg"><label class="fl">${qt==='PCO'?'단가 (₩) ★':'Price ($) ★'}</label>
+      <input class="fi" type="number" id="qm-price" value="${item?.price||''}" placeholder="${qt==='PCO'?'300000':'250'}"></div>
+    <div class="fg"><label class="fl">수량 (Qty)</label>
+      <input class="fi" type="number" id="qm-qty" value="${item?.qty||1}" min="1"></div>
+    <div class="fg"><label class="fl">기간 (Period)</label>
+      <input class="fi" type="number" id="qm-period" value="${item?.period||1}" min="1"></div>
+  </div>
+  ${qt==='PCO'?`<div class="fr2">
+    <div class="fg"><label class="fl">투입률 (예: 1 = 100%, 0.5 = 50%)</label>
+      <input class="fi" type="number" id="qm-rate" value="${item?.rate!=null?item.rate:1}" step="0.1" min="0" max="2" placeholder="1"></div>
+    <div class="fg"><label class="fl">원가 (₩, 마진 계산용)</label>
+      <input class="fi" type="number" id="qm-cost" value="${item?.costKRW||''}" placeholder="원가 입력 (옵션)"></div>
+  </div>`:`<div class="fg" style="display:none"><input id="qm-rate" value="1"><input id="qm-cost" value="0"></div>`}
+  <div class="fr2">
+    <div class="fg"><label class="fl">협력업체 연결</label>
+      <select class="fi" id="qm-vendor">
+        <option value="">— 없음 —</option>
+        ${(DB.vendors||[]).map(v=>`<option value="${v.id}" ${item?.vendorId===v.id?'selected':''}>${h(v.name)}</option>`).join('')}
+      </select></div>
+    <div class="fg"><label class="fl">비고 (Note)</label>
+      <input class="fi" id="qm-note" value="${h(item?.note||'')}" placeholder="기타 참고사항"></div>
+  </div>
+  <div class="mo-f">
+    <button class="btn bd" style="flex:1" onclick="document.getElementById('mo-q-item').classList.remove('open')">취소</button>
+    ${editId?`<button class="btn bdr2c btn-sm" data-id="${editId}" onclick="delQItem(this.dataset.id)">삭제</button>`:''}
+    <button class="btn bp" style="flex:2" onclick="saveQItem('${editId||''}')">저장</button>
+  </div></div>`;
+  m.classList.add('open');
+}
+
+function fillQItemFromSvc(svcId){
+  if(!svcId) return;
+  const s=(DB.svcItems||[]).find(x=>x.id===svcId);
+  if(!s) return;
+  const nm=document.getElementById('qm-name');
+  const pr=document.getElementById('qm-price');
+  const co=document.getElementById('qm-cost');
+  if(nm) nm.value=s.name||'';
+  if(pr) pr.value=s.costKRW||'';
+  if(co) co.value=s.costKRW||'';
+}
+
+function saveQItem(editId){
+  const name=(document.getElementById('qm-name')?.value||'').trim();
+  const price=parseFloat(document.getElementById('qm-price')?.value)||0;
+  if(!name){toast('항목명 필수','err');return;}
+  if(!price){toast('단가/금액 필수','err');return;}
+
+  const cat=document.getElementById('qm-cat')?.value||'d1';
+  const qty=parseFloat(document.getElementById('qm-qty')?.value)||1;
+  const period=parseFloat(document.getElementById('qm-period')?.value)||1;
+  const rate=parseFloat(document.getElementById('qm-rate')?.value)||1;
+  const costKRW=parseFloat(document.getElementById('qm-cost')?.value)||0;
+  const note=(document.getElementById('qm-note')?.value||'').trim();
+  const dateLabel=(document.getElementById('qm-datelabel')?.value||'').trim();
+  const vendorSel=document.getElementById('qm-vendor');
+  const vendorId=vendorSel?.value||null;
+  const vendorObj=vendorId?(DB.vendors||[]).find(v=>v.id===vendorId):null;
+
+  const obj={
+    id:editId||uid(), cat, name, price, qty, period, rate,
+    costKRW, note, dateLabel,
+    vendorId:vendorId||null,
+    vendorName:vendorObj?.name||'',
+    updatedAt:now()
+  };
+
+  if(!CUR.qItems) CUR.qItems=[];
+  if(editId){
+    const i=CUR.qItems.findIndex(x=>x.id===editId);
+    if(i>=0) CUR.qItems[i]=obj;
+  } else {
+    CUR.qItems.push(obj);
   }
-  if(vatIncl){
-    html+='<tr><td colspan="4" style="font-size:11px;color:var(--ink3)">부가세 ('+vatRate+'%)</td><td></td>';
-    html+='<td style="text-align:right">'+fmt(Math.round(vat))+'</td>';
-    html+='<td style="text-align:right">'+fUSD(Math.round(vat),rate)+'</td><td colspan="3"></td></tr>';
+  persist(CUR);
+  document.getElementById('mo-q-item')?.classList.remove('open');
+  renderQuote();
+  toast(editId?'수정 완료':'항목 추가 완료','ok');
+}
+
+function delQItem(id){
+  if(!confirm('이 항목을 삭제할까요?')) return;
+  CUR.qItems=(CUR.qItems||[]).filter(x=>x.id!==id);
+  persist(CUR);
+  document.getElementById('mo-q-item')?.classList.remove('open');
+  renderQuote();
+  toast('삭제됨','ok');
+}
+
+/* ── 협력업체 연결 모달 ── */
+function openVendorLink(itemId){
+  const item=(CUR.qItems||[]).find(x=>x.id===itemId);
+  if(!item) return;
+
+  // 카테고리 연관 업체 우선
+  const catMap={d1:'숙박·연회',d2:'교통·차량',d3:'투어·공연',d4:'행사 인력',d5:'식음료',d6:'투어·공연',
+    p1a:'행사 인력',p1b:'행사 인력',p2a:'숙박·연회',p2b:'식음료',p3a:'AV·음향·장비',p3b:'인쇄·제작',p4a:'사무·관리',p5a:'기타'};
+  const prefCat=catMap[item.cat];
+  const allVendors=DB.vendors||[];
+  const pref=prefCat?allVendors.filter(v=>v.category===prefCat):[];
+  const others=prefCat?allVendors.filter(v=>v.category!==prefCat):allVendors;
+
+  let m=document.getElementById('mo-vlink');
+  if(!m){m=document.createElement('div');m.id='mo-vlink';m.className='mo';m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
+
+  const mkOpt=(v)=>`<option value="${v.id}" ${item.vendorId===v.id?'selected':''}>${h(v.name)} [${h(v.category||'기타')}]</option>`;
+
+  m.innerHTML=`<div class="mb" style="max-width:520px"><div class="mo-t">협력업체 연결</div>
+  <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">
+    항목: <b>${h(item.name)}</b> — 카테고리: <b>${h(item.cat)}</b>
+  </div>
+  <div class="fg"><label class="fl">협력업체 선택</label>
+    <select class="fi" id="vlink-sel" size="6" style="height:160px">
+      <option value="">— 연결 없음 —</option>
+      ${pref.length?`<optgroup label="★ 연관 카테고리 (${prefCat})">${pref.map(mkOpt).join('')}</optgroup>`:''}
+      <optgroup label="전체 협력업체">${others.map(mkOpt).join('')}</optgroup>
+    </select>
+  </div>
+  <div style="font-size:11.5px;color:var(--ink3);margin-top:8px">
+    연결 후 <b>업체 대금 관리</b>에서 세금계산서·결제 처리가 가능합니다.
+  </div>
+  <div class="mo-f">
+    <button class="btn bd" style="flex:1" onclick="document.getElementById('mo-vlink').classList.remove('open')">취소</button>
+    <button class="btn bdr2" style="flex:1" onclick="saveVendorLink('${itemId}',null)">연결 해제</button>
+    <button class="btn bp" style="flex:2" data-id="${itemId}" onclick="saveVendorLink('${itemId}',document.getElementById('vlink-sel').value)">저장</button>
+  </div></div>`;
+  m.classList.add('open');
+}
+
+function saveVendorLink(itemId, vendorId){
+  const item=(CUR.qItems||[]).find(x=>x.id===itemId);
+  if(!item) return;
+  const v=vendorId?(DB.vendors||[]).find(x=>x.id===vendorId):null;
+  item.vendorId=vendorId||null;
+  item.vendorName=v?.name||'';
+  persist(CUR);
+  document.getElementById('mo-vlink')?.classList.remove('open');
+  renderQuote();
+  toast(v?`"${v.name}" 연결 완료`:'연결 해제','ok');
+}
+
+/* ── 버전 관리 ── */
+function saveQuoteSnapshot(){
+  if(!CUR) return;
+  const name=prompt('버전 이름을 입력하세요',`v${((CUR.quoteVersions||[]).length+1)} (${new Date().toLocaleDateString('ko-KR')})`);
+  if(!name) return;
+  if(!CUR.quoteVersions) CUR.quoteVersions=[];
+  CUR.quoteVersions.push({id:uid(),name,savedAt:now(),type:CUR.quoteType,items:JSON.parse(JSON.stringify(CUR.qItems||[]))});
+  persist(CUR);
+  renderQuote();
+  toast(`"${name}" 버전 저장됨`,'ok');
+}
+
+function loadQuoteSnapshot(vid){
+  if(!confirm('이 버전을 불러오면 현재 작업이 덮어씌워집니다. 계속할까요?')) return;
+  const v=(CUR.quoteVersions||[]).find(x=>x.id===vid);
+  if(!v) return;
+  CUR.qItems=JSON.parse(JSON.stringify(v.items||[]));
+  CUR.quoteType=v.type||CUR.quoteType;
+  persist(CUR);
+  renderQuote();
+  toast(`"${v.name}" 불러옴`,'ok');
+}
+
+function delQuoteSnapshot(vid){
+  if(!confirm('이 버전을 삭제할까요?')) return;
+  CUR.quoteVersions=(CUR.quoteVersions||[]).filter(x=>x.id!==vid);
+  persist(CUR);
+  renderQuote();
+  toast('버전 삭제됨','ok');
+}
+
+/* ── Excel 내보내기 (SheetJS) ── */
+function exportQuoteExcel(){
+  if(!CUR) return;
+  const qt=CUR.quoteType||'DMC';
+  const items=CUR.qItems||[];
+  const rate=parseFloat(CUR.exchangeRate||CFG.rate||1380);
+  const proj=CUR.nameKO||'프로젝트';
+  const today=new Date().toISOString().slice(0,10);
+
+  if(qt==='PCO'){
+    exportPCOExcel(items,proj,today);
+  } else {
+    exportDMCExcel(items,proj,today,rate);
   }
-  html+='<tr style="background:var(--abg)"><td colspan="4" style="font-weight:800;color:var(--a)">총 견적</td><td></td>';
-  html+='<td style="text-align:right;font-size:14px;font-weight:800;color:var(--a)">'+fmt(Math.round(tot))+'</td>';
-  html+='<td style="text-align:right;font-size:14px;font-weight:800;color:var(--a)">'+fUSD(Math.round(tot),rate)+'</td>';
-  html+='<td colspan="3"></td></tr>';
-  html+='<tr><td colspan="4" style="font-size:11px;color:var(--ink3)">마진</td><td></td>';
-  html+='<td style="text-align:right;font-size:12px" class="'+(mg>=0?'dp':'dn')+'">'+fmt(Math.round(mg))+' ('+mp+'%)</td>';
-  html+='<td colspan="4"></td></tr>';
-  html+='</tfoot></table></div>';
-
-  document.getElementById('page-quote').innerHTML=html;
-}
-function addQI(){const cat=document.getElementById('qi-cat').value,name=document.getElementById('qi-name').value.trim(),vendor=document.getElementById('qi-vendor').value.trim(),qty=parseInt(document.getElementById('qi-qty').value)||1,cost=parseInt(document.getElementById('qi-cost').value)||0,sell=parseInt(document.getElementById('qi-sell').value)||0;if(!name||!cost){toast('항목명과 원가는 필수입니다','err');return;}if(!CUR.quoteItems)CUR.quoteItems=[];CUR.quoteItems.push({id:uid(),category:cat,name,vendor,qty,costKRW:cost,sellKRW:sell||Math.round(cost*1.2),confirmed:false,actualKRW:null});persist(CUR);closeM('mo-qi');renderQuote();toast('항목 추가 완료','ok');}
-
-
-// USD 입력 → KRW 역산
-function upQIbyUsd(id, usdTotal, rate, qty){
-  const krwPerUnit = qty>0 ? Math.round(usdTotal*rate/qty) : 0;
-  const qi = CUR.quoteItems&&CUR.quoteItems.find(x=>x.id===id);
-  if(qi){ qi.sellKRW=krwPerUnit; persist(CUR); renderQuote(); }
-}
-// KRW 입력 → USD 표시 업데이트
-function upQIusd(id,usd,rate,qty){
-  const qi=(CUR.quoteItems||[]).find(x=>x.id===id);
-  if(!qi) return;
-  const krw = usd ? Math.round(usd*rate) : 0;
-  qi.sellKRW = krw;
-  qi.sellUSD = usd;
-  saveDB();
-  const krwEl=document.getElementById('qkrw-'+id);
-  if(krwEl) krwEl.value=krw||'';
-  // KRW 필드만 갱신, 전체 재렌더 없음
 }
 
-// 일정 → 견적 가져오기
+function exportPCOExcel(items,proj,today){
+  const rows=[];
+  rows.push([`[${proj}] 견적서`,'','','','','','','','작성일:',today]);
+  rows.push(['행사명','','',proj]);
+  rows.push(['']);
+  rows.push(['■ 세부내역서']);
+  rows.push(['구분','항목','단가(₩)','수량','기간','투입률','금액(₩)','비고','협력업체']);
+
+  let subtotal1=0;
+  QPCO.cats.forEach(cat=>{
+    cat.subs.forEach(sub=>{
+      const subItems=items.filter(i=>i.cat===sub.k);
+      if(!subItems.length) return;
+      rows.push([cat.l,'  '+sub.l]);
+      subItems.forEach((item,idx)=>{
+        const amt=calcQItemAmt(item);
+        subtotal1+=amt;
+        rows.push([idx+1,item.name,item.price,item.qty,item.period,item.rate,Math.round(amt),item.note||'',item.vendorName||'']);
+      });
+      const subAmt=subItems.reduce((s,i)=>s+calcQItemAmt(i),0);
+      rows.push(['','소계','','','','',Math.round(subAmt)]);
+    });
+  });
+
+  rows.push(['']);
+  rows.push(['■ 합계']);
+  const mgmt=Math.round(subtotal1*0.08);
+  const sub2=subtotal1+mgmt;
+  const profit=Math.round(sub2*0.10);
+  const sub3=sub2+profit;
+  const vat=Math.round(sub3*0.10);
+  const total=Math.floor((sub3+vat)/1000)*1000;
+  rows.push(['소계Ⅰ','','','','','',Math.round(subtotal1)]);
+  rows.push(['일반관리비 (8%)','','','','','',mgmt]);
+  rows.push(['소계Ⅱ','','','','','',sub2]);
+  rows.push(['기업이윤 (10%)','','','','','',profit]);
+  rows.push(['소계Ⅲ','','','','','',sub3]);
+  rows.push(['부가세 (10%)','','','','','',vat]);
+  rows.push(['계 (천단위 절사)','','','','','',total]);
+
+  dlExcel(rows,`PCO_견적서_${proj}_${today}.xlsx`);
+}
+
+function exportDMCExcel(items,proj,today,rate){
+  const rows=[];
+  rows.push(['Quotation','','','','Channel K']);
+  rows.push(['','','Event Title:',proj,'Issue Date:',today]);
+  rows.push(['']);
+  rows.push(['Date/ITEM','Description','Price($)','Quantity','Period','Amount($)','Note','협력업체']);
+
+  let subTotal=0;
+  QDMC.cats.forEach(cat=>{
+    const catItems=items.filter(i=>i.cat===cat.k);
+    if(!catItems.length) return;
+    rows.push([cat.l]);
+    catItems.forEach(item=>{
+      const amt=calcQItemAmt(item);
+      subTotal+=amt;
+      rows.push([item.dateLabel||'',item.name,item.price,item.qty,item.period,amt,item.note||'',item.vendorName||'']);
+    });
+    const catAmt=catItems.reduce((s,i)=>s+calcQItemAmt(i),0);
+    rows.push(['Sub Total','','','','',catAmt.toFixed(2)]);
+    rows.push(['']);
+  });
+
+  const mgmtFee=Math.round(subTotal*0.15*100)/100;
+  const total=Math.round((subTotal+mgmtFee)*100)/100;
+  const govTax=Math.round(total*0.10*100)/100;
+  const grandTotal=Math.round((total+govTax)*100)/100;
+
+  rows.push(['Sub Total','','','','',subTotal.toFixed(2)]);
+  rows.push(['Channel K Management Fee 15%','','','','',mgmtFee.toFixed(2)]);
+  rows.push(['Total','','','','',total.toFixed(2)]);
+  rows.push(['Government Tax 10%','','','','',govTax.toFixed(2)]);
+  rows.push(['Grand Total','','','','',grandTotal.toFixed(2)]);
+  rows.push(['Grand Total (KRW)','','','','',`₩${Math.round(grandTotal*rate).toLocaleString()}`]);
+
+  dlExcel(rows,`DMC_Quotation_${proj}_${today}.xlsx`);
+}
+
+function dlExcel(rows,filename){
+  try{
+    if(typeof XLSX==='undefined'){toast('SheetJS 로드 중, 잠시 후 다시 시도하세요','warn');return;}
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb,ws,'견적서');
+    XLSX.writeFile(wb,filename);
+    toast(filename+' 다운로드 완료','ok');
+  }catch(e){
+    toast('Excel 생성 실패: '+e.message,'err');
+  }
+}
+
+/* ── 이전 quote 호환 함수 유지 ── */
+function addQIRow(){openAddQItem(null);}
+function togConf(id){const qi=CUR.quoteItems?.find(x=>x.id===id);if(qi){qi.confirmed=!qi.confirmed;persist(CUR);renderQuote();}}
+function delQI(id){if(!confirm('삭제?'))return;CUR.quoteItems=(CUR.quoteItems||[]).filter(i=>i.id!==id);persist(CUR);renderQuote();}
+function setQRate(v){upC('exchangeRate',parseFloat(v)||1380);renderQuote();}
+function setQFee(v){upC('feePercent',parseFloat(v)||0);renderQuote();}
+function setQVat(v){CUR.vatRate=parseFloat(v)||0;saveDB();renderQuote();}
+function setQVatIncl(v){if(!CUR)return;CUR.vatInclude=!!v;saveDB();renderQuote();}
+function setQFeeIncl(v){if(!CUR)return;CUR.feeInclude=!!v;saveDB();renderQuote();}
+function saveQuoteVersion(){saveQuoteSnapshot();}
+function loadQuoteVersion(vid){loadQuoteSnapshot(vid);}
+function delQuoteVersion(vid){delQuoteSnapshot(vid);}
+function downloadQuoteExcel(){exportQuoteExcel();}
+function downloadQuotePDF(){toast('PDF는 Excel 저장 후 인쇄 기능을 이용해주세요','warn');}
+function upQI(id,f,v){const qi=(CUR.qItems||[]).find(x=>x.id===id);if(qi){qi[f]=v;persist(CUR);renderQuote();}}
+function upQIf(id,f,v){const qi=(CUR.qItems||[]).find(x=>x.id===id);if(qi){qi[f]=v;persist(CUR);}}
+function upQIfi(id,f,v,def){const qi=(CUR.qItems||[]).find(x=>x.id===id);if(qi){qi[f]=parseFloat(v)||def;persist(CUR);}}
+function upQIkrw(id,krw,rate,qty){const qi=(CUR.qItems||[]).find(x=>x.id===id);if(qi){qi.price=krw;persist(CUR);}}
+function upQIusd(id,usd,rate,qty){const qi=(CUR.qItems||[]).find(x=>x.id===id);if(qi){qi.price=usd;persist(CUR);}}
+function upQIbyUsd(id,usd,rate,qty){upQIusd(id,usd,rate,qty);}
 function importFromSched(){
-  if(!CUR||!CUR.schedule||!CUR.schedule.length){
-    toast('일정이 없습니다','warn'); return;
-  }
-  if(!CUR.quoteItems) CUR.quoteItems=[];
+  if(!CUR||!CUR.schedule||!CUR.schedule.length){toast('일정이 없습니다','warn');return;}
+  if(!CUR.qItems) CUR.qItems=[];
   let added=0;
+  const qt=CUR.quoteType||'DMC';
   CUR.schedule.forEach(day=>{
     (day.rows||[]).forEach(r=>{
       if(!r.ko) return;
-      // 이미 있는 항목명은 스킵
-      const exists = CUR.quoteItems.some(q=>q.name===r.ko||q.name===r.en);
+      const exists=(CUR.qItems).some(q=>q.name===r.ko||q.name===r.en);
       if(exists) return;
-      // 카테고리 추정
-      const cat = guessCategory(r.ko||r.en||'');
-      const isHotel = cat==='숙박';
-      CUR.quoteItems.push({
-        id:uid(), category:cat,
-        name:r.en||r.ko,
-        qty:1, nights:isHotel?(CUR.nights||3):1,
-        costKRW:0, sellKRW:0, confirmed:false,
-        fromSched:true
-      });
+      CUR.qItems.push({id:uid(),cat:qt==='PCO'?'p4a':'d3',name:r.en||r.ko,price:0,qty:1,period:1,rate:1,note:'',vendorId:null,vendorName:'',updatedAt:now()});
       added++;
     });
   });
-  persist(CUR);
-  renderQuote();
-  toast(added>0?' '+added+'개 항목 가져옴':'이미 모두 가져왔습니다', added>0?'ok':'warn');
+  persist(CUR);renderQuote();
+  toast(added>0?` ${added}개 항목 가져옴`:'이미 모두 가져왔습니다',added>0?'ok':'warn');
 }
-
-// 카테고리 자동 추정
-function guessCategory(name){
-  const n=(name||'').toLowerCase();
-  if(/hotel|호텔|숙박|체크인|check.in|resort|리조트/.test(n)) return '숙박';
-  if(/bus|버스|차량|transport|transfer|airport|공항|kia|ktx|기차/.test(n)) return '교통';
-  if(/dinner|lunch|breakfast|식사|한식|bbq|식당|레스토랑|food|dining/.test(n)) return '식음료';
-  if(/tour|투어|관광|체험|hanbok|한복|temple|사찰/.test(n)) return '관광·체험';
-  if(/ceremony|show|공연|행사|event|gala/.test(n)) return '공연·행사';
-  if(/guide|가이드/.test(n)) return '가이드';
-  return '기타';
-}
-
-function addQIRow(){
-  if(!CUR) return;
-  if(!CUR.quoteItems) CUR.quoteItems=[];
-  // 협력업체 DB에서 선택 가능한 항목이 있으면 모달 표시
-  if(DB.vendors&&DB.vendors.length){
-    openM('mo-qi-add');
-    renderQIAddModal();
-  } else {
-    _addEmptyQIRow();
-  }
-}
-function _addEmptyQIRow(){
-  if(!CUR.quoteItems) CUR.quoteItems=[];
-  CUR.quoteItems.push({
-    id:uid(), category:'기타', name:'', qty:1, nights:1,
-    costKRW:0, sellKRW:0, confirmed:false
-  });
-  persist(CUR);
-  renderQuote();
-  setTimeout(()=>{
-    const inputs=document.querySelectorAll('#page-quote tbody input[placeholder="항목명"]');
-    if(inputs.length){const last=inputs[inputs.length-1];last.focus();last.onblur=()=>renderQuote();}
-  },100);
-}
-function renderQIAddModal(){
-  const vs=DB.vendors||[];
-  const rate=CUR.exchangeRate||1380;
-  const CATS=['숙박','교통','식음료','관광·체험','공연·행사','가이드','기타'];
-  let rows='';
-  vs.forEach(function(v){
-    const cat=v.category||'기타';
-    const catLabel=CATS.includes(cat)?cat:(cat.split('_')[0]||cat);
-    const cost=v.costKRW?'₩'+v.costKRW.toLocaleString():(v.costUSD?'$'+v.costUSD:'-');
-    const unit=v.costUnit||'건';
-    rows+='<tr style=\"cursor:pointer\" data-vid=\"'+v.id+'\" onclick=\"addQIFromVendor(this.dataset.vid)\">'
-      +'<td style="padding:7px 10px"><span class="chip cv" style="font-size:10px">'+catLabel+'</span></td>'
-      +'<td style="padding:7px 10px;font-weight:600;font-size:13px">'+h(v.name)+'</td>'
-      +'<td style="padding:7px 10px;font-size:11px;color:var(--ink3)">'+h(v.manager||'')+'</td>'
-      +'<td style="padding:7px 10px;font-size:12px;color:var(--a);font-weight:600">'+cost+'<span style="font-size:10px;color:var(--ink3)"> /'+unit+'</span></td>'
-      +'</tr>';
-  });
-  const el=document.getElementById('qi-add-body');
-  if(el) el.innerHTML=rows||'<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--ink4)">등록된 협력업체가 없습니다</td></tr>';
-}
-function addQIFromVendor(vid){
-  const v=(DB.vendors||[]).find(function(x){return x.id===vid;});
-  if(!v||!CUR) return;
-  if(!CUR.quoteItems) CUR.quoteItems=[];
-  const isHotel=(v.category||'').includes('hotel');
-  const nights=isHotel?(CUR.nights||3):1;
-  // 카테고리 매핑
-  const catMap={'transport':'교통','hotel':'숙박','fb':'식음료','tour':'관광·체험','performance':'공연·행사','guide':'가이드'};
-  const catKey=(v.category||'').split('_')[0];
-  const cat=catMap[catKey]||'기타';
-  CUR.quoteItems.push({
-    id:uid(),
-    category:cat,
-    name:v.name,           // 고객용 항목명 (협력업체명 그대로, 필요시 수정)
-    qty:1,
-    nights:nights,
-    costKRW:v.costKRW||0,  // 협력업체 원가 자동 입력
-    sellKRW:0,
-    confirmed:false,
-    vendorId:v.id,         // 내부용: 연결된 협력업체 ID (고객에게 미표시)
-    vendorName:v.name      // 내부용
-  });
-  closeM('mo-qi-add');
-  persist(CUR);
-  renderQuote();
-  toast('✓ '+v.name+' 추가됨 (원가: '+(v.costKRW?'₩'+v.costKRW.toLocaleString():'-')+')','ok');
-}
-
-function upQI(id,f,v){
-  const qi=(CUR.quoteItems||[]).find(x=>x.id===id);
-  if(qi){qi[f]=v;saveDB();renderQuote();}
-}
-// oninput용 - debounce 저장 (타이핑 중 저장)
+function guessCategory(name){return '기타';}
 
 
-// ── 견적 버전 저장
-function saveQuoteVersion(){
-  var name = prompt('버전 이름을 입력하세요 (예: v1_초안, v2_수정)');
-  if(!name||!name.trim()) return;
-  if(!CUR) return;
-  if(!CUR.quoteVersions) CUR.quoteVersions=[];
-  var ver = {
-    id: uid(),
-    name: name.trim(),
-    savedAt: now(),
-    items: JSON.parse(JSON.stringify(CUR.quoteItems||[])),
-    exchangeRate: CUR.exchangeRate,
-    feePercent: CUR.feePercent,
-    taxPercent: CUR.taxPercent
-  };
-  CUR.quoteVersions.push(ver);
-  persist(CUR);
-  renderQuote();
-  toast(' 버전 "'+name+'" 저장됨','ok');
-}
-
-// ── 버전 불러오기
-function loadQuoteVersion(vid){
-  if(!CUR||!CUR.quoteVersions) return;
-  var ver = CUR.quoteVersions.find(function(v){return v.id===vid;});
-  if(!ver) return;
-  if(!confirm('['+ver.name+'] 버전을 불러올까요? 현재 견적이 교체됩니다.')) return;
-  CUR.quoteItems = JSON.parse(JSON.stringify(ver.items));
-  if(ver.exchangeRate) CUR.exchangeRate=ver.exchangeRate;
-  if(ver.feePercent!=null) CUR.feePercent=ver.feePercent;
-  persist(CUR);
-  renderQuote();
-  toast(' ['+ver.name+'] 불러옴','ok');
-}
-
-// ── 버전 삭제
-function delQuoteVersion(vid){
-  if(!CUR||!CUR.quoteVersions) return;
-  CUR.quoteVersions = CUR.quoteVersions.filter(function(v){return v.id!==vid;});
-  persist(CUR);
-  renderQuote();
-}
-
-
-function setQVat(v){CUR.vatRate=parseFloat(v)||0;saveDB();renderQuote();}
-function setQVatIncl(v){
-  if(!CUR) return;
-  CUR.vatInclude=!!v;
-  // 처음 체크할 때 vatRate가 없으면 10% 자동 설정
-  if(v && (CUR.vatRate==null || CUR.vatRate===0)) CUR.vatRate=10;
-  saveDB();
-  renderQuote();
-  toast(v?' 부가세 포함 ('+( CUR.vatRate||10)+'%)':'부가세 미포함','ok');
-}
-function setQFeeIncl(v){if(!CUR)return;CUR.feeInclude=!!v;saveDB();renderQuote();toast((v?' 수수료 포함':'수수료 미포함'),'ok');}
-
-
-// ── 견적서 PDF
-function downloadQuotePDF(){
-  if(typeof html2pdf==='undefined'){toast('PDF 라이브러리 로딩 중...','warn');return;}
-  var el=document.getElementById('page-quote');
-  if(!el){toast('견적서가 없습니다','err');return;}
-  var name=(CUR.nameKO||'quote').replace(/\s+/g,'-');
-  html2pdf().set({
-    margin:[10,8,10,8],
-    filename:'CK-Quote-'+name+'.pdf',
-    image:{type:'jpeg',quality:0.98},
-    html2canvas:{scale:2,useCORS:true,scrollY:0},
-    jsPDF:{unit:'mm',format:'a4',orientation:'landscape'},
-    pagebreak:{mode:'avoid-all'}
-  }).from(el).save();
-  toast('견적서 PDF 다운로드 중...','ok');
-}
-
-// ── 견적서 Excel
-function downloadQuoteExcel(){
-  if(typeof XLSX==='undefined'){toast('Excel 라이브러리 로딩 중...','warn');return;}
-  if(!CUR||!CUR.quoteItems){toast('견적 항목이 없습니다','warn');return;}
-  var rate=CUR.exchangeRate||1380;
-  var items=CUR.quoteItems||[];
-  var rows=[['카테고리','항목명','수량','기간','원가/건 KRW','판매가/건 KRW','판매가/건 USD','소계 KRW','소계 USD']];
-  var totalCost=0, totalSell=0;
-  items.forEach(function(qi){
-    var q=(qi.qty||1)*(qi.nights!=null?qi.nights:1);
-    var cost=(qi.costKRW||0)*q, sell=(qi.sellKRW||0)*q;
-    totalCost+=cost; totalSell+=sell;
-    rows.push([qi.category||'기타',qi.name||'',qi.qty||1,qi.nights!=null?qi.nights:1,
-      qi.costKRW||0,qi.sellKRW||0,Math.round((qi.sellKRW||0)/rate),cost,Math.round(sell/rate)]);
-  });
-  rows.push([]);
-  var fee=CUR.feePercent||10;
-  var feeIncl=CUR.feeInclude!=null?CUR.feeInclude:true;
-  var fa=feeIncl?Math.round(totalSell*(fee/100)):0;
-  var vatRate=parseFloat(CUR.vatRate)||0;
-  var vatIncl=!!CUR.vatInclude;
-  var vat=vatIncl?Math.round((totalSell+fa)*(vatRate/100)):0;
-  var tot=totalSell+fa+vat;
-  rows.push(['원가 합계','','','','','','',totalCost,Math.round(totalCost/rate)]);
-  rows.push(['판매가 합계','','','','','','',totalSell,Math.round(totalSell/rate)]);
-  if(feeIncl) rows.push(['수수료 ('+fee+'%)','','','','','','',fa,Math.round(fa/rate)]);
-  if(vatIncl) rows.push(['부가세 ('+vatRate+'%)','','','','','','',vat,Math.round(vat/rate)]);
-  rows.push(['총 견적','','','','','','',tot,Math.round(tot/rate)]);
-  var ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:12},{wch:25},{wch:6},{wch:6},{wch:14},{wch:14},{wch:12},{wch:14},{wch:12}];
-  var wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'견적서');
-  XLSX.writeFile(wb,'CK-Quote-'+(CUR.nameKO||'quote').replace(/\s+/g,'-')+'.xlsx');
-  toast('Excel 다운로드 완료','ok');
-}
-
-function setQRate(v){upC('exchangeRate',parseInt(v)||1380);renderQuote();}
-function setQFee(v){upC('feePercent',parseFloat(v)||0);renderQuote();}
-
-
-function upQIfi(id,f,v,def){
-  var qi=(CUR.quoteItems||[]).find(function(x){return x.id===id;});
-  if(qi){qi[f]=parseInt(v)||def||0;saveDB();}
-}
-
-function upQIf(id,f,v){
-  const qi=(CUR.quoteItems||[]).find(x=>x.id===id);
-  if(qi){qi[f]=v;saveDB();}  // renderQuote 호출 안 함 (포커스 유지)
-}
-// KRW 입력 → USD 동기화
-function upQIkrw(id,krw,rate,qty){
-  const qi=(CUR.quoteItems||[]).find(x=>x.id===id);
-  if(!qi) return;
-  qi.sellKRW=krw;
-  saveDB();
-  const usdEl=document.getElementById('qusd-'+id);
-  if(usdEl) usdEl.value=krw?Math.round(krw/rate):'';
-  const krwEl=document.getElementById('qkrw-'+id);
-  // USD 필드만 갱신, 전체 재렌더 없음
-}
-function togConf(id){const qi=CUR.quoteItems?.find(x=>x.id===id);if(qi){qi.confirmed=!qi.confirmed;persist(CUR);renderQuote();toast(qi.confirmed?'발주 확인':'확인 취소',qi.confirmed?'ok':'');}}
-function delQI(id){if(!canDeleteQI()){noPermToast();return;}if(!confirm('삭제하시겠습니까?'))return;CUR.quoteItems=CUR.quoteItems.filter(i=>i.id!==id);persist(CUR);renderQuote();toast('삭제됨','warn');}
 
 /* ── INVOICE ── */
 
