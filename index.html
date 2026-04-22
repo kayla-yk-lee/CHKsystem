@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Channel K MICE — 사내 인트라넷</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -19,12 +20,12 @@
   --a:#1E40AF; --abg:#EFF6FF; --abl:#BFDBFE;
   --r:#DC2626; --rbg:#FEF2F2; --y:#D97706; --ybg:#FFFBEB;
   --g:#059669; --gbg:#ECFDF5; --pt:#F97316;
-  --tb:48px; --ff:'Pretendard Variable',-apple-system,sans-serif;
+  --tb:48px; --ff:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   --ra:4px; --rc:6px; --fs:var(--ff); --sh:none; --ck:#1E40AF;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden}
-body{font-family:var(--ff);background:var(--bg);color:var(--ink);height:100vh;overflow:hidden;display:flex;flex-direction:column;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{font-family:var(--ff);background:var(--bg);color:var(--ink);height:100vh;overflow:hidden;display:flex;flex-direction:column;font-size:13.5px;line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;word-break:keep-all}
 
 /* TOPBAR */
 #topbar{height:var(--tb);display:flex;align-items:center;padding:0 16px;gap:10px;background:#1E40AF;border-bottom:none;flex-shrink:0;z-index:100}
