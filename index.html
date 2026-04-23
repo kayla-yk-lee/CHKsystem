@@ -2642,45 +2642,11 @@ function renderDash(){
         <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:2px">${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'})}</div>
       </div>
       <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap">
-        <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px 16px;text-align:center;cursor:pointer;min-width:80px" onclick="navTo('proj-create')">
-          <div style="font-size:18px">📥</div>
-          <div style="font-size:10.5px;color:rgba(255,255,255,.85);font-weight:600;margin-top:2px">프로젝트 생성</div>
-        </div>
-        <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px 16px;text-align:center;cursor:pointer;min-width:80px" onclick="navTo('notice')">
-          <div style="font-size:18px">📢</div>
-          <div style="font-size:10.5px;color:rgba(255,255,255,.85);font-weight:600;margin-top:2px">공지사항</div>
-        </div>
-        <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px 16px;text-align:center;cursor:pointer;min-width:80px" onclick="navTo('archive')">
-          <div style="font-size:18px">📁</div>
-          <div style="font-size:10.5px;color:rgba(255,255,255,.85);font-weight:600;margin-top:2px">자료실</div>
-        </div>
-        <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px 16px;text-align:center;cursor:pointer;min-width:80px" onclick="navTo('people')">
-          <div style="font-size:18px">👥</div>
-          <div style="font-size:10.5px;color:rgba(255,255,255,.85);font-weight:600;margin-top:2px">인사·팀원</div>
-        </div>
+        ${[{icon:'📥',label:'프로젝트 생성',nav:'proj-create'},{icon:'📊',label:'프로젝트',nav:'projects'},{icon:'✅',label:'팀 업무',nav:'teamtasks'},{icon:'📢',label:'공지사항',nav:'notice'},{icon:'📁',label:'자료실',nav:'archive'},{icon:'👥',label:'인사·팀원',nav:'people'}].map(m=>`<div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px 16px;text-align:center;cursor:pointer;min-width:70px" onclick="navTo('${m.nav}')"><div style="font-size:18px">${m.icon}</div><div style="font-size:10px;color:rgba(255,255,255,.85);font-weight:600;margin-top:2px">${m.label}</div></div>`).join('')}
       </div>
     </div>
 
-    <div class="stat-grid">
-      <div class="sc sa" onclick="navStat('all')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='var(--shm)'" onmouseout="this.style.boxShadow='var(--sh)'">
-        <div class="sv">${DB.projects.length}</div><div class="sl">전체 프로젝트</div>
-        <div style="font-size:9.5px;color:var(--a);margin-top:4px;font-weight:600">보기 →</div>
-      </div>
-      <div class="sc sam" onclick="navStat('active')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='var(--shm)'" onmouseout="this.style.boxShadow='var(--sh)'">
-        <div class="sv">${active.length}</div><div class="sl">진행 중</div><div class="ss">수주~정산중</div>
-        <div style="font-size:9.5px;color:var(--am);margin-top:4px;font-weight:600">보기 →</div>
-      </div>
-      <div class="sc sr" onclick="navStat('urgent')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='var(--shm)'" onmouseout="this.style.boxShadow='var(--sh)'">
-        <div class="sv">${urgAll.length}</div><div class="sl">긴급 항목</div><div class="ss">D-7 이내</div>
-        <div style="font-size:9.5px;color:var(--r);margin-top:4px;font-weight:600">보기 →</div>
-      </div>
-      <div class="sc sg" onclick="navStat('done')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='var(--shm)'" onmouseout="this.style.boxShadow='var(--sh)'">
-        <div class="sv">${DB.projects.filter(p=>p.status==='done').length}</div><div class="sl">완료</div>
-        <div style="font-size:9.5px;color:var(--g);margin-top:4px;font-weight:600">보기 →</div>
-      </div>
-    </div>
-
-    <!-- 최근 공지사항 + 빠른 링크 -->
+    <!-- 공지사항 + 메모 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -2697,39 +2663,24 @@ function renderDash(){
           :'<div style="font-size:12px;color:var(--ink4);padding:12px 0;text-align:center">공지사항이 없습니다</div>'}
       </div>
       <div class="card">
-        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:10px">🔗 빠른 메뉴</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          ${[
-            {icon:'📊',label:'CHK 프로젝트',nav:'projects'},
-            {icon:'✅',label:'팀 업무관리',nav:'teamtasks'},
-            {icon:'💰',label:'업체 대금',nav:'vendor-payments'},
-            {icon:'📊',label:'경리·재무',nav:'finance'},
-            {icon:'📋',label:'증명서 관리',nav:'certificate'},
-            {icon:'🌴',label:'휴가 관리',nav:'leave'},
-          ].map(m=>`<div onclick="navTo('${m.nav}')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--bdr);border-radius:var(--ra);cursor:pointer;transition:background .12s;font-size:12.5px;font-weight:600;color:var(--ink2)" onmouseover="this.style.background='var(--sur2)'" onmouseout="this.style.background='transparent'">
-            <span style="font-size:14px">${m.icon}</span>${m.label}
-          </div>`).join('')}
-        </div>
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px">📝 내 메모 <span style="font-size:10px;font-weight:400;color:var(--ink4)">(개인 — 자동저장)</span></div>
+        <textarea class="fi" rows="5" placeholder="업무 메모, 할 일, 아이디어 등 자유롭게 작성하세요..."
+          style="resize:vertical;min-height:100px;font-size:12.5px;line-height:1.7"
+          oninput="saveDashMemo(this.value)">${h(CFG.dashMemo||'')}</textarea>
       </div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px;align-items:start">
       <div>
-        <div class="sec-l">프로젝트 파이프라인</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="sec-l" style="margin:0;flex:1">프로젝트 파이프라인</div>
+          <span onclick="navTo('pipeline')" style="font-size:10.5px;color:var(--a);cursor:pointer;font-weight:600">전체 →</span>
+        </div>
         ${miniPipe()}
-
-        <div class="sec-l" style="margin-top:18px">긴급 처리 항목</div>
-        ${urgAll.length?urgAll.slice(0,5).map(c=>`<div class="ur ${dday(c.dueDate)<=1?'crit':dday(c.dueDate)<=3?'warn':'ok2'}" onclick="selProj('${c.pId}')">
-          <div style="flex:1"><div class="ur-t">${h(c.title)}</div><div class="ur-p">${h(c.pName)}</div></div>
-          <span class="chip ${dday(c.dueDate)<=1?'cr':'cam'}">D-${dday(c.dueDate)}</span>
-          <span class="chip cn" style="font-size:10px">${h(c.assignee)}</span>
-        </div>`).join(''):'<div class="alert al-o"> 긴급 처리 항목이 없습니다.</div>'}
       </div>
-
-      <!-- 3개월 캘린더 (50%) -->
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div class="sec-l" style="margin:0;flex:1"> 프로젝트 캘린더</div>
+          <div class="sec-l" style="margin:0;flex:1">프로젝트 캘린더</div>
           <span onclick="navTo('calendar')" style="font-size:10.5px;color:var(--a);cursor:pointer;font-weight:600">전체 →</span>
         </div>
         ${calHTML}
@@ -2737,6 +2688,10 @@ function renderDash(){
     </div>`;
 }
 function calClick(dt){const p=DB.projects.find(p=>p.eventDate===dt);if(p)selProj(p.id);}
+function saveDashMemo(v){
+  CFG.dashMemo=v;
+  localStorage.setItem(CFG_KEY,JSON.stringify(CFG));
+}
 function miniPipe(){
   const grp={};STATUSES.forEach(s=>grp[s.k]=[]);DB.projects.forEach(p=>{if(grp[p.status])grp[p.status].push(p);});
   return`<div class="pipeline">${PIPE.map(k=>{const st=sts(k),ps=grp[k]||[];return`<div class="pcol">
@@ -6119,7 +6074,7 @@ function renderInvoice(){
         +'<td style="text-align:right;font-size:14px;font-weight:800;color:var(--a)">$'+fmtUSD(totUSD)+'</td></tr></tfoot>';
       var thead='<thead><tr><th>'+(L==='en'?'Category':'구분')+'</th><th>'+(L==='en'?'Description':'서비스 항목')+'</th><th style="text-align:right">KRW</th><th style="text-align:right">USD</th></tr></thead>';
       if(!itemRows) itemRows='<tr><td colspan="4" style="text-align:center;color:var(--ink4);padding:16px">'+(L==='en'?'No items — add items in the Quotation tab.':'산출내역서 탭에서 항목을 추가하세요.')+'</td></tr>';
-      return _renderInvoiceHTML(L, thead, itemRows, tfoot, totUSD, rate);
+      _renderInvoiceHTML(L, thead, itemRows, tfoot, totUSD, rate); return;
     } else {
       // DMC: USD 기반
       cats.forEach(cat=>{
@@ -6148,7 +6103,7 @@ function renderInvoice(){
         ?'<thead><tr><th>Category</th><th>Description</th><th style="text-align:right">USD</th></tr></thead>'
         :'<thead><tr><th>구분</th><th>서비스 항목</th><th style="text-align:right">USD</th><th style="text-align:right">KRW</th></tr></thead>';
       if(!itemRows) itemRows='<tr><td colspan="'+colspan+'" style="text-align:center;color:var(--ink4);padding:16px">'+(L==='en'?'No items — add items in the Quotation tab.':'산출내역서 탭에서 항목을 추가하세요.')+'</td></tr>';
-      return _renderInvoiceHTML(L, thead2, itemRows, tfoot2, totUSD2, rate);
+      _renderInvoiceHTML(L, thead2, itemRows, tfoot2, totUSD2, rate); return;
     }
   }
 
@@ -6184,7 +6139,7 @@ function renderInvoice(){
       +(vatIncl3&&vat3>0?'<tr><td colspan="2">부가세 ('+vatRate3+'%)</td><td style="text-align:right">'+fmtKRW(vat3)+'</td><td style="text-align:right">$'+fmtUSD(vat3/rate)+'</td></tr>':'')
       +'<tr style="background:var(--abg)"><td colspan="2" style="font-weight:800;color:var(--a)">총액</td><td style="text-align:right;font-size:15px;font-weight:800;color:var(--a)">'+fmtKRW(tot2)+'</td><td style="text-align:right;font-size:15px;font-weight:800;color:var(--a)">$'+fmtUSD(totUSD3)+'</td></tr></tfoot>';
   }
-  return _renderInvoiceHTML(L, thead3, itemRows, tfoot3, totUSD3, rate);
+  _renderInvoiceHTML(L, thead3, itemRows, tfoot3, totUSD3, rate);
 }
 
 function _renderInvoiceHTML(L, thead, itemRows, tfoot, totUSD, rate){
@@ -11832,10 +11787,14 @@ function renderPeople(){
       <div style="width:52px;height:52px;border-radius:50%;background:${isMe?'var(--a)':'var(--abg)'};border:2px solid ${isMe?'var(--a)':'var(--abl)'};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:${isMe?'#fff':'var(--a)'};margin:0 auto 10px">${(m.name||'?').charAt(0)}</div>
       <div style="font-size:14px;font-weight:700;color:var(--ink)">${h(m.name||'')}</div>
       <div style="font-size:11.5px;color:var(--ink3);margin:2px 0">${h(m.position||'')}${m.dept?' · '+h(m.dept):''}</div>
-      ${m.tel?`<div style="font-size:11.5px;color:var(--a);margin:4px 0">📞 ${h(m.tel)}</div>`:''}
-      ${m.email?`<div style="font-size:11px;color:var(--ink3)">${h(m.email)}</div>`:''}
+      ${m.email?`<div style="font-size:11px;color:var(--ink3);margin:3px 0">${h(m.email)}</div>`:''}
+      ${m.tel?`<div style="font-size:11.5px;color:var(--a);margin:3px 0">📞 ${h(m.tel)}</div>`:''}
       <div style="margin-top:6px"><span class="chip ${roleColors[m.role]||'cn'}" style="font-size:9.5px">${roleLabels[m.role]||m.role||'—'}</span></div>
       ${m.note?`<div style="font-size:11px;color:var(--ink4);margin-top:6px;font-style:italic">${h(m.note)}</div>`:''}
+      ${!isMe&&(m.email||m.tel)?`<div style="display:flex;gap:6px;justify-content:center;margin-top:10px;flex-wrap:wrap">
+        ${m.email?`<a href="mailto:${h(m.email)}" class="btn bd btn-sm" style="font-size:10.5px;text-decoration:none">✉️ 메일</a>`:''}
+        ${m.tel?`<a href="tel:${h(m.tel)}" class="btn bd btn-sm" style="font-size:10.5px;text-decoration:none">📞 전화</a>`:''}
+      </div>`:''}
       ${canEdit()&&m.id?`<div style="position:absolute;top:10px;left:10px">
         <button class="btn bd" style="padding:2px 7px;font-size:10px" data-id="${m.id}" onclick="openPeopleModal(this.dataset.id)">수정</button>
       </div>`:''}
