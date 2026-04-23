@@ -4556,23 +4556,23 @@ function renderQuote(){
     <div style="display:flex;align-items:center;gap:6px">
       <span style="font-size:11px;color:var(--ink3);white-space:nowrap">KRW/USD</span>
       <input class="fi" type="number" style="width:85px;font-family:var(--fm)" value="${rate}"
-        onchange="upC('exchangeRate',parseFloat(this.value)||1380);updateQCalc()">
+        oninput="upC('exchangeRate',parseFloat(this.value)||1380);updateQCalc()">
     </div>
     <span style="color:var(--bdr)">│</span>
     <div style="display:flex;align-items:center;gap:6px">
       <span style="font-size:11px;color:var(--ink3);white-space:nowrap">${qt==='PCO'?'관리비':'Mgmt.Fee'} %</span>
       <input class="fi" type="number" style="width:60px;font-family:var(--fm)" value="${mgmtR}"
-        onchange="upC('qMgmtRate',parseFloat(this.value)||${qt==='PCO'?8:15});updateQCalc()">
+        oninput="upC('qMgmtRate',parseFloat(this.value)||${qt==='PCO'?8:15});updateQCalc()">
     </div>
     ${qt==='PCO'?`<div style="display:flex;align-items:center;gap:6px">
       <span style="font-size:11px;color:var(--ink3);white-space:nowrap">기업이윤 %</span>
       <input class="fi" type="number" style="width:60px;font-family:var(--fm)" value="${profitR}"
-        onchange="upC('qProfitRate',parseFloat(this.value)||10);updateQCalc()">
+        oninput="upC('qProfitRate',parseFloat(this.value)||10);updateQCalc()">
     </div>`:''}
     <div style="display:flex;align-items:center;gap:6px">
       <span style="font-size:11px;color:var(--ink3);white-space:nowrap">${qt==='PCO'?'VAT':'Tax'} %</span>
       <input class="fi" type="number" style="width:60px;font-family:var(--fm)" value="${vatR}"
-        onchange="upC('qVatRate',parseFloat(this.value)||10);updateQCalc()">
+        oninput="upC('qVatRate',parseFloat(this.value)||10);updateQCalc()">
     </div>
     <button class="btn bd btn-sm" style="margin-left:auto;font-size:10.5px" onclick="importFromSched()">📅 ${L('일정가져오기','From Schedule')}</button>
   </div></div>`;
@@ -5701,22 +5701,59 @@ function applySvcToItem(itemId, srcId, srcType){
 function saveQuoteOverwrite(){
   if(!CUR) return;
   const versions=CUR.quoteVersions||[];
-  if(!versions.length){
-    // 버전 없으면 새로 만들기
-    saveQuoteSnapshot(); return;
-  }
-  // 가장 최근 버전 덮어쓰기
+  if(!versions.length){ saveQuoteSnapshot(); return; }
   const latest=versions[versions.length-1];
   latest.items=JSON.parse(JSON.stringify(CUR.qItems||[]));
   latest.type=CUR.quoteType;
   latest.lang=CUR.quoteLang;
   latest.savedAt=now();
+  latest.rates={
+    exchangeRate:CUR.exchangeRate,
+    qMgmtRate:CUR.qMgmtRate,
+    qProfitRate:CUR.qProfitRate,
+    qVatRate:CUR.qVatRate
+  };
   persist(CUR);
   renderQuote();
   toast(`"${latest.name}" 덮어쓰기 완료`,'ok');
 }
-function saveQuoteSnapshot(){if(!CUR)return;const name=prompt('버전 이름',`v${((CUR.quoteVersions||[]).length+1)} (${new Date().toLocaleDateString('ko-KR')})`);if(!name)return;if(!CUR.quoteVersions)CUR.quoteVersions=[];CUR.quoteVersions.push({id:uid(),name,savedAt:now(),type:CUR.quoteType,lang:CUR.quoteLang,items:JSON.parse(JSON.stringify(CUR.qItems||[]))});persist(CUR);renderQuote();toast(`"${name}" 저장됨`,'ok');}
-function loadQuoteSnapshot(vid){if(!confirm('이 버전을 불러올까요?'))return;const v=(CUR.quoteVersions||[]).find(x=>x.id===vid);if(!v)return;CUR.qItems=JSON.parse(JSON.stringify(v.items||[]));CUR.quoteType=v.type||CUR.quoteType;if(v.lang)CUR.quoteLang=v.lang;persist(CUR);renderQuote();toast(`"${v.name}" 불러옴`,'ok');}
+function saveQuoteSnapshot(){
+  if(!CUR)return;
+  const name=prompt('버전 이름',`v${((CUR.quoteVersions||[]).length+1)} (${new Date().toLocaleDateString('ko-KR')})`);
+  if(!name)return;
+  if(!CUR.quoteVersions)CUR.quoteVersions=[];
+  CUR.quoteVersions.push({
+    id:uid(),name,savedAt:now(),
+    type:CUR.quoteType,lang:CUR.quoteLang,
+    items:JSON.parse(JSON.stringify(CUR.qItems||[])),
+    rates:{
+      exchangeRate:CUR.exchangeRate,
+      qMgmtRate:CUR.qMgmtRate,
+      qProfitRate:CUR.qProfitRate,
+      qVatRate:CUR.qVatRate
+    }
+  });
+  persist(CUR);
+  renderQuote();
+  toast(`"${name}" 저장됨`,'ok');
+}
+function loadQuoteSnapshot(vid){
+  if(!confirm('이 버전을 불러올까요?'))return;
+  const v=(CUR.quoteVersions||[]).find(x=>x.id===vid);
+  if(!v)return;
+  CUR.qItems=JSON.parse(JSON.stringify(v.items||[]));
+  CUR.quoteType=v.type||CUR.quoteType;
+  if(v.lang)CUR.quoteLang=v.lang;
+  // rates 복원
+  if(v.rates){
+    if(v.rates.exchangeRate!=null) CUR.exchangeRate=v.rates.exchangeRate;
+    if(v.rates.qMgmtRate!=null) CUR.qMgmtRate=v.rates.qMgmtRate;
+    if(v.rates.qProfitRate!=null) CUR.qProfitRate=v.rates.qProfitRate;
+    if(v.rates.qVatRate!=null) CUR.qVatRate=v.rates.qVatRate;
+  }
+  persist(CUR);renderQuote();
+  toast(`"${v.name}" 불러옴`,'ok');
+}
 function delQuoteSnapshot(vid){if(!confirm('삭제?'))return;CUR.quoteVersions=(CUR.quoteVersions||[]).filter(x=>x.id!==vid);persist(CUR);renderQuote();toast('삭제됨','ok');}
 
 /* ─── 일정 가져오기 ─── */
