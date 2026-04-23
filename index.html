@@ -10161,39 +10161,53 @@ function saveCfgGmail(){
 /* ── 인보이스 메일 발송 (CC: tax@channelk.kr) ── */
 async function sendInvEmail(){
   if(!CUR) return;
-  if(!CFG.gmailToken){toast('먼저 ⚙ 설정에서 Gmail을 연동하세요','warn');return;}
-  if(CFG.gmailTokenExpires&&Date.now()>CFG.gmailTokenExpires){
-    toast('Gmail 인증이 만료됐습니다. 다시 연동해주세요','warn');
-    CFG.gmailToken='';localStorage.setItem(CFG_KEY,JSON.stringify(CFG));return;
-  }
+
+  // 토큰 만료 확인
+  const tokenExpired = CFG.gmailTokenExpires && Date.now() > CFG.gmailTokenExpires;
+  if(tokenExpired){ CFG.gmailToken=''; localStorage.setItem(CFG_KEY,JSON.stringify(CFG)); }
+  const needAuth = !CFG.gmailToken;
 
   const toEmail=CUR.clientEmail||'';
   const projName=CUR.nameEN||CUR.nameKO||'프로젝트';
   const CC='tax@channelk.kr';
 
-  // 수신 이메일 확인
   if(!toEmail){
     const input=prompt('수신자 이메일 주소를 입력하세요:','');
     if(!input||!input.includes('@')){toast('유효한 이메일 주소가 필요합니다','err');return;}
-    CUR.clientEmail=input.trim();
-    persist(CUR);
+    CUR.clientEmail=input.trim(); persist(CUR);
   }
   const finalTo=CUR.clientEmail;
 
-  // 발송 확인 모달
   let m=document.getElementById('mo-send-inv');
   if(!m){m=document.createElement('div');m.id='mo-send-inv';m.className='mo';m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
 
   const L=_invL||'en';
-  const isKo=L==='ko';
-  const defSubject=isKo
-    ?`[채널케이] 인보이스 발송 - ${projName}`
-    :`[Channel K] Invoice - ${projName}`;
-  const defBody=isKo
+  const defSubject=L==='ko'?`[채널케이] 인보이스 발송 - ${projName}`:`[Channel K] Invoice - ${projName}`;
+  const defBody=L==='ko'
     ?`안녕하세요,\n\n채널케이입니다.\n아래 인보이스를 송부드립니다.\n\n행사명: ${projName}\n담당자: ${CUR.salesperson||'담당자 미지정'}\n\n문의사항이 있으시면 언제든지 연락주세요.\n\n감사합니다.\n\n(주)채널케이\nkayla.lee@channelk.kr`
-    :`Dear ${CUR.clientName||'Client'},\n\nPlease find the invoice attached for the following:\n\nEvent: ${projName}\nContact: ${CUR.salesperson||'Channel K'}\n\nPlease do not hesitate to contact us if you have any questions.\n\nBest regards,\nChannel K Corp.\nkayla.lee@channelk.kr`;
+    :`Dear ${CUR.clientName||'Client'},\n\nPlease find the invoice for the following:\n\nEvent: ${projName}\nContact: ${CUR.salesperson||'Channel K'}\n\nPlease do not hesitate to contact us if you have any questions.\n\nBest regards,\nChannel K Corp.\nkayla.lee@channelk.kr`;
+
+  // Gmail 미인증 배너
+  const authBanner = needAuth ? `
+  <div style="background:var(--ybg);border:1.5px solid var(--y);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:12.5px;font-weight:700;color:var(--ink)">
+          ${tokenExpired ? '⏰ Gmail 인증이 만료됐습니다' : '🔑 Gmail 인증이 필요합니다'}
+        </div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">아래 버튼을 눌러 본인 Google 계정으로 인증 후 발송하세요.</div>
+      </div>
+      <button class="btn bp btn-sm" style="flex-shrink:0" onclick="_gmailAuthAndSend()">
+        🔗 Gmail 인증하기
+      </button>
+    </div>
+  </div>` : `
+  <div style="background:var(--gbg);border:1px solid var(--g);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:11.5px;color:var(--g);font-weight:600">
+    ✅ Gmail 연동됨 — 발송 준비 완료
+  </div>`;
 
   m.innerHTML=`<div class="mb wide"><div class="mo-t">✉️ 인보이스 메일 발송</div>
+  ${authBanner}
   <div class="fg"><label class="fl">받는 사람 (To) ★</label>
     <input class="fi" id="inv-mail-to" value="${h(finalTo)}" placeholder="client@company.com"></div>
   <div class="fg"><label class="fl">참조 (CC) — 자동 포함</label>
@@ -10203,13 +10217,58 @@ async function sendInvEmail(){
   <div class="fg"><label class="fl">본문</label>
     <textarea class="fi" id="inv-mail-body" rows="8" style="font-size:12px;line-height:1.7">${h(defBody)}</textarea></div>
   <div style="background:var(--sur2);border-radius:6px;padding:8px 12px;font-size:11.5px;color:var(--ink3);margin-bottom:4px">
-    ℹ️ 메일 발송 시 <b>tax@channelk.kr</b>이 자동으로 참조(CC)에 포함됩니다.
+    ℹ️ 발송 시 <b>tax@channelk.kr</b>이 자동으로 CC에 포함됩니다.
   </div>
   <div class="mo-f">
     <button class="btn bd" style="flex:1" onclick="document.getElementById('mo-send-inv').classList.remove('open')">취소</button>
-    <button class="btn bp" style="flex:2" onclick="_doSendInvEmail()">📤 발송</button>
+    <button class="btn bp" style="flex:2" id="inv-send-btn" ${needAuth?'disabled style="opacity:.5"':''} onclick="_doSendInvEmail()">
+      ${needAuth?'🔑 인증 후 발송 가능':'📤 발송'}
+    </button>
   </div></div>`;
   m.classList.add('open');
+}
+
+/* Gmail 인증 → 성공 후 발송 버튼 활성화 */
+function _gmailAuthAndSend(){
+  const clientId=CFG.gmailClientId;
+  if(!clientId){
+    toast('Google Client ID가 설정되지 않았습니다. 관리자에게 문의하세요','err');
+    return;
+  }
+  const scope='https://www.googleapis.com/auth/gmail.send';
+  const redirect='https://chksystem.kayla-lee.workers.dev';
+  const url='https://accounts.google.com/o/oauth2/v2/auth'
+    +'?client_id='+encodeURIComponent(clientId)
+    +'&redirect_uri='+encodeURIComponent(redirect)
+    +'&response_type=token'
+    +'&scope='+encodeURIComponent(scope)
+    +'&prompt=consent';
+  const popup=window.open(url,'gmail-auth','width=500,height=600');
+  const timer=setInterval(function(){
+    try{
+      if(!popup||popup.closed){clearInterval(timer);return;}
+      const hash=popup.location.hash;
+      if(hash&&hash.includes('access_token')){
+        clearInterval(timer);
+        popup.close();
+        const params=new URLSearchParams(hash.slice(1));
+        const token=params.get('access_token');
+        const expires=Date.now()+parseInt(params.get('expires_in')||3600)*1000;
+        CFG.gmailToken=token;
+        CFG.gmailTokenExpires=expires;
+        localStorage.setItem(CFG_KEY,JSON.stringify(CFG));
+        // 모달 내 배너·버튼 갱신
+        const banner=document.querySelector('#mo-send-inv .ybg')?.parentElement;
+        const authBannerEl=document.querySelector('#mo-send-inv div[style*="ybg"]');
+        if(authBannerEl){
+          authBannerEl.outerHTML=`<div style="background:var(--gbg);border:1px solid var(--g);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:11.5px;color:var(--g);font-weight:600">✅ Gmail 인증 완료 — 발송 가능합니다</div>`;
+        }
+        const btn=document.getElementById('inv-send-btn');
+        if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='📤 발송';}
+        toast('✅ Gmail 인증 완료! 이제 발송 버튼을 누르세요','ok');
+      }
+    }catch(e){}
+  },500);
 }
 
 async function _doSendInvEmail(){
