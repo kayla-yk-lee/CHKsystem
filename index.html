@@ -10182,10 +10182,19 @@ async function sendInvEmail(){
   if(!m){m=document.createElement('div');m.id='mo-send-inv';m.className='mo';m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});document.body.appendChild(m);}
 
   const L=_invL||'en';
-  const defSubject=L==='ko'?`[채널케이] 인보이스 발송 - ${projName}`:`[Channel K] Invoice - ${projName}`;
+  const clientName=CUR.clientName||'';
+  const eventDate=CUR.eventDate||'';
+  const pax=CUR.pax||'';
+  const salesperson=CUR.salesperson||'Channel K';
+  const myEmail=CFG.myemail||'kayla.lee@channelk.kr';
+
+  const defSubject=L==='ko'
+    ?`[채널케이] 인보이스 발송 - ${projName}`
+    :`[Channel K] Invoice - ${projName}`;
+
   const defBody=L==='ko'
-    ?`안녕하세요,\n\n채널케이입니다.\n아래 인보이스를 송부드립니다.\n\n행사명: ${projName}\n담당자: ${CUR.salesperson||'담당자 미지정'}\n\n문의사항이 있으시면 언제든지 연락주세요.\n\n감사합니다.\n\n(주)채널케이\nkayla.lee@channelk.kr`
-    :`Dear ${CUR.clientName||'Client'},\n\nPlease find the invoice for the following:\n\nEvent: ${projName}\nContact: ${CUR.salesperson||'Channel K'}\n\nPlease do not hesitate to contact us if you have any questions.\n\nBest regards,\nChannel K Corp.\nkayla.lee@channelk.kr`;
+    ?`안녕하세요${clientName?' '+clientName+' 담당자님,':','}\n\n(주)채널케이 ${salesperson}입니다.\n\n아래 행사 관련 인보이스를 발송드립니다.\n\n  행사명: ${projName}\n${eventDate?`  행사일: ${eventDate}\n`:''}${pax?`  참가인원: ${pax}명\n`:''}\n결제 및 문의사항은 언제든지 연락주시기 바랍니다.\n\n감사합니다.\n\n${salesperson}\n(주)채널케이 CHANNEL K CORP.\n${myEmail}`
+    :`Dear ${clientName||'Client'},\n\nThank you for choosing Channel K.\nPlease find the invoice details for the following event:\n\n  Event: ${projName}\n${eventDate?`  Date: ${eventDate}\n`:''}${pax?`  Participants: ${pax} pax\n`:''}\nPlease review and process the payment at your earliest convenience.\nFor any questions, feel free to reach out.\n\nBest regards,\n\n${salesperson}\nCHANNEL K CORP.\n${myEmail}`;
 
   // Gmail 미인증 배너
   const authBanner = needAuth ? `
@@ -10208,17 +10217,19 @@ async function sendInvEmail(){
 
   m.innerHTML=`<div class="mb wide"><div class="mo-t">✉️ 인보이스 메일 발송</div>
   ${authBanner}
-  <div class="fg"><label class="fl">받는 사람 (To) ★</label>
-    <input class="fi" id="inv-mail-to" value="${h(finalTo)}" placeholder="client@company.com"></div>
-  <div class="fg"><label class="fl">참조 (CC) — 자동 포함</label>
-    <input class="fi" value="${CC}" disabled style="background:var(--sur2);color:var(--ink3)"></div>
+  <div class="fr2">
+    <div class="fg"><label class="fl">받는 사람 이메일 (To) ★</label>
+      <input class="fi" id="inv-mail-to" value="${h(finalTo)}" placeholder="client@company.com"></div>
+    <div class="fg"><label class="fl">수신자 이름 (선택)</label>
+      <input class="fi" id="inv-mail-toname" value="${h(CUR.clientName||'')}" placeholder="홍길동 / Hong Gildong"
+        oninput="(function(v){const b=document.getElementById('inv-mail-body');if(b){b.value=b.value.replace(/^Dear .+?,/,'Dear '+v+',').replace(/^안녕하세요.+담당자님,/,'안녕하세요 '+v+' 담당자님,');};})(this.value)"></div>
+  </div>
+  <div class="fg"><label class="fl">참조 (CC) — tax@channelk.kr 자동 포함</label>
+    <input class="fi" value="${CC}" disabled style="background:var(--sur2);color:var(--ink3);font-size:12px"></div>
   <div class="fg"><label class="fl">제목 (Subject)</label>
     <input class="fi" id="inv-mail-sub" value="${h(defSubject)}"></div>
-  <div class="fg"><label class="fl">본문</label>
-    <textarea class="fi" id="inv-mail-body" rows="8" style="font-size:12px;line-height:1.7">${h(defBody)}</textarea></div>
-  <div style="background:var(--sur2);border-radius:6px;padding:8px 12px;font-size:11.5px;color:var(--ink3);margin-bottom:4px">
-    ℹ️ 발송 시 <b>tax@channelk.kr</b>이 자동으로 CC에 포함됩니다.
-  </div>
+  <div class="fg"><label class="fl">본문 — 직접 수정 가능</label>
+    <textarea class="fi" id="inv-mail-body" rows="10" style="font-size:12px;line-height:1.8;font-family:inherit">${h(defBody)}</textarea></div>
   <div class="mo-f">
     <button class="btn bd" style="flex:1" onclick="document.getElementById('mo-send-inv').classList.remove('open')">취소</button>
     <button class="btn bp" style="flex:2" id="inv-send-btn" ${needAuth?'disabled style="opacity:.5"':''} onclick="_doSendInvEmail()">
@@ -10311,8 +10322,16 @@ async function _doSendInvEmail(){
     });
 
     if(!res.ok){
-      const err=await res.json();
-      throw new Error(err.error?.message||res.statusText);
+      const err=await res.json().catch(()=>({}));
+      const msg=err?.error?.message||res.statusText||'Unknown error';
+      if(msg.includes('has not been used in project')||msg.includes('accessNotConfigured')){
+        throw new Error('Gmail API 미활성화\n\n해결: console.cloud.google.com → API 라이브러리 → Gmail API → 사용 설정');
+      }
+      if(msg.includes('invalid_token')||msg.includes('Invalid Credentials')||res.status===401){
+        CFG.gmailToken=''; localStorage.setItem(CFG_KEY,JSON.stringify(CFG));
+        throw new Error('인증 만료 — 발송 버튼을 다시 클릭해서 재인증하세요');
+      }
+      throw new Error(msg);
     }
 
     // 발송 이력 기록
