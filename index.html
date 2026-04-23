@@ -2166,21 +2166,35 @@ function sbSubscribe(){
   try{
     _sbChannel = SB.channel('projects-changes')
       .on('postgres_changes',{event:'*',schema:'public',table:'projects'},function(payload){
-        var p = payload.new||payload.old;
-        if(!p||!p.id) return;
+        var remote = payload.new||payload.old;
+        if(!remote||!remote.id) return;
         if(payload.eventType==='DELETE'){
-          DB.projects = DB.projects.filter(function(x){return x.id!==p.id;});
+          DB.projects = DB.projects.filter(function(x){return x.id!==remote.id;});
         } else {
-          var idx2 = DB.projects.findIndex(function(x){return x.id===p.id;});
-          if(idx2>=0) DB.projects[idx2]=p;
-          else DB.projects.push(p);
+          var idx2 = DB.projects.findIndex(function(x){return x.id===remote.id;});
+          // 로컬 전용 필드는 절대 Supabase raw data로 덮어쓰지 않음
+          var LOCAL_FIELDS=['qItems','qMgmtRate','qProfitRate','qVatRate','quoteType','quoteLang',
+            'quoteVersions','invPayments','invCancelPolicy','invNote','invMailLogs','invSnapshots',
+            'invMgmtRateOverride','invProfitRateOverride','invVatRateOverride',
+            'checklist','tasks','ctSnapshots','schedule','guides','guides2','rfpRaw',
+            'calMemos','salesTotalKRW','vendorSettles','laborSettles'];
+          var existing = idx2>=0 ? DB.projects[idx2] : null;
+          var merged2 = Object.assign({}, remote);
+          if(existing){
+            LOCAL_FIELDS.forEach(function(f){ if(existing[f]!==undefined) merged2[f]=existing[f]; });
+          }
+          if(idx2>=0) DB.projects[idx2]=merged2;
+          else DB.projects.push(merged2);
+          // CUR도 동일하게 병합 (raw로 덮어쓰지 않음)
+          if(CUR&&CUR.id===remote.id&&payload.eventType!=='DELETE'){
+            LOCAL_FIELDS.forEach(function(f){ if(CUR[f]!==undefined) merged2[f]=CUR[f]; });
+            // 팀원이 수정한 경우에만 알림 (자신의 저장은 알림 없음)
+            var myUpd=Math.abs(new Date(remote.updated_at)-new Date(CUR.updatedAt||0));
+            if(myUpd>5000) toast('팀원이 ['+h(remote.co_ko||remote.nameKO||'')+'] 프로젝트를 수정했습니다','');
+          }
         }
         saveDB();
         renderSidebar();
-        if(CUR&&CUR.id===p.id&&payload.eventType!=='DELETE'){
-          CUR=p;
-          toast('팀원이 ['+h(p.nameKO)+'] 프로젝트를 수정했습니다','');
-        }
       })
       .subscribe();
     setSS('ok','실시간 동기화 활성');
@@ -4002,10 +4016,9 @@ function renderSched(){
   let html=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
     <div style="display:flex;gap:3px;background:var(--sur2);padding:3px;border-radius:8px">
       <button class="btn btn-sm ${view==='proposal'?'bp':'bd'}" onclick="window._schedView='proposal';renderSched()"> 제안용</button>
-      <button class="btn btn-sm ${view==='ops'?'bp':'bd'}" onclick="window._schedView='ops';renderSched()">⚙ 운영용</button>
       <button class="btn btn-sm ${view==='preview'?'bp':'bd'}" onclick="window._schedView='preview';renderSched()">🖨 미리보기</button>
     </div>
-    <div style="font-size:11px;color:var(--ink3)">${view==='proposal'?'시간·KO/EN·장소·사진':view==='ops'?'협력업체 연결 — 운영용':'제안서 출력 미리보기'}</div>
+    <div style="font-size:11px;color:var(--ink3)">${view==='proposal'?'시간·KO/EN·장소·사진':'제안서 출력 미리보기'}</div>
     <div style="flex:1"></div>
     ${view==='proposal'?`
       <button class="btn bd btn-sm" onclick="toggleSchedLang()" title="KO/EN 번역 미리보기"><span id="sched-lang-label">미리보기</span></button>
@@ -4149,60 +4162,6 @@ function renderSched(){
         ${trows}
       </div>`;
     });
-  } else {
-    // ── 운영용 뷰 — 서비스별 협력업체 연결 ──
-    if(!sc.length){
-      html+='<div class="alert al-i">제안용 탭에서 일정을 먼저 입력하세요.</div>';
-    } else {
-      sc.forEach(function(day,di){
-        const rows=day.rows||[];
-        html+='<div class="card" id="sc-ops-'+di+'" style="margin-bottom:10px">';
-        html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bdr)">';
-        html+='<div class="day-badge">'+(di+1)+'</div>';
-        html+='<span style="font-weight:700;font-size:13px">'+h(day.titleKo||('Day '+(di+1)))+'</span>';
-        html+='<span style="color:var(--ink4);font-size:11px;margin-left:4px">'+h(day.titleEn||'')+'</span>';
-        html+='</div>';
-        if(!rows.length){
-          html+='<div class="alert al-i" style="font-size:11.5px">제안용 탭에서 일정을 입력하세요.</div>';
-        } else {
-          rows.forEach(function(r,ri){
-            const selId   = r.opsVendor||'';
-            const selName = r.opsVendorName||'';
-            const selNote = r.opsMemo||'';
-            // 협력업체 드롭다운 (DB.vendors = 실제 협력업체만)
-            let vopts='<option value="">-- 업체 선택 --</option>';
-            const realVendors=(DB.vendors||[]).filter(function(v){return !v.costUnit;});
-            realVendors.forEach(function(v){
-              vopts+='<option value="'+h(v.id)+'"'+(selId===v.id?' selected':'')+'>'+h(v.name)+(v.note?' ('+h(v.note)+')':'')+'</option>';
-            });
-            html+='<div style="border:1px solid var(--bdr);border-radius:var(--ra);margin-bottom:8px;overflow:hidden">';
-            // 일정 내용 헤더
-            html+='<div style="display:flex;gap:8px;padding:8px 12px;background:var(--sur2);align-items:center">';
-            html+='<span style="font-size:11px;color:var(--a);font-weight:700;min-width:40px;flex-shrink:0">'+h(r.time||'—')+'</span>';
-            html+='<div style="flex:1;min-width:0">';
-            html+='<div style="font-size:12.5px;font-weight:700;color:var(--ink)">'+h(r.ko||'')+'</div>';
-            if(r.place) html+='<div style="font-size:10.5px;color:var(--ink3);margin-top:1px">'+h(r.place)+'</div>';
-            html+='</div>';
-            if(selName) html+='<span class="chip ca" style="flex-shrink:0;font-size:10px">'+h(selName)+'</span>';
-            html+='</div>';
-            // 협력업체 선택 영역
-            html+='<div style="padding:10px 12px">';
-            html+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">';
-            html+='<label style="font-size:10px;font-weight:700;color:var(--ink3);min-width:60px">협력업체</label>';
-            html+='<select class="fi" style="font-size:12px;flex:1" data-di="'+di+'" data-ri="'+ri+'" onchange="opsSetVendor(this.dataset.di,this.dataset.ri,this.value,this.options[this.selectedIndex].text)">'+vopts+'</select>';
-            if(selName) html+='<button class="btn bdr2c btn-sm" data-di="'+di+'" data-ri="'+ri+'" onclick="opsSetVendor(this.dataset.di,this.dataset.ri,\'\',\'\')">해제</button>';
-            html+='</div>';
-            html+='<div style="display:flex;gap:6px;align-items:center">';
-            html+='<label style="font-size:10px;font-weight:700;color:var(--ink3);min-width:60px">메모</label>';
-            html+='<input class="fi" style="font-size:12px;flex:1" value="'+h(selNote)+'" placeholder="수량, 특이사항 등" data-di="'+di+'" data-ri="'+ri+'" onchange="opsSetMemo(this.dataset.di,this.dataset.ri,this.value)">';
-            html+='</div>';
-            html+='</div>';
-            html+='</div>';
-          });
-        }
-        html+='</div>';
-      });
-    }
   }
 
   // ── 미리보기 뷰 ──
