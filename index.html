@@ -585,7 +585,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
         <div class="tab on" data-tab="projinfo" onclick="goTab('projinfo',this)"> 프로젝트</div>
         <div class="tab" data-tab="schedule" onclick="goTab('schedule',this)"> 일정</div>
         <div class="tab" data-tab="quote" onclick="goTab('quote',this)"> 산출내역서</div>
-        <div class="tab" data-tab="invoice" onclick="goTab('invoice',this)"> 인보이스</div>
+        <div class="tab" data-tab="invoice" onclick="goTab('invoice',this)" style="margin-left:-2px;border-left:none"> 인보이스</div>
         <div class="tab" data-tab="rfp" onclick="goTab('rfp',this)">협력업체 문의</div>
         <div class="tab" data-tab="contract" onclick="goTab('contract',this)"> 계약서</div>
         <div class="tab" data-tab="preview" onclick="goTab('preview',this)"> 미리보기</div>
@@ -5946,7 +5946,7 @@ function downloadInvWord(){
     // 헤더
     +'<table style="margin-bottom:16pt"><tr>'
     +'<td style="vertical-align:top;width:50%"><p style="font-size:20pt;font-style:italic;font-weight:bold;color:#1E3A5F;margin:0">Channel K Corp.</p>'
-    +'<p style="font-size:9pt;color:#666;margin-top:3pt">MICE · PCO · DMC · AMC</p></td>'
+    +'</td>'
     +'<td style="text-align:right;vertical-align:top">'
     +'<p style="font-size:24pt;font-weight:bold;color:#1E3A5F;letter-spacing:2pt;margin:0">'+(isEN?'INVOICE':'인보이스')+'</p>'
     +'<p style="font-size:9.5pt;color:#444;line-height:1.8;margin-top:4pt">No. '+invNo+'<br>'+(isEN?'Date':'발행일')+': '+today+'<br>'+(isEN?'Due':'납기일')+': '+due30+'</p>'
@@ -6132,15 +6132,17 @@ function renderInvoice(){
   var thead3,tfoot3;
   if(L==='en'){
     thead3='<thead><tr><th>Category</th><th>Description</th><th style="text-align:right">USD</th></tr></thead>';
-    tfoot3='<tfoot><tr><td colspan="2">Subtotal</td><td style="text-align:right">$'+fmtUSD(ss/rate)+'</td></tr>'
-      +(feeIncl3?'<tr><td colspan="2">Service Fee ('+fee+'%)</td><td style="text-align:right">$'+fmtUSD(fa/rate)+'</td></tr>':'')
-      +(vatIncl3?'<tr><td colspan="2">VAT ('+vatRate3+'%)</td><td style="text-align:right">$'+fmtUSD(vat3/rate)+'</td></tr>':'')
+    tfoot3='<tfoot>'
+      +(ss>0?'<tr><td colspan="2">Subtotal</td><td style="text-align:right">$'+fmtUSD(ss/rate)+'</td></tr>':'')
+      +(feeIncl3&&fa>0?'<tr><td colspan="2">Service Fee ('+fee+'%)</td><td style="text-align:right">$'+fmtUSD(fa/rate)+'</td></tr>':'')
+      +(vatIncl3&&vat3>0?'<tr><td colspan="2">VAT ('+vatRate3+'%)</td><td style="text-align:right">$'+fmtUSD(vat3/rate)+'</td></tr>':'')
       +'<tr style="background:var(--abg)"><td colspan="2" style="font-size:14px;font-weight:800;color:var(--a)">TOTAL</td><td style="text-align:right;font-size:15px;font-weight:800;color:var(--a)">$'+fmtUSD(totUSD3)+'</td></tr></tfoot>';
   } else {
     thead3='<thead><tr><th>구분</th><th>서비스 항목</th><th style="text-align:right">KRW</th><th style="text-align:right">USD</th></tr></thead>';
-    tfoot3='<tfoot><tr><td colspan="2">소계</td><td style="text-align:right">'+fmtKRW(ss)+'</td><td style="text-align:right">$'+fmtUSD(ss/rate)+'</td></tr>'
-      +(feeIncl3?'<tr><td colspan="2">채널케이 수수료 ('+fee+'%)</td><td style="text-align:right">'+fmtKRW(fa)+'</td><td style="text-align:right">$'+fmtUSD(fa/rate)+'</td></tr>':'')
-      +(vatIncl3?'<tr><td colspan="2">부가세 ('+vatRate3+'%)</td><td style="text-align:right">'+fmtKRW(vat3)+'</td><td style="text-align:right">$'+fmtUSD(vat3/rate)+'</td></tr>':'')
+    tfoot3='<tfoot>'
+      +(ss>0?'<tr><td colspan="2">소계</td><td style="text-align:right">'+fmtKRW(ss)+'</td><td style="text-align:right">$'+fmtUSD(ss/rate)+'</td></tr>':'')
+      +(feeIncl3&&fa>0?'<tr><td colspan="2">채널케이 수수료 ('+fee+'%)</td><td style="text-align:right">'+fmtKRW(fa)+'</td><td style="text-align:right">$'+fmtUSD(fa/rate)+'</td></tr>':'')
+      +(vatIncl3&&vat3>0?'<tr><td colspan="2">부가세 ('+vatRate3+'%)</td><td style="text-align:right">'+fmtKRW(vat3)+'</td><td style="text-align:right">$'+fmtUSD(vat3/rate)+'</td></tr>':'')
       +'<tr style="background:var(--abg)"><td colspan="2" style="font-weight:800;color:var(--a)">총액</td><td style="text-align:right;font-size:15px;font-weight:800;color:var(--a)">'+fmtKRW(tot2)+'</td><td style="text-align:right;font-size:15px;font-weight:800;color:var(--a)">$'+fmtUSD(totUSD3)+'</td></tr></tfoot>';
   }
   return _renderInvoiceHTML(L, thead3, itemRows, tfoot3, totUSD3, rate);
@@ -6173,7 +6175,7 @@ function _renderInvoiceHTML(L, thead, itemRows, tfoot, totUSD, rate){
   }
 
   // ── 송금 정보 (영문 인보이스에 필수)
-  var bankHTML=isEN?'<div style="margin-bottom:20px;background:#f8faff;border:1px solid #dce7ff;border-radius:6px;padding:14px 16px">'
+  var bankHTML=isEN?'<div id="inv-bank-info" style="margin-bottom:20px;background:#f8faff;border:1px solid #dce7ff;border-radius:6px;padding:14px 16px">'
     +'<div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:#888;text-transform:uppercase;margin-bottom:10px">REMITTANCE INFORMATION</div>'
     +'<table style="width:100%;font-size:12px;border-collapse:collapse">'
     +'<tr><td style="padding:3px 0;color:#666;width:40%">Beneficiary</td><td style="font-weight:600">CHANNELK CORP</td></tr>'
@@ -6185,7 +6187,7 @@ function _renderInvoiceHTML(L, thead, itemRows, tfoot, totUSD, rate){
     +'<tr><td style="padding:3px 0;color:#666">Currency</td><td style="font-weight:600">USD</td></tr>'
     +'<tr><td style="padding:3px 0;color:#666;vertical-align:top">Bank Address</td><td style="font-weight:600">26, Gukjegeumyung-ro 8-gil, Yeongdeungpo-gu, Seoul, Korea (07331)</td></tr>'
     +'</table></div>'
-    :'<div style="margin-bottom:20px;background:#f8faff;border:1px solid #dce7ff;border-radius:6px;padding:14px 16px">'
+    :'<div id="inv-bank-info" style="margin-bottom:20px;background:#f8faff;border:1px solid #dce7ff;border-radius:6px;padding:14px 16px">'
     +'<div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:#888;text-transform:uppercase;margin-bottom:10px">입금 계좌 정보</div>'
     +'<table style="width:100%;font-size:12px;border-collapse:collapse">'
     +'<tr><td colspan="2" style="padding:6px 0 3px;font-size:10px;font-weight:700;color:#1e40af;letter-spacing:.5px;border-bottom:1px solid #dce7ff">외화 계좌 (USD)</td></tr>'
@@ -6237,13 +6239,16 @@ function _renderInvoiceHTML(L, thead, itemRows, tfoot, totUSD, rate){
     // ── 인보이스 문서
     +'<div id="inv-doc" style="max-width:740px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)">'
 
-    // 헤더 배너
-    +'<div style="background:#1E3A5F;padding:20px 32px;display:flex;justify-content:space-between;align-items:center">'
-    +'<div><div style="font-size:22px;font-style:italic;font-weight:800;color:#fff;letter-spacing:-.5px">Channel K Corp.</div>'
-    +'<div style="font-size:10.5px;color:rgba(255,255,255,.65);margin-top:3px;letter-spacing:.08em;text-transform:uppercase">MICE · PCO · DMC · AMC</div></div>'
-    +'<div style="text-align:right"><div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:1px">'+(isEN?'INVOICE':'인보이스')+'</div>'
-    +'<div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:4px;line-height:1.9">No. '+invNo+'<br>'+( isEN?'Date':'발행일')+': '+today+'<br>'+(isEN?'Due':'납기일')+': '+due30+'</div></div>'
-    +'</div>'
+    // 헤더 배너 (table 레이아웃 → 이메일/인쇄 호환)
+    +'<table style="width:100%;border-collapse:collapse;background:#1E3A5F"><tr>'
+    +'<td style="padding:20px 32px;vertical-align:middle">'
+    +'<div style="font-size:22px;font-style:italic;font-weight:800;color:#fff;letter-spacing:-.5px">Channel K Corp.</div>'
+    +'</td>'
+    +'<td style="padding:20px 32px;text-align:right;vertical-align:middle;white-space:nowrap">'
+    +'<div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:1px">'+(isEN?'INVOICE':'인보이스')+'</div>'
+    +'<div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:4px;line-height:1.9;text-align:right">No. '+invNo+'<br>'+(isEN?'Date':'발행일')+': '+today+'<br>'+(isEN?'Due':'납기일')+': '+due30+'</div>'
+    +'</td>'
+    +'</tr></table>'
 
     // 바디
     +'<div style="padding:28px 32px">'
@@ -10553,9 +10558,11 @@ async function _doSendInvEmail(){
   toast('발송 중...','ok');
 
   try{
-    // 인보이스 HTML 추출
+    // 인보이스 HTML 추출 (은행정보 div는 별도 bankSection으로 대체하므로 제거)
     const invDocEl=document.getElementById('inv-doc');
-    const invHtml=invDocEl?invDocEl.outerHTML:'';
+    let invHtml=invDocEl?invDocEl.outerHTML:'';
+    // inv-doc 안의 은행정보 div 제거 (이메일에서는 bankSection이 대신 표시)
+    invHtml=invHtml.replace(/<div id="inv-bank-info"[\s\S]*?<\/div>\s*<\/div>/,'');
 
     // HTML 이메일 본문 구성 (본문 텍스트 + 인보이스 렌더링)
     const L2=typeof _invL!=='undefined'?_invL:'en';
@@ -10602,10 +10609,16 @@ async function _doSendInvEmail(){
   .footer{text-align:center;padding:16px;font-size:11px;color:#888;border-top:1px solid #eee;background:#fafafa}
 </style></head><body>
 <div class="wrap">
-  <div style="background:#1E3A5F;padding:16px 32px;display:flex;align-items:center;gap:12px">
-    <span style="font-size:20px;font-style:italic;font-weight:700;color:#fff">Channel K Corp.</span>
-    <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.7)">${new Date().toLocaleDateString('ko-KR')}</span>
-  </div>
+  <table style="width:100%;border-collapse:collapse;background:#1E3A5F">
+    <tr>
+      <td style="padding:18px 28px;vertical-align:middle">
+        <span style="font-size:20px;font-style:italic;font-weight:700;color:#fff">Channel K Corp.</span>
+      </td>
+      <td style="padding:18px 28px;text-align:right;vertical-align:middle">
+        <span style="font-size:11px;color:rgba(255,255,255,.7)">${new Date().toLocaleDateString('ko-KR')}</span>
+      </td>
+    </tr>
+  </table>
   <div class="pre-text">${bodyText.replace(/\n/g,'<br>')}</div>
   <div class="inv-wrap">${invHtml}</div>
   ${bankSection}
