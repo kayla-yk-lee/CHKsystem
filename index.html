@@ -5925,7 +5925,7 @@ function renderInvoice(){
         +'<td style="text-align:right;font-size:14px;font-weight:800;color:var(--a)">₩'+fmtKRW(totalKRW)+'</td>'
         +'<td style="text-align:right;font-size:14px;font-weight:800;color:var(--a)">$'+fmtUSD(totUSD)+'</td></tr></tfoot>';
       var thead='<thead><tr><th>'+(L==='en'?'Category':'구분')+'</th><th>'+(L==='en'?'Description':'서비스 항목')+'</th><th style="text-align:right">KRW</th><th style="text-align:right">USD</th></tr></thead>';
-      if(!itemRows) itemRows='<tr><td colspan="4" style="text-align:center;color:var(--ink4);padding:16px">산출내역서 탭에서 항목을 추가하세요.</td></tr>';
+      if(!itemRows) itemRows='<tr><td colspan="4" style="text-align:center;color:var(--ink4);padding:16px">'+(L==='en'?'No items — add items in the Quotation tab.':'산출내역서 탭에서 항목을 추가하세요.')+'</td></tr>';
       return _renderInvoiceHTML(L, thead, itemRows, tfoot, totUSD, rate);
     } else {
       // DMC: USD 기반
@@ -5954,7 +5954,7 @@ function renderInvoice(){
       var thead2=L==='en'
         ?'<thead><tr><th>Category</th><th>Description</th><th style="text-align:right">USD</th></tr></thead>'
         :'<thead><tr><th>구분</th><th>서비스 항목</th><th style="text-align:right">USD</th><th style="text-align:right">KRW</th></tr></thead>';
-      if(!itemRows) itemRows='<tr><td colspan="'+colspan+'" style="text-align:center;color:var(--ink4);padding:16px">산출내역서 탭에서 항목을 추가하세요.</td></tr>';
+      if(!itemRows) itemRows='<tr><td colspan="'+colspan+'" style="text-align:center;color:var(--ink4);padding:16px">'+(L==='en'?'No items — add items in the Quotation tab.':'산출내역서 탭에서 항목을 추가하세요.')+'</td></tr>';
       return _renderInvoiceHTML(L, thead2, itemRows, tfoot2, totUSD2, rate);
     }
   }
@@ -5974,7 +5974,7 @@ function renderInvoice(){
     var catLabel=L==='en'?(CAT_EN[qi.category]||qi.category):qi.category;
     if(L==='en') return '<tr><td style="font-size:12px;color:var(--ink3)">'+h(catLabel||'')+'</td><td style="color:var(--ink)">'+h(qi.name||'')+'</td><td style="text-align:right">$'+fmtUSD(sellKRW/rate)+'</td></tr>';
     return '<tr><td><span class="chip cv">'+h(catLabel||'')+'</span></td><td style="color:var(--ink)">'+h(qi.name||'')+'</td><td style="text-align:right">'+fmtKRW(sellKRW)+'</td><td style="text-align:right">$'+fmtUSD(sellKRW/rate)+'</td></tr>';
-  }).join('')||('<tr><td colspan="'+(L==='en'?3:4)+'" style="text-align:center;color:var(--ink4);padding:16px">견적 탭에서 항목을 추가하세요.</td></tr>');
+  }).join('')||('<tr><td colspan="'+(L==='en'?3:4)+'" style="text-align:center;color:var(--ink4);padding:16px">'+(L==='en'?'No items — add items in the Quotation tab.':'견적 탭에서 항목을 추가하세요.')+'</td></tr>');
   var thead3,tfoot3;
   if(L==='en'){
     thead3='<thead><tr><th>Category</th><th>Description</th><th style="text-align:right">USD</th></tr></thead>';
@@ -10285,7 +10285,7 @@ function _gmailAuthAndSend(){
 async function _doSendInvEmail(){
   const to=(document.getElementById('inv-mail-to')?.value||'').trim();
   const sub=(document.getElementById('inv-mail-sub')?.value||'').trim();
-  const body=(document.getElementById('inv-mail-body')?.value||'').trim();
+  const bodyText=(document.getElementById('inv-mail-body')?.value||'').trim();
   const cc='tax@channelk.kr';
 
   if(!to||!to.includes('@')){toast('수신자 이메일을 확인하세요','err');return;}
@@ -10294,21 +10294,64 @@ async function _doSendInvEmail(){
   toast('발송 중...','ok');
 
   try{
-    // MIME 메시지 구성 (UTF-8, CC 포함)
-    const boundary='----=_CHK_'+Date.now();
+    // 인보이스 HTML 추출
+    const invDocEl=document.getElementById('inv-doc');
+    const invHtml=invDocEl?invDocEl.outerHTML:'';
+
+    // HTML 이메일 본문 구성 (본문 텍스트 + 인보이스 렌더링)
+    const htmlBody=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#1a1a1a;background:#f5f5f5;margin:0;padding:24px}
+  .wrap{max-width:700px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.1)}
+  .pre-text{padding:24px 32px;white-space:pre-line;line-height:1.8;color:#333;border-bottom:1px solid #eee}
+  .inv-wrap{padding:0 12px 24px}
+  /* 인보이스 내부 스타일 인라인화 */
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #eee}
+  thead tr{background:#f8f8f8}
+  tfoot tr:last-child{background:#EFF6FF}
+  .footer{text-align:center;padding:16px;font-size:11px;color:#888;border-top:1px solid #eee;background:#fafafa}
+</style></head><body>
+<div class="wrap">
+  <div style="background:#1E3A5F;padding:16px 32px;display:flex;align-items:center;gap:12px">
+    <span style="font-size:20px;font-style:italic;font-weight:700;color:#fff">Channel K Corp.</span>
+    <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.7)">${new Date().toLocaleDateString('ko-KR')}</span>
+  </div>
+  <div class="pre-text">${bodyText.replace(/\n/g,'<br>')}</div>
+  <div class="inv-wrap">${invHtml}</div>
+  <div class="footer">CHANNEL K CORP. &nbsp;|&nbsp; kayla.lee@channelk.kr &nbsp;|&nbsp; channelk.kr</div>
+</div></body></html>`;
+
+    const fromAddr=`Channel K <${CFG.myemail||'kayla.lee@channelk.kr'}>`;
+    const boundary='----=_CHK_MMP_'+Date.now();
+
+    // Multipart MIME: text/plain + text/html
+    const plainB64=btoa(unescape(encodeURIComponent(bodyText)));
+    const htmlB64=btoa(unescape(encodeURIComponent(htmlBody)));
+
     const mime=[
-      `From: Channel K <${CFG.myemail||'kayla.lee@channelk.kr'}>`,
+      `From: ${fromAddr}`,
       `To: ${to}`,
       `Cc: ${cc}`,
       `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(sub)))}?=`,
       `MIME-Version: 1.0`,
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      ``,
+      `--${boundary}`,
       `Content-Type: text/plain; charset=UTF-8`,
       `Content-Transfer-Encoding: base64`,
       ``,
-      btoa(unescape(encodeURIComponent(body)))
+      plainB64,
+      ``,
+      `--${boundary}`,
+      `Content-Type: text/html; charset=UTF-8`,
+      `Content-Transfer-Encoding: base64`,
+      ``,
+      htmlB64,
+      ``,
+      `--${boundary}--`
     ].join('\r\n');
 
-    // base64url 인코딩
     const raw=btoa(unescape(encodeURIComponent(mime)))
       .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 
