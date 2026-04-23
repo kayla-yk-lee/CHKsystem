@@ -498,7 +498,7 @@ select.fi{appearance:none;-webkit-appearance:none;background-image:url("data:ima
 <body>
 <!-- TOPBAR -->
 <div id="topbar">
-  <div class="brand" style="color:#fff;font-weight:800">Channel K</div>
+  <div class="brand" style="color:#fff;font-weight:800;cursor:pointer" onclick="navTo('dashboard')" title="대시보드로 이동">Channel K</div>
   <div class="tb-div"></div>
   <span class="brand-sub">사내 인트라넷</span>
   <div class="tb-r">
@@ -6144,6 +6144,7 @@ function renderInvoice(){
 
 function _renderInvoiceHTML(L, thead, itemRows, tfoot, totUSD, rate){
   var pm=CUR.invPayments||{};
+  var isPCO=(CUR.quoteType||'DMC')==='PCO';  // ← scope 수정
   var dep1amt=parseFloat(pm.dep1amt)||0, dep2amt=parseFloat(pm.dep2amt)||0;
   var paidUSD=dep1amt+dep2amt, balance=Math.max(0,totUSD-paidUSD), isPaid=paidUSD>=totUSD&&totUSD>0;
   var today=new Date().toISOString().slice(0,10);
