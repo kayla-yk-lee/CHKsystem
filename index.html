@@ -1275,7 +1275,26 @@ const VENDOR_MASTER=[
 {id:"vendor_123",name:"（주）환상제주투어버스",brn:"616-81-32795",rep:"조영구",addr:"제주특별자치도 제주시 황사평길 35(화북이동)",email:"ikillsky@hanmail.net",tel:'',mobile:'',category:"교통·차량",services:["차량임차료(1/10)"],note:"거래 1건"}
 ];
 
-const DB_KEY='ck-db-v1', CFG_KEY='ck-cfg-v1';
+const DB_KEY='ck-db-v1', CFG_KEY='ck-cfg-v1', RATES_KEY='ck-rates-v1';
+
+/* ── 프로젝트별 rates (Supabase에 절대 덮어쓰이지 않는 별도 localStorage) ── */
+function loadRates(){ try{ return JSON.parse(localStorage.getItem(RATES_KEY)||'{}'); }catch{return {};} }
+function saveRate(projId, field, value){
+  if(!projId) return;
+  const all = loadRates();
+  if(!all[projId]) all[projId]={};
+  all[projId][field] = value;
+  localStorage.setItem(RATES_KEY, JSON.stringify(all));
+}
+function getRate(projId, field, fallback){
+  if(!projId) return fallback;
+  const r = loadRates()[projId];
+  if(r && r[field] != null) return r[field];
+  return fallback;
+}
+function getRatesForProj(projId){
+  return loadRates()[projId] || {};
+}
 
 /* ══════════════════════════════════════════
    THEME PRESETS — 일정 탭 테마 드롭다운
@@ -4577,11 +4596,15 @@ function renderQuote(){
   const pg=document.getElementById('page-quote');
   if(!pg) return;
 
-  // 요율 (프로젝트별 저장)
-  const rate    = parseFloat(CUR.exchangeRate||CFG.rate||1380);
-  const mgmtR   = parseFloat(CUR.qMgmtRate  ||(qt==='PCO'?8:15));
-  const profitR = parseFloat(CUR.qProfitRate ||10);
-  const vatR    = parseFloat(CUR.qVatRate    ||10);
+  // 요율: RATES_KEY(별도 localStorage) → CUR → 기본값 순서로 읽음
+  // Supabase syncDown/Realtime에 절대 덮어쓰이지 않음
+  const _savedRates = CUR ? getRatesForProj(CUR.id) : {};
+  const rate    = _savedRates.exchangeRate  ?? parseFloat(CUR.exchangeRate||CFG.rate||1380);
+  const mgmtR   = _savedRates.qMgmtRate    ?? parseFloat(CUR.qMgmtRate  ||(qt==='PCO'?8:15));
+  const profitR = _savedRates.qProfitRate   ?? parseFloat(CUR.qProfitRate ||10);
+  const vatR    = _savedRates.qVatRate      ?? parseFloat(CUR.qVatRate    ||10);
+  // CUR에도 반영해서 계산에 일관되게 사용
+  CUR.exchangeRate=rate; CUR.qMgmtRate=mgmtR; CUR.qProfitRate=profitR; CUR.qVatRate=vatR;
   const versions= CUR.quoteVersions||[];
 
   let html=`
@@ -4625,23 +4648,23 @@ function renderQuote(){
     <div style="display:flex;align-items:center;gap:6px">
       <span style="font-size:11px;color:var(--ink3);white-space:nowrap">KRW/USD</span>
       <input class="fi" type="number" style="width:85px;font-family:var(--fm)" value="${rate}"
-        oninput="upC('exchangeRate',parseFloat(this.value)||1380);updateQCalc()">
+        oninput="saveRate(CUR.id,'exchangeRate',parseFloat(this.value)||1380);upC('exchangeRate',parseFloat(this.value)||1380);updateQCalc()">
     </div>
     <span style="color:var(--bdr)">│</span>
     <div style="display:flex;align-items:center;gap:6px">
       <span style="font-size:11px;color:var(--ink3);white-space:nowrap">${qt==='PCO'?'관리비':'Mgmt.Fee'} %</span>
       <input class="fi" type="number" style="width:60px;font-family:var(--fm)" value="${mgmtR}"
-        oninput="upC('qMgmtRate',parseFloat(this.value)||${qt==='PCO'?8:15});updateQCalc()">
+        oninput="saveRate(CUR.id,'qMgmtRate',parseFloat(this.value)||${qt==='PCO'?8:15});upC('qMgmtRate',parseFloat(this.value)||${qt==='PCO'?8:15});updateQCalc()">
     </div>
     ${qt==='PCO'?`<div style="display:flex;align-items:center;gap:6px">
       <span style="font-size:11px;color:var(--ink3);white-space:nowrap">기업이윤 %</span>
       <input class="fi" type="number" style="width:60px;font-family:var(--fm)" value="${profitR}"
-        oninput="upC('qProfitRate',parseFloat(this.value)||10);updateQCalc()">
+        oninput="saveRate(CUR.id,'qProfitRate',parseFloat(this.value)||10);upC('qProfitRate',parseFloat(this.value)||10);updateQCalc()">
     </div>`:''}
     <div style="display:flex;align-items:center;gap:6px">
       <span style="font-size:11px;color:var(--ink3);white-space:nowrap">${qt==='PCO'?'VAT':'Tax'} %</span>
       <input class="fi" type="number" style="width:60px;font-family:var(--fm)" value="${vatR}"
-        oninput="upC('qVatRate',parseFloat(this.value)||10);updateQCalc()">
+        oninput="saveRate(CUR.id,'qVatRate',parseFloat(this.value)||10);upC('qVatRate',parseFloat(this.value)||10);updateQCalc()">
     </div>
     <button class="btn bd btn-sm" style="margin-left:auto;font-size:10.5px" onclick="importFromSched()">📅 ${L('일정가져오기','From Schedule')}</button>
   </div></div>`;
@@ -5057,9 +5080,12 @@ function addQItemInline(catKey){
 
 /* ── 합계 갱신 (re-render 없이) ── */
 function updateQCalc(){
-  persist(CUR);
   const qt=CUR.quoteType||'DMC';
-  const rate=parseFloat(CUR.exchangeRate||CFG.rate||1380);
+  const _r = CUR ? getRatesForProj(CUR.id) : {};
+  const rate = _r.exchangeRate ?? parseFloat(CUR.exchangeRate||CFG.rate||1380);
+  // CUR에 최신값 반영
+  if(CUR){ CUR.qMgmtRate=_r.qMgmtRate??parseFloat(CUR.qMgmtRate||(qt==='PCO'?8:15)); CUR.qVatRate=_r.qVatRate??parseFloat(CUR.qVatRate||10); CUR.qProfitRate=_r.qProfitRate??parseFloat(CUR.qProfitRate||10); }
+  dp(CUR);  // debounce persist (Supabase에 저장)
   const isPCO=qt==='PCO';
 
   (CUR.qItems||[]).forEach(item=>{
@@ -5814,11 +5840,12 @@ function saveQuoteOverwrite(){
   latest.type=CUR.quoteType;
   latest.lang=CUR.quoteLang;
   latest.savedAt=now();
+  const _r=getRatesForProj(CUR.id);
   latest.rates={
-    exchangeRate:CUR.exchangeRate,
-    qMgmtRate:CUR.qMgmtRate,
-    qProfitRate:CUR.qProfitRate,
-    qVatRate:CUR.qVatRate
+    exchangeRate: _r.exchangeRate ?? CUR.exchangeRate,
+    qMgmtRate:   _r.qMgmtRate    ?? CUR.qMgmtRate,
+    qProfitRate: _r.qProfitRate   ?? CUR.qProfitRate,
+    qVatRate:    _r.qVatRate      ?? CUR.qVatRate
   };
   persist(CUR);
   renderQuote();
@@ -5829,15 +5856,16 @@ function saveQuoteSnapshot(){
   const name=prompt('버전 이름',`v${((CUR.quoteVersions||[]).length+1)} (${new Date().toLocaleDateString('ko-KR')})`);
   if(!name)return;
   if(!CUR.quoteVersions)CUR.quoteVersions=[];
+  const _r=getRatesForProj(CUR.id);
   CUR.quoteVersions.push({
     id:uid(),name,savedAt:now(),
     type:CUR.quoteType,lang:CUR.quoteLang,
     items:JSON.parse(JSON.stringify(CUR.qItems||[])),
     rates:{
-      exchangeRate:CUR.exchangeRate,
-      qMgmtRate:CUR.qMgmtRate,
-      qProfitRate:CUR.qProfitRate,
-      qVatRate:CUR.qVatRate
+      exchangeRate: _r.exchangeRate ?? CUR.exchangeRate,
+      qMgmtRate:   _r.qMgmtRate    ?? CUR.qMgmtRate,
+      qProfitRate: _r.qProfitRate   ?? CUR.qProfitRate,
+      qVatRate:    _r.qVatRate      ?? CUR.qVatRate
     }
   });
   persist(CUR);
@@ -5851,12 +5879,12 @@ function loadQuoteSnapshot(vid){
   CUR.qItems=JSON.parse(JSON.stringify(v.items||[]));
   CUR.quoteType=v.type||CUR.quoteType;
   if(v.lang)CUR.quoteLang=v.lang;
-  // rates 복원
+  // rates 복원: RATES_KEY + CUR 모두 업데이트
   if(v.rates){
-    if(v.rates.exchangeRate!=null) CUR.exchangeRate=v.rates.exchangeRate;
-    if(v.rates.qMgmtRate!=null) CUR.qMgmtRate=v.rates.qMgmtRate;
-    if(v.rates.qProfitRate!=null) CUR.qProfitRate=v.rates.qProfitRate;
-    if(v.rates.qVatRate!=null) CUR.qVatRate=v.rates.qVatRate;
+    if(v.rates.exchangeRate!=null){ saveRate(CUR.id,'exchangeRate',v.rates.exchangeRate); CUR.exchangeRate=v.rates.exchangeRate; }
+    if(v.rates.qMgmtRate!=null){    saveRate(CUR.id,'qMgmtRate',v.rates.qMgmtRate);       CUR.qMgmtRate=v.rates.qMgmtRate; }
+    if(v.rates.qProfitRate!=null){  saveRate(CUR.id,'qProfitRate',v.rates.qProfitRate);   CUR.qProfitRate=v.rates.qProfitRate; }
+    if(v.rates.qVatRate!=null){     saveRate(CUR.id,'qVatRate',v.rates.qVatRate);         CUR.qVatRate=v.rates.qVatRate; }
   }
   persist(CUR);renderQuote();
   toast(`"${v.name}" 불러옴`,'ok');
@@ -6197,10 +6225,13 @@ function setInvLang(l){_invL=l;renderInvoice();}
 
 function renderInvoice(){
   if(!CUR) return;
-  var rate=parseFloat(CUR.exchangeRate||CFG.rate||1380);
   var L=typeof _invL!=='undefined'?_invL:'en';
   var qt=CUR.quoteType||'DMC';
   var isPCO=qt==='PCO';
+
+  // rates: RATES_KEY(별도 localStorage) → CUR → 기본값
+  var _r = getRatesForProj(CUR.id);
+  var rate=_r.exchangeRate ?? parseFloat(CUR.exchangeRate||CFG.rate||1380);
 
   // ── 항목 소스: qItems(신규) 우선, quoteItems(구버전) 폴백
   var rawItems=CUR.qItems&&CUR.qItems.length?CUR.qItems:(CUR.quoteItems||[]);
@@ -6211,11 +6242,13 @@ function renderInvoice(){
   var itemRows='';
 
   if(isNew){
-    // PCO: 소계Ⅰ → 관리비 → 이윤 → VAT → 계
-    // DMC: Sub Total → 관리비 → Tax → Grand Total (USD)
-    var mgmtR=parseFloat(CUR.invMgmtRateOverride!=null?CUR.invMgmtRateOverride:(CUR.qMgmtRate||(isPCO?8:15)));
-    var profitR=parseFloat(CUR.invProfitRateOverride!=null?CUR.invProfitRateOverride:(CUR.qProfitRate||10));
-    var vatR=parseFloat(CUR.invVatRateOverride!=null?CUR.invVatRateOverride:(CUR.qVatRate||10));
+    // rates override (인보이스 설정) → RATES_KEY → CUR → 기본값
+    var mgmtR=CUR.invMgmtRateOverride!=null?CUR.invMgmtRateOverride:
+      (_r.qMgmtRate ?? parseFloat(CUR.qMgmtRate||(isPCO?8:15)));
+    var profitR=CUR.invProfitRateOverride!=null?CUR.invProfitRateOverride:
+      (_r.qProfitRate ?? parseFloat(CUR.qProfitRate||10));
+    var vatR=CUR.invVatRateOverride!=null?CUR.invVatRateOverride:
+      (_r.qVatRate ?? parseFloat(CUR.qVatRate||10));
     var cats=getQCats(qt);
 
     if(isPCO){
