@@ -153,12 +153,33 @@ body{font-family:var(--ff);background:var(--bg);color:var(--ink);height:100vh;ov
 /* TABLE */
 .tw{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--rc);box-shadow:var(--sh);overflow:hidden;margin-bottom:16px}
 table{width:100%;border-collapse:collapse}
-thead th{padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.07em;color:#475569;text-transform:uppercase;background:#F8FAFC;border-bottom:1.5px solid #E2E8F0;text-align:left}
+thead th{padding:9px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;color:#475569;text-transform:uppercase;background:#F8FAFC;border-bottom:1.5px solid #E2E8F0;text-align:left}
 thead th.r{text-align:right}
-tbody td{padding:9px 12px;border-bottom:1px solid var(--bdr);font-size:12px;vertical-align:middle;color:var(--ink2)}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--bdr);font-size:13px;vertical-align:middle;color:var(--ink2);line-height:1.5}
 tbody tr:last-child td{border-bottom:none}
 tbody tr:hover td{background:var(--sur2)}
-tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2);font-size:12px;font-weight:700;color:var(--ink)}
+tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2);font-size:13px;font-weight:700;color:var(--ink)}
+
+/* ── 디자인 일관성: 카드·폼·레이블 ── */
+.card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--rc);padding:16px 18px;margin-bottom:14px}
+.card-t{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.fg{margin-bottom:12px}
+.fl{display:block;font-size:12px;font-weight:600;color:var(--ink3);margin-bottom:5px}
+.fi{width:100%;padding:8px 11px;border:1px solid var(--bdr);border-radius:var(--ra);font-size:13px;font-family:var(--ff);color:var(--ink);background:var(--sur);transition:border-color .13s,background .13s;outline:none;line-height:1.5}
+.fi:focus{border-color:var(--a);background:var(--abg)}
+.fi[readonly]{background:var(--sur2);color:var(--ink3)}
+select.fi{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2364748B' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+
+/* ── 폰트 크기 통일: 섹션 헤더 ── */
+.sec-l{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sec-l::after{content:'';flex:1;height:1px;background:var(--bdr)}
+
+/* ── q-tbl: 산출내역서 전용 테이블 ── */
+.q-tbl{font-size:13px;line-height:1.5}
+.q-tbl thead th{font-size:11px;padding:9px 12px;background:#1E3A5F;color:#fff;text-transform:uppercase;letter-spacing:.06em;border-bottom:none}
+.q-tbl tbody td{padding:8px 12px;font-size:13px;line-height:1.5;border-bottom:1px solid #f1f5f9}
+.q-tbl tfoot td{padding:9px 12px;font-size:13px;font-weight:600;background:#f8fafc;border-top:1px solid #e2e8f0}
+.q-tbl tfoot tr:last-child td{background:#EFF6FF;color:#1E40AF;font-weight:800;font-size:14px}
 .num{text-align:right;font-family:var(--fm)}
 .dp{color:var(--g);font-family:var(--fm);font-weight:600}
 .dn{color:var(--r);font-family:var(--fm);font-weight:600}
@@ -583,7 +604,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
       <div class="tg">
         <span class="tg-lbl">제안</span>
         <div class="tab on" data-tab="projinfo" onclick="goTab('projinfo',this)"> 프로젝트</div>
-        <div class="tab" data-tab="schedule" onclick="goTab('schedule',this)"> 일정</div>
+        <div class="tab" data-tab="schedule" onclick="goTab('schedule',this)"> 프로그램</div>
         <div class="tab" data-tab="quote" onclick="goTab('quote',this)"> 산출내역서</div>
         <div class="tab" data-tab="invoice" onclick="goTab('invoice',this)" style="margin-left:-2px;border-left:none"> 인보이스</div>
         <div class="tab" data-tab="rfp" onclick="goTab('rfp',this)">협력업체 문의</div>
@@ -4553,7 +4574,8 @@ function renderQuote(){
     </div>
     <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn bd btn-sm" onclick="openQCatMgr()">⚙ ${L('카테고리','Category')}</button>
-      <button class="btn bd btn-sm" onclick="saveQuoteSnapshot()">💾 ${L('버전저장','Save Version')}</button>
+      <button class="btn bd btn-sm" onclick="saveQuoteOverwrite()" title="현재 버전에 덮어쓰기">💾 ${L('현재저장','Save')}</button>
+      <button class="btn bp btn-sm" onclick="saveQuoteSnapshot()" title="새 버전으로 저장">+ ${L('새 버전','New Ver')}</button>
       <button class="btn bd btn-sm" onclick="printQuotePDF()">🖨 PDF</button>
       <button class="btn bd btn-sm" onclick="exportQuoteExcel()">📊 Excel</button>
       <button class="btn bp btn-sm" onclick="openAddQItem(null)">+ ${L('항목추가','Add Item')}</button>
@@ -5721,6 +5743,23 @@ function applySvcToItem(itemId, srcId, srcType){
   toast('항목 적용 완료','ok');
 }
 
+function saveQuoteOverwrite(){
+  if(!CUR) return;
+  const versions=CUR.quoteVersions||[];
+  if(!versions.length){
+    // 버전 없으면 새로 만들기
+    saveQuoteSnapshot(); return;
+  }
+  // 가장 최근 버전 덮어쓰기
+  const latest=versions[versions.length-1];
+  latest.items=JSON.parse(JSON.stringify(CUR.qItems||[]));
+  latest.type=CUR.quoteType;
+  latest.lang=CUR.quoteLang;
+  latest.savedAt=now();
+  persist(CUR);
+  renderQuote();
+  toast(`"${latest.name}" 덮어쓰기 완료`,'ok');
+}
 function saveQuoteSnapshot(){if(!CUR)return;const name=prompt('버전 이름',`v${((CUR.quoteVersions||[]).length+1)} (${new Date().toLocaleDateString('ko-KR')})`);if(!name)return;if(!CUR.quoteVersions)CUR.quoteVersions=[];CUR.quoteVersions.push({id:uid(),name,savedAt:now(),type:CUR.quoteType,lang:CUR.quoteLang,items:JSON.parse(JSON.stringify(CUR.qItems||[]))});persist(CUR);renderQuote();toast(`"${name}" 저장됨`,'ok');}
 function loadQuoteSnapshot(vid){if(!confirm('이 버전을 불러올까요?'))return;const v=(CUR.quoteVersions||[]).find(x=>x.id===vid);if(!v)return;CUR.qItems=JSON.parse(JSON.stringify(v.items||[]));CUR.quoteType=v.type||CUR.quoteType;if(v.lang)CUR.quoteLang=v.lang;persist(CUR);renderQuote();toast(`"${v.name}" 불러옴`,'ok');}
 function delQuoteSnapshot(vid){if(!confirm('삭제?'))return;CUR.quoteVersions=(CUR.quoteVersions||[]).filter(x=>x.id!==vid);persist(CUR);renderQuote();toast('삭제됨','ok');}
@@ -6044,9 +6083,9 @@ function renderInvoice(){
   if(isNew){
     // PCO: 소계Ⅰ → 관리비 → 이윤 → VAT → 계
     // DMC: Sub Total → 관리비 → Tax → Grand Total (USD)
-    var mgmtR=parseFloat(CUR.qMgmtRate||(isPCO?8:15));
-    var profitR=parseFloat(CUR.qProfitRate||10);
-    var vatR=parseFloat(CUR.qVatRate||10);
+    var mgmtR=parseFloat(CUR.invMgmtRateOverride!=null?CUR.invMgmtRateOverride:(CUR.qMgmtRate||(isPCO?8:15)));
+    var profitR=parseFloat(CUR.invProfitRateOverride!=null?CUR.invProfitRateOverride:(CUR.qProfitRate||10));
+    var vatR=parseFloat(CUR.invVatRateOverride!=null?CUR.invVatRateOverride:(CUR.qVatRate||10));
     var cats=getQCats(qt);
 
     if(isPCO){
@@ -6295,11 +6334,28 @@ function _renderInvoiceHTML(L, thead, itemRows, tfoot, totUSD, rate){
     // ── 편집 패널 (접이식)
     +'<div style="max-width:740px;margin:16px auto 0"><div class="card">'
     +'<div class="card-t" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px" onclick="(function(){var b=document.getElementById(\'inv-info-body\');var a=document.getElementById(\'inv-info-arrow\');if(b){var open=b.style.display!==\'none\';b.style.display=open?\'none\':\'\';a.textContent=open?\'▼ 열기\':\'▲ 닫기\';}})()">'
-    +'<span>인보이스 추가 정보</span>'
-    +(pm.dep1amt||pm.dep2amt||pm.dep1due||pm.dep2due?'<span style="font-size:10px;background:var(--g);color:#fff;padding:1px 7px;border-radius:99px">입력됨</span>':'')
+    +'<span>인보이스 설정</span>'
+    +(pm.dep1amt||pm.dep2amt||pm.dep1due||pm.dep2due?'<span style="font-size:10px;background:var(--g);color:#fff;padding:1px 7px;border-radius:99px">입금정보 있음</span>':'')
     +'<span id="inv-info-arrow" style="margin-left:auto;font-size:11px;color:var(--ink3)">▼ 열기</span>'
     +'</div>'
     +'<div id="inv-info-body" style="display:none;margin-top:10px">'
+
+    // 수수료/부가세 조정 (산출내역서 값을 기본으로 사용, 인보이스에서 개별 조정 가능)
+    +'<div style="background:var(--sur2);border:1px solid var(--bdr);border-radius:6px;padding:12px 14px;margin-bottom:14px">'
+    +'<div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:10px">수수료 · 부가세 설정 <span style="font-size:10px;font-weight:400;color:var(--ink4)">(산출내역서 값 사용. 인보이스 전용 조정 시 입력)</span></div>'
+    +'<div class="fr3" style="gap:10px">'
+    +'<div class="fg" style="margin:0"><label class="fl">'+(isPCO?'관리비 (%)':'Mgmt Fee (%)')+'</label>'
+    +'<input class="fi" type="number" step="0.1" min="0" placeholder="산출내역서 기본값" value="'+(CUR.invMgmtRateOverride!=null?CUR.invMgmtRateOverride:'')+'" onchange="CUR.invMgmtRateOverride=this.value?parseFloat(this.value):null;persist(CUR);renderInvoice()"></div>'
+    +(isPCO?'<div class="fg" style="margin:0"><label class="fl">이윤 (%)</label>'
+    +'<input class="fi" type="number" step="0.1" min="0" placeholder="산출내역서 기본값" value="'+(CUR.invProfitRateOverride!=null?CUR.invProfitRateOverride:'')+'" onchange="CUR.invProfitRateOverride=this.value?parseFloat(this.value):null;persist(CUR);renderInvoice()"></div>':'')
+    +'<div class="fg" style="margin:0"><label class="fl">'+(isPCO?'VAT (%)':'Tax (%)')+'</label>'
+    +'<input class="fi" type="number" step="0.1" min="0" placeholder="산출내역서 기본값" value="'+(CUR.invVatRateOverride!=null?CUR.invVatRateOverride:'')+'" onchange="CUR.invVatRateOverride=this.value?parseFloat(this.value):null;persist(CUR);renderInvoice()"></div>'
+    +'</div>'
+    +(CUR.invMgmtRateOverride!=null||CUR.invVatRateOverride!=null||CUR.invProfitRateOverride!=null
+      ?'<div style="margin-top:8px"><button class="btn bdr2c btn-sm" style="font-size:11px" onclick="CUR.invMgmtRateOverride=null;CUR.invProfitRateOverride=null;CUR.invVatRateOverride=null;persist(CUR);renderInvoice()">↩ 산출내역서 값으로 초기화</button></div>':''
+    )
+    +'</div>'
+
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">'
     +'<div style="border:1px solid var(--bdr);border-radius:var(--ra);padding:12px"><div style="font-size:11px;font-weight:700;color:var(--a);margin-bottom:8px">1차 선금</div>'
     +'<div class="fr2" style="gap:8px;margin-bottom:6px"><div class="fg" style="margin:0"><label class="fl">금액 (USD)</label><input class="fi" type="number" step="0.01" placeholder="0" value="'+(pm.dep1amt||'')+'" data-f="dep1amt" onchange="setInvPayD(this)"></div>'
@@ -6656,7 +6712,7 @@ function renderSidebar(){
 
   const PROPOSAL_TABS=[
     {key:'projinfo', icon:'📋', label:'프로젝트'},
-    {key:'schedule', icon:'🗓', label:'일정'},
+    {key:'schedule', icon:'🗓', label:'프로그램'},
     {key:'quote',    icon:'💰', label:'견적'},
     {key:'invoice',  icon:'🧾', label:'인보이스'},
     {key:'rfp',      icon:'📋', label:'RFP'},
@@ -6789,7 +6845,7 @@ function renderPreview(){
       </div>
       <div style="padding:32px 40px">
         ${sc.length?`<div style="margin-bottom:32px"><div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:10px"><div style="width:3px;height:18px;background:var(--a);border-radius:2px;flex-shrink:0"></div>${L==='ko'?'여행 일정':'Itinerary'}</div>
-          <div class="tw"><table><thead><tr><th style="width:80px">${L==='ko'?'일정':'Day'}</th><th>${L==='ko'?'프로그램':'Program'}</th></tr></thead><tbody>${schedHTML}</tbody></table></div></div>`
+          <div class="tw"><table><thead><tr><th style="width:80px">${L==='ko'?'프로그램':'Day'}</th><th>${L==='ko'?'프로그램':'Program'}</th></tr></thead><tbody>${schedHTML}</tbody></table></div></div>`
           :`<div class="alert al-i" style="margin-bottom:24px">🗓 일정 탭에서 Day별 프로그램을 입력해주세요.</div>`}
         ${items.length?`<div style="margin-bottom:32px"><div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:10px"><div style="width:3px;height:18px;background:var(--a);border-radius:2px;flex-shrink:0"></div>${L==='ko'?'견적 요약':'Quotation Summary'}</div>
           <div class="tw"><table><thead><tr><th>${L==='ko'?'카테고리':'Category'}</th><th>${L==='ko'?'서비스':'Service'}</th><th class="r">USD</th></tr></thead>
