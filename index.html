@@ -635,6 +635,7 @@ select.fi{appearance:none;-webkit-appearance:none;background-image:url("data:ima
       <div class="page" id="page-projinfo"></div>
       <div class="page" id="page-schedule"></div>
       <div class="page" id="page-quote"></div>
+      <div id="quote-rate-bar" style="display:none"></div>
       <div class="page" id="page-invoice"></div>
       <div class="page" id="page-rfp"></div>
       <div class="page" id="page-contract"></div>
@@ -2404,13 +2405,20 @@ function selProj(id){
   showPage('projinfo'); renderProjInfo();
 }
 
-function showPage(n){document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));document.getElementById('page-'+n)?.classList.add('on');}
+function showPage(n){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById('page-'+n)?.classList.add('on');
+}
 
 function goTab(n,el){
   if(!CUR)return;
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   if(el)el.classList.add('on'); else document.querySelector(`.tab[data-tab="${n}"]`)?.classList.add('on');
   showPage(n);
+  // rate bar는 quote 탭에서만 표시
+  const rb=document.getElementById('quote-rate-bar');
+  if(rb) rb.style.display=(n==='quote'?'':'none');
+  window._curTab=n;
   const fn={projinfo:renderProjInfo,schedule:renderSched,quote:renderQuote,invoice:renderInvoice,rfp:renderRFP,contract:renderContract,preview:renderPreview,checklist:renderCL,tasks:renderTasks,budget:renderBudget,guides:renderGuides,'vendor-settle':renderVendorSettle,'labor-settle':renderLaborSettle,report:renderReport};
   if(fn[n])fn[n]();
   if(n==='projinfo') setTimeout(reloadTeamAssign, 100);
@@ -4621,6 +4629,46 @@ function renderQuote(){
   const vatR    = _qr.qVatRate;
   const versions= CUR.quoteVersions||[];
 
+  // ── rate bar를 별도 div에 렌더 (renderQuote가 다시 그리지 않음) ──
+  const rateBar=document.getElementById('quote-rate-bar');
+  if(rateBar){
+    rateBar.style.display='';
+    // 이미 렌더됐고 _qr 값이 같으면 재렌더 안함 (입력 중인 값 보호)
+    const curMgmt=rateBar.querySelector('#qr-mgmt');
+    const curVat=rateBar.querySelector('#qr-vat');
+    const needRender=!curMgmt || rateBar.dataset.projId!==CUR.id || rateBar.dataset.qt!==qt;
+    if(needRender){
+      rateBar.dataset.projId=CUR.id;
+      rateBar.dataset.qt=qt;
+      rateBar.innerHTML=`<div class="card" style="padding:10px 16px;margin-bottom:12px;border:1.5px solid ${qt==='PCO'?'#38236F':'#1E3A5F'}">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:11px;color:var(--ink3);white-space:nowrap">KRW/USD</span>
+            <input id="qr-exch" class="fi" type="number" style="width:85px;font-family:var(--fm)" value="${_qr.exchangeRate}"
+              oninput="_setQR('exchangeRate',parseFloat(this.value)||1380,CUR?.id);CUR.exchangeRate=_qr.exchangeRate;updateQCalc()">
+          </div>
+          <span style="color:var(--bdr)">│</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:11px;color:var(--ink3);white-space:nowrap">${qt==='PCO'?'관리비':'Mgmt.Fee'} %</span>
+            <input id="qr-mgmt" class="fi" type="number" style="width:60px;font-family:var(--fm)" value="${_qr.qMgmtRate}"
+              oninput="_setQR('qMgmtRate',parseFloat(this.value)||(qt==='PCO'?8:15),CUR?.id);CUR.qMgmtRate=_qr.qMgmtRate;updateQCalc()">
+          </div>
+          ${qt==='PCO'?`<div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:11px;color:var(--ink3);white-space:nowrap">기업이윤 %</span>
+            <input id="qr-profit" class="fi" type="number" style="width:60px;font-family:var(--fm)" value="${_qr.qProfitRate}"
+              oninput="_setQR('qProfitRate',parseFloat(this.value)||10,CUR?.id);CUR.qProfitRate=_qr.qProfitRate;updateQCalc()">
+          </div>`:''}
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:11px;color:var(--ink3);white-space:nowrap">${qt==='PCO'?'VAT':'Tax'} %</span>
+            <input id="qr-vat" class="fi" type="number" style="width:60px;font-family:var(--fm)" value="${_qr.qVatRate}"
+              oninput="_setQR('qVatRate',parseFloat(this.value)||10,CUR?.id);CUR.qVatRate=_qr.qVatRate;updateQCalc()">
+          </div>
+          <button class="btn bd btn-sm" style="margin-left:auto;font-size:10.5px" onclick="importFromSched()">📅 ${L('일정가져오기','From Schedule')}</button>
+        </div>
+      </div>`;
+    }
+  }
+
   let html=`
   <!-- ① 헤더 바 -->
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
@@ -4656,32 +4704,8 @@ function renderQuote(){
     }).join('')}
   </div>`:''}
 
-  <!-- ③ 설정 바 (요율 실시간 편집) -->
-  <div class="card" style="padding:10px 16px;margin-bottom:12px;border:1.5px solid ${qt==='PCO'?'#38236F':'#1E3A5F'}">
-  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:6px">
-      <span style="font-size:11px;color:var(--ink3);white-space:nowrap">KRW/USD</span>
-      <input class="fi" type="number" style="width:85px;font-family:var(--fm)" value="${_qr.exchangeRate}"
-        oninput="_setQR('exchangeRate',parseFloat(this.value)||1380,CUR?.id);CUR.exchangeRate=_qr.exchangeRate;updateQCalc()">
-    </div>
-    <span style="color:var(--bdr)">│</span>
-    <div style="display:flex;align-items:center;gap:6px">
-      <span style="font-size:11px;color:var(--ink3);white-space:nowrap">${qt==='PCO'?'관리비':'Mgmt.Fee'} %</span>
-      <input class="fi" type="number" style="width:60px;font-family:var(--fm)" value="${_qr.qMgmtRate}"
-        oninput="_setQR('qMgmtRate',parseFloat(this.value)||(qt==='PCO'?8:15),CUR?.id);CUR.qMgmtRate=_qr.qMgmtRate;updateQCalc()">
-    </div>
-    ${qt==='PCO'?`<div style="display:flex;align-items:center;gap:6px">
-      <span style="font-size:11px;color:var(--ink3);white-space:nowrap">기업이윤 %</span>
-      <input class="fi" type="number" style="width:60px;font-family:var(--fm)" value="${_qr.qProfitRate}"
-        oninput="_setQR('qProfitRate',parseFloat(this.value)||10,CUR?.id);CUR.qProfitRate=_qr.qProfitRate;updateQCalc()">
-    </div>`:''}
-    <div style="display:flex;align-items:center;gap:6px">
-      <span style="font-size:11px;color:var(--ink3);white-space:nowrap">${qt==='PCO'?'VAT':'Tax'} %</span>
-      <input class="fi" type="number" style="width:60px;font-family:var(--fm)" value="${_qr.qVatRate}"
-        oninput="_setQR('qVatRate',parseFloat(this.value)||10,CUR?.id);CUR.qVatRate=_qr.qVatRate;updateQCalc()">
-    </div>
-    <button class="btn bd btn-sm" style="margin-left:auto;font-size:10.5px" onclick="importFromSched()">📅 ${L('일정가져오기','From Schedule')}</button>
-  </div></div>`;
+  <!-- ③ 내용 -->
+  `;
 
   html += qt==='PCO' ? renderPCOTable(lang) : renderDMCTable(lang);
   pg.innerHTML = html;
