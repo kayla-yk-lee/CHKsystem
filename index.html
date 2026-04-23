@@ -590,7 +590,7 @@ tfoot td{padding:9px 12px;background:var(--sur2);border-top:1px solid var(--bdr2
         <div class="tab" data-tab="contract" onclick="goTab('contract',this)"> 계약서</div>
         <div class="tab" data-tab="preview" onclick="goTab('preview',this)"> 미리보기</div>
       </div>
-      <div class="tg" id="ops-tg" style="opacity:.35;pointer-events:none">
+      <div class="tg" id="ops-tg">
         <span class="tg-lbl">운영</span>
         <div class="tab" data-tab="checklist" onclick="goTab('checklist',this)"> 체크리스트<span class="tb-bdg" id="cl-bdg">0</span></div>
         <div class="tab" data-tab="tasks" onclick="goTab('tasks',this)"> 업무분장</div>
@@ -2290,10 +2290,8 @@ function selProj(id){
     <span class="chip cn">${h(CUR.origin||'—')}</span>
     <span class="chip cn">CHK ${h(CUR.salesperson)}</span>`;
   const tb=document.getElementById('tabbar'); tb.style.display='flex';
-  const isOps=sts(CUR.status).ops;
   const og=document.getElementById('ops-tg');
-  og.style.opacity=isOps?'1':'.35'; og.style.pointerEvents=isOps?'auto':'none';
-  og.title=isOps?'':'수주 후 활성화됩니다';
+  og.style.opacity='1'; og.style.pointerEvents='auto'; og.title='';
   const uc=(CUR.checklist||[]).filter(c=>!c.done&&dday(c.dueDate)<=3).length;
   const bdg=document.getElementById('cl-bdg'); bdg.textContent=uc; bdg.style.display=uc?'inline':'none';
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
